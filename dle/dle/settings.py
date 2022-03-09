@@ -18,7 +18,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
 
-ALLOWED_HOSTS = ['34.218.101.115']
+ALLOWED_HOSTS = ['34.218.101.115', 'druglabelexplorer.org']
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/

@@ -166,7 +166,7 @@ Require all granted
 
 WSGIScriptAlias / /home/ec2-user/django/dle/dle/dle/wsgi.py
 
-WSGIDaemonProcess dle python-home=/home/ec2-user/django/venv python-path=/home/ec2-user/django/dle
+WSGIDaemonProcess dle python-home=/home/ec2-user/django/venv python-path=/home/ec2-user/django/dle/dle
 WSGIProcessGroup dle
 
 # doesn't use this with daemon mode
@@ -196,6 +196,7 @@ python manage.py collectstatic
 sudo usermod -a -G apache ec2-user
 sudo chown -R ec2-user:apache /home/ec2-user/django
 sudo chmod 2775 /home/ec2-user/django && find /home/ec2-user/django -type d -exec sudo chmod 2775 {} \;
+### DONT DO THIS, it messes up the venv/bin
 find /home/ec2-user/django -type f -exec sudo chmod 0664 {} \;
 ```
 
@@ -346,4 +347,12 @@ Ref:
 
 https://docs.djangoproject.com/en/4.0/ref/databases/
 
+Document root
+chown :apache /home/ec2-user
+sudo chmod 755 /home/ec2-user
+added WSGIPythonHome in httpd.conf
+
+issue with venv permissions, delete and recreate
+
+http://druglabelexplorer.org/search/
 
