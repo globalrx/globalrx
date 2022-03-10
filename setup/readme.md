@@ -356,3 +356,113 @@ issue with venv permissions, delete and recreate
 
 http://druglabelexplorer.org/search/
 
+sudo systemctl start httpd && sudo systemctl enable httpd
+
+# SSL / TLS setup
+sudo yum install mod_ssl -y
+# our domain is: druglabelexplorer.org
+# ssl.conf is here: /etc/httpd/conf.d/ssl.conf
+cd /etc/pki/tls/certs
+sudo ./make-dummy-cert localhost.crt
+
+# certbot for Let's Encrypt SSL cert
+sudo yum install python2-certbot-apache.noarch -y
+
+sudo certbot --apache
+
+______
+
+
+http://druglabelexplorer.org/search/
+
+
+# needs virtal host setup on port 80 first
+
+
+# needs Apache running first
+sudo certbot --apache -d druglabelexplorer.org -d www.druglabelexplorer.org -m druglabelexplorer@gmail.com -n --agree-tos
+
+# copy our Apache conf file
+cp dle.conf /etc/httpd/conf.d/dle.conf
+
+sudo cp /etc/httpd/conf.d/ssl.conf ~/
+
+mpm.prefork, won't do
+
+/etc/httpd/conf.d/ssl.conf
+
+/etc/httpd/conf/httpd.conf
+
+/etc/httpd/conf.d/dle.conf
+
+changed mpm in /etc/httpd/conf.modules.d/00-mpm.conf
+
+sudo tail -n 100 /var/log/httpd/error_log
+
+
+/etc/pki/tls/certs/localhost.crt
+/etc/pki/tls/private/localhost.key
+
+logs/ssl_error_log
+
+- - - -
+
+Created an SSL vhost at /etc/httpd/conf.d/dle-le-ssl.conf
+Deploying Certificate to VirtualHost /etc/httpd/conf.d/dle-le-ssl.conf
+Deploying Certificate to VirtualHost /etc/httpd/conf.d/dle-le-ssl.conf
+Redirecting vhost in /etc/httpd/conf.d/dle.conf to ssl vhost in /etc/httpd/conf.d/dle-le-ssl.conf
+
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+Congratulations! You have successfully enabled https://druglabelexplorer.org and
+https://www.druglabelexplorer.org
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+IMPORTANT NOTES:
+ - Congratulations! Your certificate and chain have been saved at:
+   /etc/letsencrypt/live/druglabelexplorer.org/fullchain.pem
+   Your key file has been saved at:
+   /etc/letsencrypt/live/druglabelexplorer.org/privkey.pem
+   Your certificate will expire on 2022-06-07. To obtain a new or
+   tweaked version of this certificate in the future, simply run
+   certbot again with the "certonly" option. To non-interactively
+   renew *all* of your certificates, run "certbot renew"
+
+_____
+
+Mar 10 00:17:16 ip-172-31-30-127.us-west-2.compute.internal httpd[6552]: AH00526: Syntax error on line 392 of /etc/httpd/conf/httpd.conf:
+Mar 10 00:17:16 ip-172-31-30-127.us-west-2.compute.internal httpd[6552]: Cannot define multiple Listeners on the same IP:port
+
+did certbot do that?
+
+# comment it out
+#<IfModule mod_ssl.c>
+#Listen 443
+#</IfModule>
+
+https://eff-certbot.readthedocs.io/en/stable/using.html
+
+https://aws.amazon.com/blogs/compute/extending-amazon-linux-2-with-epel-and-lets-encrypt/
+
+maybe httpd.conf or ssl.conf needs to be changed
+
+_____
+
+need to setup:
+
+sudo certbot renew --dry-run
+
+_____
+
+https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/SSL-on-amazon-linux-2.html
+
+https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-application-load-balancer.html
+
+______
+
+sudo yum install -y mod_ssl
+cd /etc/pki/tls/certs
+sudo ./make-dummy-cert localhost.crt
+
+# had to comment out this in ssl.conf
+#SSLCertificateKeyFile /etc/pki/tls/private/localhost.key
+
