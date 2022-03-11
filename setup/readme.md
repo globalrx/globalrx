@@ -466,3 +466,42 @@ sudo ./make-dummy-cert localhost.crt
 # had to comment out this in ssl.conf
 #SSLCertificateKeyFile /etc/pki/tls/private/localhost.key
 
+_____
+
+# MariaDB setup notes
+
+# this 'should' allow to connect to MariaDB after we setup the user and password
+mysql --user=dle_user --password=uDyvfMXHIKCJ --host=44.238.69.61 --port=3306 dle
+
+# this works for root user before setting a pw
+sudo mysql --user=root --password=''
+
+# setup the db user
+DROP USER IF EXISTS dle_user;
+DROP DATABASE IF EXISTS dle;
+CREATE DATABASE dle DEFAULT CHARACTER SET UTF8;
+CREATE USER 'dle_user'@'%' IDENTIFIED BY 'uDyvfMXHIKCJ';
+GRANT ALL PRIVILEGES ON dle.* TO 'dle_user'@'%';
+FLUSH PRIVILEGES;
+
+# can use private IP address from "in network computer"
+mysql --user=dle_user --password=uDyvfMXHIKCJ --host=172.31.56.135 --port=3306 dle
+
+ref:
+
+[setup Django to use TLS](https://stackoverflow.com/q/4323737/1807627)
+[setup MariaDB to use TLS](https://mariadb.com/kb/en/securing-connections-for-client-and-server/)
+
+# enable TLS for db traffic *** Not doing this yet, using private network IP
+/etc/my.cnf
+```
+[mariadb]
+...
+tls_version = TLSv1.2,TLSv1.3
+ssl_cert = /etc/my.cnf.d/certificates/server-cert.pem
+ssl_key = /etc/my.cnf.d/certificates/server-key.pem
+ssl_ca = /etc/my.cnf.d/certificates/ca.pem
+```
+# file settings for db encryption at rest
+/etc/my.cnf.d/enable_encryption.preset
+
