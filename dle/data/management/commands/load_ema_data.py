@@ -6,10 +6,10 @@ EMA_DATA_URL = "https://www.ema.europa.eu/en/medicines/field_ema_web_categories%
 
 # 3 sample data urls/pdfs for testing
 SAMPLE_1 = "https://www.ema.europa.eu/en/medicines/human/EPAR/skilarence"
-PDF_1 = "https://www.ema.europa.eu/documents/assessment-report/skilarence-epar-public-assessment-report_en.pdf"
+PDF_1 = "https://www.ema.europa.eu/en/documents/product-information/skilarence-epar-product-information_en.pdf"
 
 SAMPLE_2 = "https://www.ema.europa.eu/en/medicines/human/EPAR/lyrica"
-PDF_2 = "https://www.ema.europa.eu/documents/variation-report/lyrica-h-c-546-p46-0051-epar-assessment-report_en.pdf"
+PDF_2 = "https://www.ema.europa.eu/documents/product-information/lyrica-epar-product-information_en.pdf"
 
 SAMPLE_3 = "https://www.ema.europa.eu/en/medicines/human/EPAR/ontilyv"
 PDF_3 = "https://www.ema.europa.eu/documents/product-information/ontilyv-epar-product-information_en.pdf"
