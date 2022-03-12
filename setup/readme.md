@@ -1,6 +1,4 @@
 
-## WIP
-
 ### Drug Label Explorer Setup
 
 #### DNS
@@ -46,205 +44,19 @@ chmod 600 dle-dev.pem
 ssh -i dle-dev.pem ec2-user@34.218.101.115
 ```
 
-##### Basic Django Linux server installation
+##### [Basic Django Linux server installation](./server_instance_setup.sh)
+
+##### Apache help notes
 
 ```
-# need Python 3.8, 3.9 or 3.10 for Django 4.0
-# running on Amazon Linux 2 box
-# running as ec2-user
-
-# installing python3.8 from amazon-linux-extras
-sudo yum update -y
-sudo amazon-linux-extras enable python3.8
-sudo yum install python3.8 -y
-sudo yum install python38-devel -y
-
-# links python3.8 to python3 command
-sudo update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 1
-
-# setup the virtualenv
-python3 -m venv django/venv
-
-# activate the virtualenv
-source ~/django/venv/bin/activate
-
-# automatically activate virtualenv on admin sign-in
-echo "source ${HOME}/django/venv/bin/activate" >> ${HOME}/.bashrc
-
-# install python packages
-# TODO use the requirements.txt
-# pip install -r requirements.txt
-pip3 install numpy
-pip3 install requests
-pip3 install Django==4.0.2
-
-# deactivate the virtualenv
-deactivate
-
-# Install Apache
-sudo yum install httpd -y
-sudo yum install httpd-devel -y
-
-# install mod_wsgi, needs devel versions of python and apache
-sudo yum install gcc -y
-wget https://github.com/GrahamDumpleton/mod_wsgi/archive/refs/tags/4.9.0.tar.gz
-tar -xzf 4.9.0.tar.gz
-cd mod_wsgi-4.9.0
-./configure --with-python=/usr/bin/python3.8
-sudo make install
-make clean
-cd ~/
-sudo rm -rf mod_wsgi-4.9.0
-rm 4.9.0.tar.gz
-
-# update httpd.conf
-# TODO load this file differently + will have more configurations
-sudo vi /etc/httpd/conf/httpd.conf
-# inserted on line 58
-LoadModule wsgi_module modules/mod_wsgi.so
-# esc : wq enter
-
-# start apache
-sudo service httpd start
-
-# test apache
-# apache error log: sudo cat /var/log/httpd/error_log
-# sudo vi /var/www/html/index.html
-# insert "Hello World!"
-# TODO update permissions
-http://34.218.101.115/
-http://druglabelexplorer.org/
-http://www.druglabelexplorer.org/
-
+sudo apachectl configtest # tests for typos in the Apache config
+sudo tail -n 100 /var/log/httpd/error_log # apache error log
+sudo tail -n 100 /var/log/httpd/ssl_error_log # ssl error log
 ```
 
-Ref:
-
-[Django Quick Install Guide](https://docs.djangoproject.com/en/4.0/intro/install/)
-
-[How to Install Django](https://docs.djangoproject.com/en/4.0/topics/install/)
-
-[Python Installation](https://techviewleo.com/how-to-install-python-on-amazon-linux/)
-
-[virtualenv setup](https://aws.amazon.com/premiumsupport/knowledge-center/ec2-linux-python3-boto3/)
-
-[mod_wsgi installation](https://modwsgi.readthedocs.io/en/develop/user-guides/quick-installation-guide.html)
-
-#### Setup our Application
-
-> Need to move this earlier in the flow, grab the requirements.txt and httpd, etc from the repo
-
-```
-sudo yum install git -y
-
-mkdir django # this dir already exists
-cd django
-git clone https://github.com/DrugLabelExplorer/dle.git
-cd dle
-# git checkout ky/create-search-form
-
-# our repo is here: /home/ec2-user/django/dle/
-# our venv is here: /home/ec2-user/django/venv/
-
-sudo vi /etc/httpd/conf/httpd.conf
-
-# added at line 161:
-
-Alias /robots.txt /home/ec2-user/django/dle/static/robots.txt
-Alias /favicon.ico /home/ec2-user/django/dle/static/favicon.ico
-
-Alias /media/ /home/ec2-user/django/dle/media/
-Alias /static/ /home/ec2-user/django/dle/static/
-
-<Directory /home/ec2-user/django/dle/static>
-Require all granted
-</Directory>
-
-<Directory /home/ec2-user/django/dle/media>
-Require all granted
-</Directory>
-
-WSGIScriptAlias / /home/ec2-user/django/dle/dle/dle/wsgi.py
-
-WSGIDaemonProcess dle python-home=/home/ec2-user/django/venv python-path=/home/ec2-user/django/dle/dle
-WSGIProcessGroup dle
-
-# doesn't use this with daemon mode
-# WSGIPythonHome /home/ec2-user/django/venv
-# WSGIPythonPath /home/ec2-user/django/dle
-
-<Directory /home/ec2-user/django/dle/dle >
-<Files wsgi.py>
-Require all granted
-</Files>
-</Directory>
-
-```
-in settings.py
-import os
-STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
-# need to overwrite this line
-ALLOWED_HOSTS = ['34.218.101.115']
-
-python manage.py makemigrations
-python manage.py migrate
-python manage.py collectstatic
-
-
-```
-# set file permissions
-sudo usermod -a -G apache ec2-user
-sudo chown -R ec2-user:apache /home/ec2-user/django
-sudo chmod 2775 /home/ec2-user/django && find /home/ec2-user/django -type d -exec sudo chmod 2775 {} \;
-### DONT DO THIS, it messes up the venv/bin
-find /home/ec2-user/django -type f -exec sudo chmod 0664 {} \;
-```
-
-https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
-
-sudo service httpd restart
-
-        SSLCertificateFile /etc/letsencrypt/live/tester.com/cert.pem
-        SSLCertificateKeyFile /etc/letsencrypt/live/tester.com/privkey.pem
-        Include /etc/letsencrypt/options-ssl-apache.conf
-        SSLCertificateChainFile /etc/letsencrypt/live/tester.com/chain.pem
-
-sudo apachectl configtest
-
-# TODO
-```
-# install mysql client on application server
-
-```
-Using MariaDB 10.6
-
-for the amazon-linux-2/x86
-```
-cat > MariaDB.repo <<EOF
-# MariaDB 10.6 CentOS repository list
-# https://mariadb.org/download/
-[mariadb]
-name = MariaDB
-baseurl = https://mirrors.gigenet.com/mariadb/yum/10.6/centos7-amd64
-gpgkey=https://mirrors.gigenet.com/mariadb/yum/RPM-GPG-KEY-MariaDB
-gpgcheck=1
-EOF
-sudo chown root:root MariaDB.repo
-sudo mv MariaDB.repo /etc/yum.repos.d/MariaDB.repo
-sudo yum makecache 
-sudo yum install MariaDB-server MariaDB-client -y
-
-pip install mysqlclient
-```
 ______
 
 #### Setup database server
-
-##### Using Maria DB
-
-https://docs.djangoproject.com/en/4.0/ref/databases/
-
-______
 
 Maria DB Instance
 
@@ -265,234 +77,35 @@ Launch Instance
 
 Associate Elastic IP address
 
-Login to instance
+##### [Maria DB Server Setup](./db_instance_setup.sh)
 
-# setup db instance
-Amazon Linux 2 AMI - arm
+##### connect to db - Django
+
+Update settings.py to match server
 ```
-sudo yum update -y
-cat > MariaDB.repo <<EOF
-# MariaDB 10.6 CentOS repository list
-# https://mariadb.org/download/
-[mariadb]
-name = MariaDB
-baseurl = https://mirrors.gigenet.com/mariadb/yum/10.6/centos7-aarch64
-gpgkey=https://mirrors.gigenet.com/mariadb/yum/RPM-GPG-KEY-MariaDB
-gpgcheck=1
-EOF
-sudo chown root:root MariaDB.repo
-sudo mv MariaDB.repo /etc/yum.repos.d/MariaDB.repo
-sudo yum makecache 
-sudo yum install MariaDB-server MariaDB-client -y
-```
-
-```
-sudo systemctl start mariadb
-sudo systemctl enable mariadb
-
-# simulate: sudo mariadb-secure-installation
-
-# maybe works?
-sudo mysql --user=root --password='' <<EOF
-/* set root password */
-UPDATE mysql.user SET Password=PASSWORD('MaryHadALittleLamb1!') WHERE User='root';
-/* delete anonymous users */
-DELETE FROM mysql.user WHERE User='';
-/* root user cannot login remotely */
-DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
-/* drop test database */
-DROP DATABASE test;
-DELETE FROM mysql.db WHERE Db='test' OR Db='test\_%';
-/* flush privileges */
-FLUSH PRIVILEGES;
-EOF
-
-
-DROP USER IF EXISTS dle_user;
-DROP DATABASE IF EXISTS dle;
-CREATE DATABASE dle DEFAULT CHARACTER SET UTF8;
-CREATE USER 'dle_user'@'localhost' IDENTIFIED BY 'uDyvfMXHIKCJ';
-GRANT ALL PRIVILEGES ON dle.* TO 'dle_user'@'localhost';
-FLUSH PRIVILEGES;
-
-```
-
-update settings.py
-
     'default': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'dle',
         'USER': 'dle_user',
         'PASSWORD': 'uDyvfMXHIKCJ',
-        'HOST': '44.238.69.61',   # Or an IP Address that your DB is hosted on
+        'HOST': '44.238.69.61',
         'PORT': '3306',
     }
+```
 
-Need to update my.cnf
-
-https://mariadb.com/kb/en/configuring-mariadb-for-remote-client-access/
-
-
-### Setup a Maria DB Instance using ColumnStore Storage Engine
-
-Ref: 
-
-[Installing MariaDB with yum](https://mariadb.com/kb/en/yum/)
-
-[Install MariaDB 10.7 on Amazon Linux 2](https://techviewleo.com/how-to-install-mariadb-server-on-amazon-linux/)
-
-[MySQL Secure Install Script](https://bertvv.github.io/notes-to-self/2015/11/16/automating-mysql_secure_installation/)
-
-[Configure SSL/TLS on Amazon Linux 2](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/SSL-on-amazon-linux-2.html)
-
-https://docs.djangoproject.com/en/4.0/ref/databases/
-
-Document root
-chown :apache /home/ec2-user
-sudo chmod 755 /home/ec2-user
-added WSGIPythonHome in httpd.conf
-
-issue with venv permissions, delete and recreate
-
-http://druglabelexplorer.org/search/
-
-sudo systemctl start httpd && sudo systemctl enable httpd
-
-# SSL / TLS setup
-sudo yum install mod_ssl -y
-# our domain is: druglabelexplorer.org
-# ssl.conf is here: /etc/httpd/conf.d/ssl.conf
-cd /etc/pki/tls/certs
-sudo ./make-dummy-cert localhost.crt
-
-# certbot for Let's Encrypt SSL cert
-sudo yum install python2-certbot-apache.noarch -y
-
-sudo certbot --apache
-
-______
-
-
-http://druglabelexplorer.org/search/
-
-
-# needs virtal host setup on port 80 first
-
-
-# needs Apache running first
-sudo certbot --apache -d druglabelexplorer.org -d www.druglabelexplorer.org -m druglabelexplorer@gmail.com -n --agree-tos
-
-# copy our Apache conf file
-cp dle.conf /etc/httpd/conf.d/dle.conf
-
-sudo cp /etc/httpd/conf.d/ssl.conf ~/
-
-mpm.prefork, won't do
-
-/etc/httpd/conf.d/ssl.conf
-
-/etc/httpd/conf/httpd.conf
-
-/etc/httpd/conf.d/dle.conf
-
-changed mpm in /etc/httpd/conf.modules.d/00-mpm.conf
-
-sudo tail -n 100 /var/log/httpd/error_log
-
-
-/etc/pki/tls/certs/localhost.crt
-/etc/pki/tls/private/localhost.key
-
-logs/ssl_error_log
-
-- - - -
-
-Created an SSL vhost at /etc/httpd/conf.d/dle-le-ssl.conf
-Deploying Certificate to VirtualHost /etc/httpd/conf.d/dle-le-ssl.conf
-Deploying Certificate to VirtualHost /etc/httpd/conf.d/dle-le-ssl.conf
-Redirecting vhost in /etc/httpd/conf.d/dle.conf to ssl vhost in /etc/httpd/conf.d/dle-le-ssl.conf
-
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-Congratulations! You have successfully enabled https://druglabelexplorer.org and
-https://www.druglabelexplorer.org
-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-IMPORTANT NOTES:
- - Congratulations! Your certificate and chain have been saved at:
-   /etc/letsencrypt/live/druglabelexplorer.org/fullchain.pem
-   Your key file has been saved at:
-   /etc/letsencrypt/live/druglabelexplorer.org/privkey.pem
-   Your certificate will expire on 2022-06-07. To obtain a new or
-   tweaked version of this certificate in the future, simply run
-   certbot again with the "certonly" option. To non-interactively
-   renew *all* of your certificates, run "certbot renew"
-
-_____
-
-Mar 10 00:17:16 ip-172-31-30-127.us-west-2.compute.internal httpd[6552]: AH00526: Syntax error on line 392 of /etc/httpd/conf/httpd.conf:
-Mar 10 00:17:16 ip-172-31-30-127.us-west-2.compute.internal httpd[6552]: Cannot define multiple Listeners on the same IP:port
-
-did certbot do that?
-
-# comment it out
-#<IfModule mod_ssl.c>
-#Listen 443
-#</IfModule>
-
-https://eff-certbot.readthedocs.io/en/stable/using.html
-
-https://aws.amazon.com/blogs/compute/extending-amazon-linux-2-with-epel-and-lets-encrypt/
-
-maybe httpd.conf or ssl.conf needs to be changed
-
-_____
-
-need to setup:
-
-sudo certbot renew --dry-run
-
-_____
-
-https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/SSL-on-amazon-linux-2.html
-
-https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-application-load-balancer.html
-
-______
-
-sudo yum install -y mod_ssl
-cd /etc/pki/tls/certs
-sudo ./make-dummy-cert localhost.crt
-
-# had to comment out this in ssl.conf
-#SSLCertificateKeyFile /etc/pki/tls/private/localhost.key
-
-_____
-
-# MariaDB setup notes
-
+##### connect to db - cli
+```
 # this 'should' allow to connect to MariaDB after we setup the user and password
 mysql --user=dle_user --password=uDyvfMXHIKCJ --host=44.238.69.61 --port=3306 dle
 
 # this works for root user before setting a pw
 sudo mysql --user=root --password=''
 
-# setup the db user
-DROP USER IF EXISTS dle_user;
-DROP DATABASE IF EXISTS dle;
-CREATE DATABASE dle DEFAULT CHARACTER SET UTF8;
-CREATE USER 'dle_user'@'%' IDENTIFIED BY 'uDyvfMXHIKCJ';
-GRANT ALL PRIVILEGES ON dle.* TO 'dle_user'@'%';
-FLUSH PRIVILEGES;
-
 # can use private IP address from "in network computer"
 mysql --user=dle_user --password=uDyvfMXHIKCJ --host=172.31.56.135 --port=3306 dle
+```
 
-ref:
-
-[setup Django to use TLS](https://stackoverflow.com/q/4323737/1807627)
-[setup MariaDB to use TLS](https://mariadb.com/kb/en/securing-connections-for-client-and-server/)
-
-# enable TLS for db traffic *** Not doing this yet, using private network IP
+##### enable TLS for db traffic *** Not doing this yet, using private network IP
 /etc/my.cnf
 ```
 [mariadb]
@@ -504,4 +117,43 @@ ssl_ca = /etc/my.cnf.d/certificates/ca.pem
 ```
 # file settings for db encryption at rest
 /etc/my.cnf.d/enable_encryption.preset
+
+______
+
+References: 
+
+[Django Quick Install Guide](https://docs.djangoproject.com/en/4.0/intro/install/)
+
+[How to Install Django](https://docs.djangoproject.com/en/4.0/topics/install/)
+
+[Python Installation](https://techviewleo.com/how-to-install-python-on-amazon-linux/)
+
+[virtualenv setup](https://aws.amazon.com/premiumsupport/knowledge-center/ec2-linux-python3-boto3/)
+
+[mod_wsgi installation](https://modwsgi.readthedocs.io/en/develop/user-guides/quick-installation-guide.html)
+
+[setup Django to use TLS](https://stackoverflow.com/q/4323737/1807627)
+
+[setup MariaDB to use TLS](https://mariadb.com/kb/en/securing-connections-for-client-and-server/)
+
+[Installing MariaDB with yum](https://mariadb.com/kb/en/yum/)
+
+[Install MariaDB 10.7 on Amazon Linux 2](https://techviewleo.com/how-to-install-mariadb-server-on-amazon-linux/)
+
+[MySQL Secure Install Script](https://bertvv.github.io/notes-to-self/2015/11/16/automating-mysql_secure_installation/)
+
+[Configure SSL/TLS on Amazon Linux 2](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/SSL-on-amazon-linux-2.html)
+
+[Using Lets Encrypt on Amazon Linux 2](https://aws.amazon.com/blogs/compute/extending-amazon-linux-2-with-epel-and-lets-encrypt/)
+
+[Using CertBot](https://eff-certbot.readthedocs.io/en/stable/using.html)
+
+[ELB](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-application-load-balancer.html)
+
+_____
+
+TODO: https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
+
+_____
+
 
