@@ -8,6 +8,6 @@ class DrugLabel(models.Model):
         ('FDA', 'USA - Federal Drug Administration'),
         ('EMA', 'EU - European Medicines Agency'),
     ]
-    label_source = models.CharField(max_length=3, choices=LABEL_SOURCES)
+    label_source = models.CharField(max_length=3, choices=LABEL_SOURCES, db_index=True)
     label_raw = models.TextField()
-    label_date = models.DateField()
+    label_date = models.DateField(db_index=True)
