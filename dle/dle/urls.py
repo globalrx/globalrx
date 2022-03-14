@@ -14,8 +14,18 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.http import HttpRequest
+from django.urls import path, include
+from django.shortcuts import redirect
+
+
+def redirect_from_root_view(request: HttpRequest):
+    """Redirects requests to rootpath to the search endpoint."""
+    return redirect("/search")
+
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path("admin/", admin.site.urls),
+    path("", redirect_from_root_view),
+    path("search/", include("search.urls")),
 ]
