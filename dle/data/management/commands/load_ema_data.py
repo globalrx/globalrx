@@ -1,6 +1,9 @@
 from django.core.management.base import BaseCommand, CommandError
-from data.models import DrugLabel
+from data.models import DrugLabel, LabelProduct, ProductSection
 import datetime
+import requests
+import PyPDF2
+from io import BytesIO
 
 EMA_DATA_URL = "https://www.ema.europa.eu/en/medicines/field_ema_web_categories%253Aname_field/Human/ema_group_types/ema_medicine"
 
@@ -15,14 +18,6 @@ SAMPLE_3 = "https://www.ema.europa.eu/en/medicines/human/EPAR/ontilyv"
 PDF_3 = "https://www.ema.europa.eu/documents/product-information/ontilyv-epar-product-information_en.pdf"
 
 PDFS = [PDF_1, PDF_2, PDF_3]
-
-# assess different pdf libs:
-# pdfminer: `pip install pdfminer.six`, https://pdfminersix.readthedocs.io/en/latest/
-# pypdf2: `pip install pypdf2`, https://github.com/mstamy2/PyPDF2
-
-import requests
-import PyPDF2
-from io import BytesIO
 
 # runs with `python manage.py load_ema_data`
 class Command(BaseCommand):
@@ -56,14 +51,39 @@ class Command(BaseCommand):
         today = datetime.date.today()
         self.stdout.write(f"today: {today}")
 
-        new_drug_label = DrugLabel(label_source="EMA", label_raw=text, label_date=today)
-        new_drug_label.save()
+        self.load_fake_drug_label()
 
         self.stdout.write(self.style.SUCCESS("Success"))
 
     def load_fake_drug_label(self):
         # For now, just loading one dummy-label
-        new_drug_label = DrugLabel(
-            label_source="EMA", label_raw="Fake raw label text", label_date="2022-03-11"
+        dl = DrugLabel(
+            source='EMA',
+            product_name='Diffusia',
+            generic_name='lorem ipsem',
+            version_date='2022-03-15',
+            source_product_number='ABC-123-DO-RE-ME',
+            raw_text='Fake raw label text',
+            marketer='Landau Pharma',
         )
-        new_drug_label.save()
+        dl.save()
+        lp = LabelProduct(drug_label=dl)
+        lp.save()
+        ps = ProductSection(
+            label_product=lp,
+            section_name='INDICATIONS',
+            section_text='Cures cognitive deficit disorder'
+        )
+        ps.save()
+        ps = ProductSection(
+            label_product=lp,
+            section_name='WARN',
+            section_text='May cause x, y, z'
+        )
+        ps.save()
+        ps = ProductSection(
+            label_product=lp,
+            section_name='PREG',
+            section_text='Good to go'
+        )
+        ps.save()
