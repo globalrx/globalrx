@@ -1,8 +1,11 @@
 from django.core.management.base import BaseCommand, CommandError
 from data.models import DrugLabel, LabelProduct, ProductSection
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
+from django.conf import settings
 import datetime
 import requests
-import PyPDF2
+import fitz # PyMuPDF
 from io import BytesIO
 
 EMA_DATA_URL = "https://www.ema.europa.eu/en/medicines/field_ema_web_categories%253Aname_field/Human/ema_group_types/ema_medicine"
@@ -19,41 +22,53 @@ PDF_3 = "https://www.ema.europa.eu/documents/product-information/ontilyv-epar-pr
 
 PDFS = [PDF_1, PDF_2, PDF_3]
 
+# only doing a few to start
+# dictionary of {pdf_text -> product_section}
+EMA_PDF_PRODUCT_SECTIONS = {
+    "4.1 Therapeutic indications": "INDICATIONS",
+    "4.3 Contraindications": "CONTRA",
+    "4.4 Special warnings and precautions for use": "WARN",
+    "4.6 Fertility, pregnancy and lactation": "PREG",
+}
+
 # runs with `python manage.py load_ema_data`
 class Command(BaseCommand):
     help = "Loads data from EMA"
 
     def handle(self, *args, **options):
         # WIP
-        response = requests.get(PDF_1)
-        pdf_data = response.content
 
-        text = ""
-        num_pages = 0
+        # save pdf to default_storage / MEDIA_ROOT
+        response = requests.get(PDF_1)
+        filename = default_storage.save(settings.MEDIA_ROOT / "ema.pdf", ContentFile(response.content))
+        self.stdout.write(f"saved file to: {filename}")
+
+        raw_text = ""
+        with fitz.open(settings.MEDIA_ROOT / "ema.pdf") as pdf_doc:
+            for page in pdf_doc:
+                raw_text += page.getText().strip()
+
+        self.stdout.write(f"raw_text: {raw_text}")
+        self.process_ema_text(raw_text)
+
+        # delete the file when done
+        default_storage.delete(filename)
+
+        self.stdout.write(self.style.SUCCESS("Success"))
+        return
+
         # ref: https://stackoverflow.com/a/64997181/1807627
         # ref: https://stackoverflow.com/q/9751197/1807627
         # ref: https://www.geeksforgeeks.org/how-to-scrape-all-pdf-files-in-a-website/
-        with BytesIO(pdf_data) as data:
-            pdf_reader = PyPDF2.PdfFileReader(data)
-            # just curious
-            pdf_info = pdf_reader.getDocumentInfo()
-            self.stdout.write(f"pdf_info: {pdf_info}")
-            for page in range(pdf_reader.getNumPages()):
-                num_pages += 1
-                page_text = pdf_reader.getPage(page).extractText()
-                text += page_text
-                text_sample = page_text[0:100]
-                self.stdout.write(f"page: {num_pages}")
-                self.stdout.write(f"page_sample: {text_sample}")
 
-        self.stdout.write(f"total pages: {num_pages}")
+        # try to save to MEDIA dir, then open
+        # ty: https://stackoverflow.com/a/63486976/1807627
+        # https://github.com/pymupdf/PyMuPDF-Utilities/blob/master/text-extraction/PDF2Text.py
+        # https://github.com/pymupdf/PyMuPDF/blob/master/fitz/fitz.i
 
-        today = datetime.date.today()
-        self.stdout.write(f"today: {today}")
 
-        self.load_fake_drug_label()
-
-        self.stdout.write(self.style.SUCCESS("Success"))
+    def process_ema_text(self, raw_text):
+        pass
 
     def load_fake_drug_label(self):
         # For now, just loading one dummy-label
