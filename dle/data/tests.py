@@ -80,3 +80,30 @@ class DrugLabelModelTests(TestCase):
         new_num_entries = ProductSection.objects.count()
         self.assertEqual(num_entries + 3, new_num_entries)
 
+    def test_can_insert_skilarence(self):
+        """Verify that we can get the correct values from the pdf"""
+        dl = DrugLabel(
+            source='EMA',
+            product_name='Skilarence',
+            generic_name='dimethyl fumarate',
+            version_date='2022-03-08', # EU formats date differently
+            source_product_number='EMEA/H/C/002157',
+            raw_text='Ignore for now',
+            marketer='Almirall S.A',
+        )
+        dl.save()
+        lp = LabelProduct(drug_label=dl)
+        lp.save()
+        ps = ProductSection(
+            label_product=lp,
+            section_name='INDICATIONS',
+            section_text=('Skilarence is indicated for the treatment of moderate'
+                          ' to severe plaque psoriasis in adults in need of systemic medicinal'
+                          ' therapy.'
+                          )
+        )
+        ps.save()
+
+        # verify the fields match
+        # TODO WIP, need to get it parsed
+
