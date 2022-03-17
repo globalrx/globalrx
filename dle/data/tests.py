@@ -1,5 +1,7 @@
 from django.test import TestCase
 from .models import DrugLabel, LabelProduct, ProductSection
+from django.core import management
+
 
 # Create your tests here.
 
@@ -80,30 +82,29 @@ class DrugLabelModelTests(TestCase):
         new_num_entries = ProductSection.objects.count()
         self.assertEqual(num_entries + 3, new_num_entries)
 
+    def test_load_ema_data(self):
+        num_dl_entries = DrugLabel.objects.count()
+        management.call_command('load_ema_data')
+        # should insert 3 dl records
+        num_new_dl_entries = DrugLabel.objects.count()
+        self.assertEqual(num_dl_entries + 3, num_new_dl_entries)
+
     def test_can_insert_skilarence(self):
         """Verify that we can get the correct values from the pdf"""
+        management.call_command('load_ema_data')
         dl = DrugLabel(
             source='EMA',
             product_name='Skilarence',
             generic_name='dimethyl fumarate',
             version_date='2022-03-08', # EU formats date differently
             source_product_number='EMEA/H/C/002157',
-            raw_text='Ignore for now',
             marketer='Almirall S.A',
         )
-        dl.save()
-        lp = LabelProduct(drug_label=dl)
-        lp.save()
-        ps = ProductSection(
-            label_product=lp,
-            section_name='INDICATIONS',
-            section_text=('Skilarence is indicated for the treatment of moderate'
-                          ' to severe plaque psoriasis in adults in need of systemic medicinal'
-                          ' therapy.'
-                          )
-        )
-        ps.save()
-
+        dl_saved = DrugLabel.objects.filter(product_name="Skilarence").all()[:1].get()
         # verify the fields match
-        # TODO WIP, need to get it parsed
-
+        self.assertEqual(dl.source, dl_saved.source)
+        self.assertEqual(dl.generic_name, dl_saved.generic_name)
+        # model returns date as datetime.date object, convert to string for comparison
+        self.assertEqual(dl.version_date, dl_saved.version_date.strftime("%Y-%m-%d"))
+        self.assertEqual(dl.source_product_number, dl_saved.source_product_number)
+        self.assertEqual(dl.marketer, dl_saved.marketer)
