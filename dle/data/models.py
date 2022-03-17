@@ -36,6 +36,16 @@ class DrugLabel(models.Model):
     marketer = models.CharField(max_length=255, db_index=True)
     "marketer is 'like' the manufacturer, but technically the manufacturer can be different"
 
+    def __str__(self):
+        return f"source: {self.source}, " \
+               f"product_name: {self.product_name}, " \
+               f"generic_name: {self.generic_name}, " \
+               f"version_date: {self.version_date}, " \
+               f"source_product_number: {self.source_product_number}, " \
+               f"raw_text: {self.raw_text[0:10]}..., " \
+               f"marketer: {self.marketer}"
+
+
 class LabelProduct(models.Model):
     """A `DrugLabel` may have multiple `LabelProduct`s.
     These are typically for different routes of administration for the medication.

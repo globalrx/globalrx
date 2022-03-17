@@ -3,21 +3,24 @@ from data.models import DrugLabel, LabelProduct, ProductSection
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.conf import settings
-import datetime
 import requests
 import fitz  # PyMuPDF
-from io import BytesIO
+from bs4 import BeautifulSoup
+import re
+
+# pip install bs4
+# pip install pymupdf
 
 EMA_DATA_URL = "https://www.ema.europa.eu/en/medicines/field_ema_web_categories%253Aname_field/Human/ema_group_types/ema_medicine"
 
 # 3 sample data urls/pdfs for testing
-SAMPLE_1 = "https://www.ema.europa.eu/en/medicines/human/EPAR/skilarence"
+URL_1 = "https://www.ema.europa.eu/en/medicines/human/EPAR/skilarence"
 PDF_1 = "https://www.ema.europa.eu/en/documents/product-information/skilarence-epar-product-information_en.pdf"
 
-SAMPLE_2 = "https://www.ema.europa.eu/en/medicines/human/EPAR/lyrica"
+URL_2 = "https://www.ema.europa.eu/en/medicines/human/EPAR/lyrica"
 PDF_2 = "https://www.ema.europa.eu/documents/product-information/lyrica-epar-product-information_en.pdf"
 
-SAMPLE_3 = "https://www.ema.europa.eu/en/medicines/human/EPAR/ontilyv"
+URL_3 = "https://www.ema.europa.eu/en/medicines/human/EPAR/ontilyv"
 PDF_3 = "https://www.ema.europa.eu/documents/product-information/ontilyv-epar-product-information_en.pdf"
 
 PDFS = [PDF_1, PDF_2, PDF_3]
@@ -63,6 +66,76 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         # WIP
+
+        dl = DrugLabel() # empty object to populate as we go
+        dl.source = 'EMA'
+
+        # grab the webpage
+        response = requests.get(URL_1)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        # self.stdout.write(soup.prettify())
+        # self.stdout.write(repr(soup))
+
+        # ref: https://www.crummy.com/software/BeautifulSoup/bs4/doc/
+
+        # for now, we want to grab 6 things from the web page:
+        # product_name
+        # generic_name
+        # version_date
+        # source_product_number
+        # marketer
+        # url for product-information pdf
+
+        # look in the "Authorisation details" section
+        # "Name" => product_name
+        # "Active substance" => generic_name
+        # "Agency product number" => source_product_number
+        # "Marketing-authorisation holder" => marketer
+
+        # "Product information" section
+        # product-information pdf
+        # "Last updated: DD/MM/YYYY" # note EU has different date format from USA
+
+        # look for the section
+        tag = soup.find(id="authorisation-details-section")
+
+        # product_name
+        # find the 'td' cell that contains the 'Name' text
+        cell = tag.find_next("td", string=re.compile(r"\sName\s"))
+        # grab the text from the 'next sibling'
+        str = cell.find_next_sibling().get_text(strip=True)
+        # self.stdout.write(repr(str))
+        # set it in our object
+        dl.product_name = str
+
+        # generic_name
+        cell = tag.find_next("td", string=re.compile(r"\sActive substance\s"))
+        str = cell.find_next_sibling().get_text(strip=True)
+        dl.generic_name = str
+
+        # source_product_number
+        cell = tag.find_next("td", string=re.compile(r"\sAgency product number\s"))
+        str = cell.find_next_sibling().get_text(strip=True)
+        dl.source_product_number = str
+
+        # marketer
+        cell = tag.find_next("td", string=re.compile(r"\sMarketing-authorisation holder\s"))
+        str = cell.find_next_sibling().get_text(strip=True)
+        dl.marketer = str
+
+        tag = soup.find(id="product-information-section")
+
+        # # version_date
+        # entry = tag.find_next(string=re.compile(r"Last updated:"))
+        # self.stdout.write(repr(entry))
+        #
+        # # url for product-information pdf
+        # entry = tag.find_next("a", string=re.compile(r"Product Information"))
+        # self.stdout.write(repr(entry))
+
+        self.stdout.write(repr(dl))
+
+        return # TODO fix-a-lo
 
         # save pdf to default_storage / MEDIA_ROOT
         response = requests.get(PDF_1)
