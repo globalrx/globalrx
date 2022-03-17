@@ -74,12 +74,12 @@ class Command(BaseCommand):
         return
 
     def get_drug_label_from_url(self, url):
-        dl = DrugLabel() # empty object to populate as we go
-        dl.source = 'EMA'
+        dl = DrugLabel()  # empty object to populate as we go
+        dl.source = "EMA"
 
         # grab the webpage
         response = requests.get(url)
-        soup = BeautifulSoup(response.text, 'html.parser')
+        soup = BeautifulSoup(response.text, "html.parser")
         # self.stdout.write(soup.prettify())
         # self.stdout.write(repr(soup))
 
@@ -126,7 +126,9 @@ class Command(BaseCommand):
         dl.source_product_number = str
 
         # marketer
-        cell = tag.find_next("td", string=re.compile(r"\sMarketing-authorisation holder\s"))
+        cell = tag.find_next(
+            "td", string=re.compile(r"\sMarketing-authorisation holder\s")
+        )
         str = cell.find_next_sibling().get_text(strip=True)
         dl.marketer = str
 
@@ -141,7 +143,7 @@ class Command(BaseCommand):
             entry = tag.find_next(string=re.compile(date_str_key))
 
         entry = entry.strip()
-        sub_str = entry[len(date_str_key):].strip()
+        sub_str = entry[len(date_str_key) :].strip()
         # parse sub_str into date, from DD/MM/YYYY to: YYYY-MM-DD
         dt_obj = datetime.datetime.strptime(sub_str, "%d/%m/%Y")
         str = dt_obj.strftime("%Y-%m-%d")
@@ -184,7 +186,9 @@ class Command(BaseCommand):
                 self.stderr.write(self.style.ERROR("Unable to find section_start_text"))
                 continue
             else:
-                self.stdout.write(self.style.SUCCESS(f"Found section.start_text, idx: {idx}"))
+                self.stdout.write(
+                    self.style.SUCCESS(f"Found section.start_text, idx: {idx}")
+                )
 
             # look for section_end_text
             self.stdout.write(f"looking for section.end_text: {section.end_text}")
@@ -193,15 +197,15 @@ class Command(BaseCommand):
                 self.stderr.write(self.style.ERROR("Unable to find section.end_text"))
                 continue
             else:
-                self.stdout.write(self.style.SUCCESS(f"Found section.end_text, end_idx: {end_idx}"))
+                self.stdout.write(
+                    self.style.SUCCESS(f"Found section.end_text, end_idx: {end_idx}")
+                )
 
             # the section_text is between idx and end_idx
-            section_text = raw_text[idx: end_idx]
+            section_text = raw_text[idx:end_idx]
             self.stdout.write(f"found section_text: {section_text}")
             ps = ProductSection(
-                label_product=lp,
-                section_name=section.name,
-                section_text=section_text
+                label_product=lp, section_name=section.name, section_text=section_text
             )
             ps.save()
 

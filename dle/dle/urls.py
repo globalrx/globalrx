@@ -18,13 +18,15 @@ from django.http import HttpRequest
 from django.urls import path, include
 from django.shortcuts import redirect
 
+
 def redirect_from_root_view(request: HttpRequest):
     """Redirects requests to rootpath to the search endpoint."""
     return redirect("/search")
 
+
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path('data/', include('data.urls')),
+    path("data/", include("data.urls")),
     path("", redirect_from_root_view),
     path("search/", include("search.urls")),
 ]

@@ -5,19 +5,20 @@ from django.db import models
 # `python manage.py migrate`
 
 SOURCES = [
-    ('FDA', 'USA - Federal Drug Administration'),
-    ('EMA', 'EU - European Medicines Agency'),
-    ('USER-FDA', 'User-uploaded in FDA format'),
-    ('USER-EMA', 'User-uploaded in EMA format'),
+    ("FDA", "USA - Federal Drug Administration"),
+    ("EMA", "EU - European Medicines Agency"),
+    ("USER-FDA", "User-uploaded in FDA format"),
+    ("USER-EMA", "User-uploaded in EMA format"),
 ]
 
 SECTION_NAMES = [
-    ('INDICATIONS', 'Indications'),
-    ('CONTRA', 'Contraindications'),
-    ('WARN', 'Warnings'),
-    ('PREG', 'Pregnancy'),
+    ("INDICATIONS", "Indications"),
+    ("CONTRA", "Contraindications"),
+    ("WARN", "Warnings"),
+    ("PREG", "Pregnancy"),
 ]
 "This is a WIP"
+
 
 class DrugLabel(models.Model):
     """Version-specific document for a medication from EMA, FDA or other source (e.g. user-uploaded)
@@ -26,6 +27,7 @@ class DrugLabel(models.Model):
     - A `DrugLabel` has one or more `LabelProduct`s
     - `LabelProduct`s then have multiple `ProductSection`s
     """
+
     source = models.CharField(max_length=8, choices=SOURCES, db_index=True)
     product_name = models.CharField(max_length=255, db_index=True)
     generic_name = models.CharField(max_length=255, db_index=True)
@@ -39,28 +41,33 @@ class DrugLabel(models.Model):
     "link is url to the external data source website"
 
     def __str__(self):
-        return f"source: {self.source}, " \
-               f"product_name: {self.product_name}, " \
-               f"generic_name: {self.generic_name}, " \
-               f"version_date: {self.version_date}, " \
-               f"source_product_number: {self.source_product_number}, " \
-               f"raw_text: {self.raw_text[0:10]}..., " \
-               f"marketer: {self.marketer}"
+        return (
+            f"source: {self.source}, "
+            f"product_name: {self.product_name}, "
+            f"generic_name: {self.generic_name}, "
+            f"version_date: {self.version_date}, "
+            f"source_product_number: {self.source_product_number}, "
+            f"raw_text: {self.raw_text[0:10]}..., "
+            f"marketer: {self.marketer}"
+        )
 
 
 class LabelProduct(models.Model):
     """A `DrugLabel` may have multiple `LabelProduct`s.
     These are typically for different routes of administration for the medication.
     """
+
     drug_label = models.ForeignKey(DrugLabel, on_delete=models.CASCADE)
+
 
 class ProductSection(models.Model):
     """There are multiple `ProductSection`s for each `LabelProduct`.
     The original sections vary by DrugLabel->source.
     We attempt to standardize them
     """
+
     label_product = models.ForeignKey(LabelProduct, on_delete=models.CASCADE)
-    section_name = models.CharField(max_length=255, choices=SECTION_NAMES, db_index=True)
+    section_name = models.CharField(
+        max_length=255, choices=SECTION_NAMES, db_index=True
+    )
     section_text = models.CharField(max_length=255)
-
-
