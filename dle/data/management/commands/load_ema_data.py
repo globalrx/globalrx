@@ -12,19 +12,8 @@ import datetime
 # pip install bs4
 # pip install pymupdf
 
+
 EMA_DATA_URL = "https://www.ema.europa.eu/en/medicines/field_ema_web_categories%253Aname_field/Human/ema_group_types/ema_medicine"
-
-# 3 sample data urls/pdfs for testing
-URL_1 = "https://www.ema.europa.eu/en/medicines/human/EPAR/skilarence"
-PDF_1 = "https://www.ema.europa.eu/en/documents/product-information/skilarence-epar-product-information_en.pdf"
-
-URL_2 = "https://www.ema.europa.eu/en/medicines/human/EPAR/lyrica"
-PDF_2 = "https://www.ema.europa.eu/documents/product-information/lyrica-epar-product-information_en.pdf"
-
-URL_3 = "https://www.ema.europa.eu/en/medicines/human/EPAR/ontilyv"
-PDF_3 = "https://www.ema.europa.eu/documents/product-information/ontilyv-epar-product-information_en.pdf"
-
-PDFS = [PDF_1, PDF_2, PDF_3]
 
 
 class EmaSectionDef:
@@ -65,14 +54,31 @@ EMA_PDF_PRODUCT_SECTIONS = [
 class Command(BaseCommand):
     help = "Loads data from EMA"
 
-    def handle(self, *args, **options):
-        # WIP
+    def __init__(self, stdout=None, stderr=None, no_color=False, force_color=False):
+        super().__init__(stdout, stderr, no_color, force_color)
+        self.drug_label_idx = 0
 
+    def handle(self, *args, **options):
+        # get the next url to parse the data from EMA website
+        # while loop terminates when get_next_drug_label_url returns None or False
+        while url := self.get_next_drug_label_url():
+            self.stdout.write(f"processing url: {url}")
+            dl = self.get_drug_label_from_url(url)
+            self.stdout.write(self.style.SUCCESS(repr(dl)))
+            # dl.link is url of pdf
+            # for now, assume only one LabelProduct per DrugLabel
+            lp = LabelProduct(drug_label=dl)
+            lp.save()
+            self.parse_pdf(dl.link, lp)
+            # TODO need to consider how to handle errors, log unexpected results
+        return
+
+    def get_drug_label_from_url(self, url):
         dl = DrugLabel() # empty object to populate as we go
         dl.source = 'EMA'
 
         # grab the webpage
-        response = requests.get(URL_1)
+        response = requests.get(url)
         soup = BeautifulSoup(response.text, 'html.parser')
         # self.stdout.write(soup.prettify())
         # self.stdout.write(repr(soup))
@@ -137,19 +143,23 @@ class Command(BaseCommand):
 
         # url for product-information pdf
         entry = tag.find_next("a", href=True)
-        link = entry["href"]
-        # TODO use this to get the pdf
+        dl.link = entry["href"]
 
-        # self.stdout.write(repr(dl))
+        dl.save()
+        return dl
 
-        return # TODO fix-a-lo
-
+    def parse_pdf(self, pdf_url, lp):
         # save pdf to default_storage / MEDIA_ROOT
-        response = requests.get(PDF_1)
+        response = requests.get(pdf_url)
         filename = default_storage.save(
             settings.MEDIA_ROOT / "ema.pdf", ContentFile(response.content)
         )
         self.stdout.write(f"saved file to: {filename}")
+
+        # PyMuPDF references
+        # ty: https://stackoverflow.com/a/63486976/1807627
+        # https://github.com/pymupdf/PyMuPDF-Utilities/blob/master/text-extraction/PDF2Text.py
+        # https://github.com/pymupdf/PyMuPDF/blob/master/fitz/fitz.i
 
         # populate raw_text with the contents of the pdf
         raw_text = ""
@@ -183,11 +193,11 @@ class Command(BaseCommand):
             section_text = raw_text[idx: end_idx]
             self.stdout.write(f"found section_text: {section_text}")
             ps = ProductSection(
-                # label_product=lp, # TODO need this
+                label_product=lp,
                 section_name=section.name,
                 section_text=section_text
             )
-            # ps.save() # TODO
+            ps.save()
 
             # start search for next section after the end_idx of this section
             start_idx = end_idx
@@ -199,15 +209,6 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS("Success"))
         return
-
-        # ref: https://stackoverflow.com/a/64997181/1807627
-        # ref: https://stackoverflow.com/q/9751197/1807627
-        # ref: https://www.geeksforgeeks.org/how-to-scrape-all-pdf-files-in-a-website/
-
-        # try to save to MEDIA dir, then open
-        # ty: https://stackoverflow.com/a/63486976/1807627
-        # https://github.com/pymupdf/PyMuPDF-Utilities/blob/master/text-extraction/PDF2Text.py
-        # https://github.com/pymupdf/PyMuPDF/blob/master/fitz/fitz.i
 
     def load_fake_drug_label(self):
         # For now, just loading one dummy-label
@@ -237,3 +238,19 @@ class Command(BaseCommand):
             label_product=lp, section_name="PREG", section_text="Good to go"
         )
         ps.save()
+
+    def get_next_drug_label_url(self):
+        """For now, only supporting 3 hard-coded EMA drug labels"""
+
+        # 3 sample data urls for testing
+        if self.drug_label_idx == 0:
+            url = "https://www.ema.europa.eu/en/medicines/human/EPAR/skilarence"
+        elif self.drug_label_idx == 1:
+            url = "https://www.ema.europa.eu/en/medicines/human/EPAR/lyrica"
+        elif self.drug_label_idx == 2:
+            url = "https://www.ema.europa.eu/en/medicines/human/EPAR/ontilyv"
+        else:
+            url = None
+
+        self.drug_label_idx += 1
+        return url

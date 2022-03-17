@@ -35,6 +35,8 @@ class DrugLabel(models.Model):
     raw_text = models.TextField()
     marketer = models.CharField(max_length=255, db_index=True)
     "marketer is 'like' the manufacturer, but technically the manufacturer can be different"
+    link = models.URLField()
+    "link is url to the external data source website"
 
     def __str__(self):
         return f"source: {self.source}, " \
@@ -59,6 +61,6 @@ class ProductSection(models.Model):
     """
     label_product = models.ForeignKey(LabelProduct, on_delete=models.CASCADE)
     section_name = models.CharField(max_length=255, choices=SECTION_NAMES, db_index=True)
-    section_text = models.CharField(max_length=255, db_index=True)
+    section_text = models.CharField(max_length=255)
 
 
