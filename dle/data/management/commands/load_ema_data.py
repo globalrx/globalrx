@@ -7,6 +7,7 @@ import requests
 import fitz  # PyMuPDF
 from bs4 import BeautifulSoup
 import re
+import datetime
 
 # pip install bs4
 # pip install pymupdf
@@ -125,15 +126,21 @@ class Command(BaseCommand):
 
         tag = soup.find(id="product-information-section")
 
-        # # version_date
-        # entry = tag.find_next(string=re.compile(r"Last updated:"))
-        # self.stdout.write(repr(entry))
-        #
-        # # url for product-information pdf
-        # entry = tag.find_next("a", string=re.compile(r"Product Information"))
-        # self.stdout.write(repr(entry))
+        # version_date
+        last_updated_str = "Last updated:"
+        entry = tag.find_next(string=re.compile(last_updated_str)).strip()
+        sub_str = entry[len(last_updated_str):].strip()
+        # parse sub_str into date, from DD/MM/YYYY to: YYYY-MM-DD
+        dt_obj = datetime.datetime.strptime(sub_str, "%d/%m/%Y")
+        str = dt_obj.strftime("%Y-%m-%d")
+        dl.version_date = str
 
-        self.stdout.write(repr(dl))
+        # url for product-information pdf
+        entry = tag.find_next("a", href=True)
+        link = entry["href"]
+        # TODO use this to get the pdf
+
+        # self.stdout.write(repr(dl))
 
         return # TODO fix-a-lo
 
