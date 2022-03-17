@@ -133,9 +133,15 @@ class Command(BaseCommand):
         tag = soup.find(id="product-information-section")
 
         # version_date
-        last_updated_str = "Last updated:"
-        entry = tag.find_next(string=re.compile(last_updated_str)).strip()
-        sub_str = entry[len(last_updated_str):].strip()
+        date_str_key = "Last updated:"
+        entry = tag.find_next(string=re.compile(date_str_key))
+        if entry is None:
+            # if there is no "Last updated:" date, use "First published:" date
+            date_str_key = "First published:"
+            entry = tag.find_next(string=re.compile(date_str_key))
+
+        entry = entry.strip()
+        sub_str = entry[len(date_str_key):].strip()
         # parse sub_str into date, from DD/MM/YYYY to: YYYY-MM-DD
         dt_obj = datetime.datetime.strptime(sub_str, "%d/%m/%Y")
         str = dt_obj.strftime("%Y-%m-%d")
