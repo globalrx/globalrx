@@ -70,4 +70,4 @@ class ProductSection(models.Model):
     section_name = models.CharField(
         max_length=255, choices=SECTION_NAMES, db_index=True
     )
-    section_text = models.CharField(max_length=255)
+    section_text = models.TextField()
