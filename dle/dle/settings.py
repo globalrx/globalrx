@@ -11,10 +11,14 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 
 from pathlib import Path
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
+
+ALLOWED_HOSTS = ['34.218.101.115', 'druglabelexplorer.org', 'www.druglabelexplorer.org']
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
@@ -24,8 +28,6 @@ SECRET_KEY = 'django-insecure-_6bj_d%p=_-uxqkg7dzg=8e7@35g2b8q08gtjq=$%spegl*v-_
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
-
-ALLOWED_HOSTS = []
 
 
 # Application definition
@@ -76,8 +78,12 @@ WSGI_APPLICATION = 'dle.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'dle',
+        'USER': 'dle_user',
+        'PASSWORD': 'uDyvfMXHIKCJ',
+        'HOST': '172.31.56.135', # private IP: '172.31.56.135', # public IP: '44.238.69.61',
+        'PORT': '3306',
     }
 }
 
