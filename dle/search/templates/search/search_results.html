@@ -1,27 +1,23 @@
-{% extends "search/base.html" %} 
-{% block content %} 
+{% extends "search/base.html" %} {% block content %}
+<form method="get" action="/search/results">
+  <div class="flex">
+    <div>{% include "search/search_form_text_input.html" %}</div>
+    <div>{% include "search/search_form_check_group.html" %}</div>
+  </div>
+</form>
 <ul>
-    {% for result, highlighted_text in search_results %}
-    <div class="max-w-xl mb-8 md:ml-48">
-        <div class="group">
-          <a
-            href=/{{result.name}}
-            class="text-sml text-stone-900"
-          >
-            {{result.manufacturer}}
-          </a>
-          <a href=/{{result.name}}>
-            <h2
-              class="text-xl text-blue-700 group-hover:underline "
-            >
-              {{result.name}}
-            </h2>
-          </a>
-        </div>
-        <p class="text-gray-800 ">
-          {{highlighted_text|safe}}
-        </p>
-      </div>    
-    {% endfor %}
+  {% for result, highlighted_text in search_results %}
+  <div class="max-w-xl mb-8 md:ml-48">
+    <div class="group">
+      <a href=/search/{{result.drug_generic_name}} class="text-sml
+      text-stone-900" > {{result.manufacturer}} <a
+      href=/search/{{result.drug_generic_name}}>
+      <h2 class="text-xl text-blue-700 group-hover:underline">
+        {{result.drug_generic_name}}
+      </h2>
+    </div>
+    <p class="text-gray-800">{{highlighted_text|safe}}</p>
+  </div>
+  {% endfor %}
 </ul>
 {% endblock content %}

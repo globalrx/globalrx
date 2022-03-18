@@ -1,6 +1,6 @@
 from typing import Tuple
 from .models import SearchRequest, InvalidSearchRequest
-from .search_mock_utils import MockLabel
+from .search_mock_utils import MockDrugLabel
 from .search_constants import MAX_LENGTH_SEARCH_RESULT_DISPLAY
 
 from django.http import QueryDict
@@ -54,27 +54,27 @@ def highlight_text_by_term(text: str, search_term: str) -> Tuple[str, bool]:
 
 
 def build_search_result(
-    search_result: MockLabel, search_term: str
-) -> Tuple[MockLabel, str]:
+    search_result: MockDrugLabel, search_term: str
+) -> Tuple[MockDrugLabel, str]:
     """Returns search result objects with highlighted text
 
     Args:
-        search_result (MockLabel): A fake label that is used until we have a dataset
+        search_result (MockDrugLabel): A fake label that is used until we have a dataset
         search_term (str): The search text to highlight
 
     Returns:
-        Tuple[MockLabel, str]: Tuple object with the full drug label object and a truncated version of its text
+        Tuple[MockDrugLabel, str]: Tuple object with the full drug label object and a truncated version of its text
     """
     start, end, step = (
         0,
-        len(search_result.label_text),
+        len(search_result.text),
         MAX_LENGTH_SEARCH_RESULT_DISPLAY,
     )
     # sliding window approach to mimic google's truncation
     for i in range(start, end, step):
-        text = search_result.label_text[i : i + step]
+        text = search_result.text[i : i + step]
         highlighted_text, did_highlight = highlight_text_by_term(text, search_term)
         if did_highlight:
             return search_result, highlighted_text
 
-    return search_result, search_result.label_text[start:step]
+    return search_result, search_result.text[start:step]
