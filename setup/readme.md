@@ -150,6 +150,15 @@ References:
 
 [ELB](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-application-load-balancer.html)
 
+[MariaDB ColumnStore Tables](https://mariadb.com/docs/multi-node/columnstore/schema-design/create-table/)
+
+[MariaDB Deployment](https://mariadb.com/docs/deploy/)
+
+[MariaDB ColumnStore configuration](https://mariadb.com/docs/deploy/topologies/columnstore-object-storage/enterprise-server-10-6/)
+
+[MariaDB ColumnStore test installation](https://fromdual.com/create-a-single-node-mariadb-columnstore-test-installation)
+
+[MariaDB ColumnStore Deployment](https://mariadb.com/docs/deploy/topologies/single-node/community-columnstore-cs10-5/)
 _____
 
 TODO: https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
