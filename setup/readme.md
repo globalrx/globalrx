@@ -68,8 +68,8 @@ Launch EC2 Instance
 
 Amazon Linux 2 AMI
 arm
-m6g.medium
-16GB gp3 disk
+- m6g.medium
+- 16GB gp3 disk
 Tags: 'Name' => 'dle-maria'
 Create Security Group (maria-dev): open 22, 3306 to all incomming traffic
 Create key-pair (dle-dev) # using existing key-pair
@@ -158,7 +158,7 @@ References:
 
 [MariaDB ColumnStore test installation](https://fromdual.com/create-a-single-node-mariadb-columnstore-test-installation)
 
-[MariaDB ColumnStore Deployment](https://mariadb.com/docs/deploy/topologies/single-node/community-columnstore-cs10-5/)
+[MariaDB ColumnStore Deployment](https://mariadb.com/docs/deploy/topologies/single-node/community-columnstore-cs10-6/)
 _____
 
 TODO: https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/

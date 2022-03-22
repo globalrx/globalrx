@@ -1,22 +1,49 @@
 
+## Setup MariaDB Server Instance
 
-# declaring variables here for now, can parameterize
+# Using Ubuntu 18.04 - x86
+
+##### declaring variables here for now, can parameterize
+
 # update `dle/dle/settings.py` to match the values used here
 DB_NAME='dle'
 DB_USER='dle_user'
 DB_USER_PW='uDyvfMXHIKCJ'
 
-# not needed for normal operations, for db-admin
-ROOT_USER_PW='XjRjhRTT5djqSQZQ'
+##### Install MariaDB
 
-########
+sudo apt-get install software-properties-common dirmngr apt-transport-https -y
+sudo apt-key adv --fetch-keys 'https://mariadb.org/mariadb_release_signing_key.asc'
+sudo add-apt-repository 'deb [arch=amd64,arm64,ppc64el] https://mirrors.xtom.com/mariadb/repo/10.7/ubuntu bionic main'
 
-# Want to setup a MariaDB Server Instance
-# Using Amazon Linux 2 AMI - arm
+sudo apt update
+sudo apt install libjemalloc1
+sudo apt install mariadb-server mariadb-backup \
+   libmariadb3 mariadb-client \
+   mariadb-plugin-columnstore -y
 
-sudo yum update -y
+##### Setup a custom config file
 
-# Linux Kernel Paramaters
+sudo tee /etc/mysql/mariadb.conf.d/z-custom-my.cnf > /dev/null <<EOF
+[mariadb]
+log_error = mariadbd.err
+character_set_server = utf8
+collation_server = utf8_general_ci
+# columnstore_use_import_for_batchinsert = ALWAYS
+# default_storage_engine = ColumnStore
+# TODO additional setup
+EOF
+
+##### Start and enable the services
+
+sudo systemctl start mariadb
+sudo systemctl enable mariadb
+
+sudo systemctl start mariadb-columnstore
+sudo systemctl enable mariadb-columnstore
+
+##### Optimize Linux Kernel Paramaters
+
 sudo tee /etc/sysctl.d/90-mariadb-columnstore.conf > /dev/null <<EOF
 # minimize swapping
 vm.swappiness = 1
@@ -40,58 +67,14 @@ EOF
 
 sudo sysctl --load=/etc/sysctl.d/90-mariadb-columnstore.conf
 
-# TOOD https://dlm.mariadb.com/2142618/MariaDB/mariadb-10.6.7/yum/centos/mariadb-10.6.7-rhel-7-aarch64-rpms.tar
+##### Set the locale
 
-# using MariaDB 10.6
-cat > MariaDB.repo <<EOF
-# MariaDB 10.6 CentOS repository list
-# https://mariadb.org/download/
-[mariadb]
-name = MariaDB
-baseurl = https://mirrors.gigenet.com/mariadb/yum/10.6/centos7-aarch64
-gpgkey=https://mirrors.gigenet.com/mariadb/yum/RPM-GPG-KEY-MariaDB
-gpgcheck=1
-EOF
+sudo localedef -i en_US -f UTF-8 en_US.UTF-8
 
-sudo chown root:root MariaDB.repo
-sudo mv MariaDB.repo /etc/yum.repos.d/MariaDB.repo
-sudo yum makecache 
-
-# columnstore-engine, requires jemalloc
-cd /tmp
-wget https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm
-sudo rpm -Uvh epel-release*rpm
-sudo yum install jemalloc -y
-cd ~/
-
-sudo yum install MariaDB-server MariaDB-backup \
-   MariaDB-shared MariaDB-client \
-   MariaDB-columnstore-engine -y
-
-sudo systemctl start mariadb-columnstore
-sudo systemctl enable mariadb-columnstore
-
-sudo systemctl start mariadb
-sudo systemctl enable mariadb
-
-# simulate: sudo mariadb-secure-installation
-
-sudo mysql --user=root --password='' <<EOF
-/* set root password */
-UPDATE mysql.user SET Password=PASSWORD('$ROOT_USER_PW') WHERE User='root';
-/* delete anonymous users */
-DELETE FROM mysql.user WHERE User='';
-/* root user cannot login remotely */
-DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');
-/* drop test database */
-DROP DATABASE test;
-DELETE FROM mysql.db WHERE Db='test' OR Db='test\_%';
-/* flush privileges */
-FLUSH PRIVILEGES;
-EOF
+##### Setup db users
 
 # setup the db user
-sudo mysql --user=root --password='$ROOT_USER_PW' <<EOF
+sudo mysql <<EOF
 DROP USER IF EXISTS $DB_USER;
 DROP DATABASE IF EXISTS $DB_NAME;
 CREATE DATABASE $DB_NAME DEFAULT CHARACTER SET UTF8;
@@ -101,27 +84,23 @@ FLUSH PRIVILEGES;
 EOF
 
 # setup the cross_engine user
-sudo mysql --user=root --password='$ROOT_USER_PW' <<EOF
+sudo mysql <<EOF
 CREATE USER 'cross_engine'@'127.0.0.1' IDENTIFIED BY "cross_engine_passwd";
 CREATE USER 'cross_engine'@'localhost' IDENTIFIED BY "cross_engine_passwd";
 GRANT SELECT, PROCESS ON *.* TO 'cross_engine'@'127.0.0.1';
 GRANT SELECT, PROCESS ON *.* TO 'cross_engine'@'localhost';
 EOF
 
-# update my.cnf settings
-sudo tee /etc/my.cnf.d/z-custom-mariadb.cnf > /dev/null <<EOF
-[mariadb]
-log_error = mariadbd.err
-character_set_server = utf8
-collation_server = utf8_general_ci
-columnstore_use_import_for_batchinsert = ALWAYS
-default_storage_engine = ColumnStore
-# TODO additional setup
-EOF
+##### Cross Engine Support
 
-# note logs here: /var/log/mariadb/columnstore
+sudo mcsSetConfig CrossEngineSupport Host 127.0.0.1
+sudo mcsSetConfig CrossEngineSupport Port 3306
+sudo mcsSetConfig CrossEngineSupport User cross_engine
+sudo mcsSetConfig CrossEngineSupport Password cross_engine_passwd
+
+##### Restart the services
 
 sudo systemctl restart mariadb
 sudo systemctl restart mariadb-columnstore
 
-
+#####
