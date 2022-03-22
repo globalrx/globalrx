@@ -32,6 +32,11 @@ collation_server = utf8_general_ci
 # columnstore_use_import_for_batchinsert = ALWAYS
 # default_storage_engine = ColumnStore
 # TODO additional setup
+
+# override settings from /etc/mysql/mariadb.conf.d/50-server.cnf
+[mysqld]
+bind-address = 0.0.0.0
+
 EOF
 
 ##### Start and enable the services
