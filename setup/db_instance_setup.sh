@@ -10,6 +10,8 @@ DB_NAME='dle'
 DB_USER='dle_user'
 DB_USER_PW='uDyvfMXHIKCJ'
 
+# NOTE: Also need to set the HOST using the Private IP address of "this" server
+
 ##### Install MariaDB
 
 sudo apt-get install software-properties-common dirmngr apt-transport-https -y
