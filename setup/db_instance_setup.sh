@@ -19,10 +19,9 @@ sudo apt-key adv --fetch-keys 'https://mariadb.org/mariadb_release_signing_key.a
 sudo add-apt-repository 'deb [arch=amd64,arm64,ppc64el] https://mirrors.xtom.com/mariadb/repo/10.7/ubuntu bionic main'
 
 sudo apt update
-sudo apt install libjemalloc1
-sudo apt install mariadb-server mariadb-backup \
-   libmariadb3 mariadb-client \
-   mariadb-plugin-columnstore -y
+sudo apt install libjemalloc1 -y
+sudo apt install mariadb-server mariadb-backup libmariadb3 \
+  mariadb-client mariadb-plugin-columnstore -y
 
 ##### Setup a custom config file
 
