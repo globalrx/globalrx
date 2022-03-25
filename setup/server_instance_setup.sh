@@ -114,8 +114,9 @@ python3 -m venv /var/www/django/venv
 # activate the virtualenv
 source /var/www/django/venv/bin/activate
 
-# automatically activate virtualenv on admin sign-in
+# automatically activate virtualenv and cd user to django dir on admin sign-in
 echo "source /var/www/django/venv/bin/activate" >> /home/ec2-user/.bashrc
+echo "cd /var/www/django/dle/dle" >> /home/ec2-user/.bashrc
 
 # install python packages
 pip install -r /var/www/django/dle/dle/requirements.txt
