@@ -20,7 +20,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
 
 MEDIA_ROOT = BASE_DIR / "media"
 
-ALLOWED_HOSTS = ['34.218.101.115', 'druglabelexplorer.org', 'www.druglabelexplorer.org']
+ALLOWED_HOSTS = ['34.218.101.115', 'druglabelexplorer.org', 'www.druglabelexplorer.org', '127.0.0.1']
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
@@ -81,12 +81,14 @@ WSGI_APPLICATION = "dle.wsgi.application"
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'dle',
-        'USER': 'dle_user',
-        'PASSWORD': 'uDyvfMXHIKCJ',
-        'HOST': '172.31.56.135', # private IP: '172.31.56.135', # public IP: '44.238.69.61',
-        'PORT': '3306',
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": BASE_DIR / "db.sqlite3",
+        # 'ENGINE': 'django.db.backends.mysql',
+        # 'NAME': 'dle',
+        # 'USER': 'dle_user',
+        # 'PASSWORD': 'uDyvfMXHIKCJ',
+        # 'HOST': '172.31.56.135', # private IP: '172.31.56.135', # public IP: '44.238.69.61',
+        # 'PORT': '3306',
     }
 }
 
