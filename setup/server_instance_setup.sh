@@ -92,6 +92,7 @@ rm 4.9.0.tar.gz
 sudo yum install git -y
 cd /var/www
 sudo mkdir django
+cd django
 sudo git clone https://github.com/DrugLabelExplorer/dle.git
 
 #####
