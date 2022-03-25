@@ -100,10 +100,9 @@ sudo git clone https://github.com/DrugLabelExplorer/dle.git
 # - Set file permissions
 
 sudo usermod -a -G apache ec2-user
-sudo chown -R ec2-user:apache /var/www/django
-sudo chmod 2775 /var/www/django && find /var/www/django -type d -exec sudo chmod 2775 {} \;
-find /var/www/django -type f -exec sudo chmod 0664 {} \;
-sudo chown :apache /var/www
+sudo chown -R ec2-user:apache /var/www
+sudo chmod 2775 /var/www && find /var/www -type d -exec sudo chmod 2775 {} \;
+find /var/www -type f -exec sudo chmod 0664 {} \;
 
 #####
 
@@ -143,7 +142,7 @@ sudo cp /var/www/django/dle/setup/ssl.conf /etc/httpd/conf.d/ssl.conf
 sudo amazon-linux-extras install epel -y
 sudo yum install python2-certbot-apache.noarch -y
 
-cp /var/www/django/dle/setup/httpd.conf /etc/httpd/conf/httpd.conf
+sudo cp /var/www/django/dle/setup/httpd.conf /etc/httpd/conf/httpd.conf
 sudo systemctl restart httpd
 
 # needs virtal host setup on port 80 first
