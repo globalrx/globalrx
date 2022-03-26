@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 import logging
 import shutil
 import urllib.request as request
-import urllib.parse
 import os
 from zipfile import ZipFile
 
@@ -27,13 +26,13 @@ class Command(BaseCommand):
         os.makedirs(self.root_dir, exist_ok=True)
         super().__init__(stdout, stderr, no_color, force_color)
 
-
     def add_arguments(self, parser):
         parser.add_argument('--type', type=str, help="full, monthly, or test", default="monthly")
 
     """
     Entry point into class from command line
     """
+
     def handle(self, *args, **options):
         import_type = options['type']
         root_zips = self.download_records(import_type)
@@ -42,7 +41,6 @@ class Command(BaseCommand):
         self.import_records(xml_files)
         logging.info("DONE")
 
-
     def download_records(self, import_type):
         logging.info("Downloading bulk archives.")
         file_dir = self.root_dir / import_type
@@ -50,7 +48,7 @@ class Command(BaseCommand):
         records = []
 
         if import_type == "full":
-            for i in range(1,5):
+            for i in range(1, 5):
                 archive_url = f"ftp://public.nlm.nih.gov/nlmdata/.dailymed/dm_spl_release_human_rx_part{i}.zip"
                 records.append(self.download_single_zip(archive_url, file_dir))
         elif import_type == "monthly":
@@ -69,7 +67,6 @@ class Command(BaseCommand):
             raise CommandError("Type must be one of 'full', 'monthly', or 'test'")
 
         return records
-
 
     def download_single_zip(self, ftp, dest):
         url_filename = ftp.split("/")[-1]
@@ -90,6 +87,7 @@ class Command(BaseCommand):
     Daily Med will package it's bulk and monthly into groups of zips. This step is neccesary to
     extract individual drug label zips from the bulk archive.
     """
+
     def extract_prescription_zips(self, zips):
         logging.info("Extracting prescription Archives")
         file_dir = self.root_dir / "record_zips"
@@ -102,14 +100,13 @@ class Command(BaseCommand):
                     if file_info.filename.startswith("prescription") and file_info.filename.endswith(".zip"):
                         outfile = file_dir / os.path.basename(file_info.filename)
                         file_info.filename = os.path.basename(file_info.filename)
-                        if(os.path.exists(outfile)):
+                        if (os.path.exists(outfile)):
                             logging.info(f"Record Zip already exists: {outfile}. Skipping.")
                         else:
                             logging.info(f"Creating Record Zip {outfile}")
                             zip_file_object.extract(file_info, file_dir)
                         record_zips.append(outfile)
         return record_zips
-
 
     def extract_xmls(self, zips):
         logging.info("Extracting XMLs")
@@ -122,7 +119,7 @@ class Command(BaseCommand):
                 for file in zip_file_object.namelist():
                     if file.endswith(".xml"):
                         outfile = file_dir / file
-                        if(os.path.exists(outfile)):
+                        if (os.path.exists(outfile)):
                             logging.info(f"XML already exists: {outfile}. Skipping.")
                         else:
                             logging.info(f"Creating XML {outfile}")
@@ -144,7 +141,8 @@ class Command(BaseCommand):
 
                 dl.version_date = content.find("effectivetime").get("value")
 
-                dl.source_product_number = content.find("code", attrs={"codesystem": "2.16.840.1.113883.6.69"}).get("code")
+                dl.source_product_number = content.find("code", attrs={"codesystem": "2.16.840.1.113883.6.69"}).get(
+                    "code")
 
                 texts = [p.text for p in content.find_all("paragraph")]
                 dl.raw_text = "\n".join(texts)
@@ -155,5 +153,3 @@ class Command(BaseCommand):
 
                 # dl.save()
                 logging.debug(f"Saving new drug label: {dl}")
-
-
