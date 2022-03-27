@@ -40,6 +40,12 @@ class DrugLabel(models.Model):
     link = models.URLField()
     "link is url to the external data source website"
 
+    class Meta:
+        constraints = [
+            # add a unique constraint to prevent duplicate entries
+            models.UniqueConstraint(fields=["source", "product_name", "version_date"], name="unique_dl")
+        ]
+
     def __str__(self):
         return (
             f"source: {self.source}, "

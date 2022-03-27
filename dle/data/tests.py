@@ -1,3 +1,4 @@
+from django.db import IntegrityError
 from django.test import TestCase
 from .models import DrugLabel, LabelProduct, ProductSection
 from django.core import management
@@ -103,3 +104,25 @@ class DrugLabelModelTests(TestCase):
         self.assertEqual(dl.version_date, dl_saved.version_date.strftime("%Y-%m-%d"))
         self.assertEqual(dl.source_product_number, dl_saved.source_product_number)
         self.assertEqual(dl.marketer, dl_saved.marketer)
+
+    def test_unique_constraint(self):
+        """Unique constraint on DrugLabel should prevent us from adding
+        entries where all of the following are identical:
+        source, product_name, version_date
+
+        """
+        dl = DrugLabel(
+            source="EMA",
+            product_name="Fake-1",
+            version_date="2022-03-08",
+        )
+        dl.save()
+
+        dl2 = DrugLabel(
+            source="EMA",
+            product_name="Fake-1",
+            version_date="2022-03-08",
+        )
+        # this second save raises a django.db.utils.IntegrityError
+        with self.assertRaises(IntegrityError):
+            dl2.save()
