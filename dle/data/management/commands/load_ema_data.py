@@ -69,7 +69,9 @@ class Command(BaseCommand):
             # for now, assume only one LabelProduct per DrugLabel
             lp = LabelProduct(drug_label=dl)
             lp.save()
-            self.parse_pdf(dl.link, lp)
+            raw_text = self.parse_pdf(dl.link, lp)
+            dl.raw_text = raw_text
+            dl.save()
             # TODO need to consider how to handle errors, log unexpected results
         return
 
@@ -218,36 +220,7 @@ class Command(BaseCommand):
         default_storage.delete(filename)
 
         self.stdout.write(self.style.SUCCESS("Success"))
-        return
-
-    def load_fake_drug_label(self):
-        # For now, just loading one dummy-label
-        dl = DrugLabel(
-            source="EMA",
-            product_name="Diffusia",
-            generic_name="lorem ipsem",
-            version_date="2022-03-15",
-            source_product_number="ABC-123-DO-RE-ME",
-            raw_text="Fake raw label text",
-            marketer="Landau Pharma",
-        )
-        dl.save()
-        lp = LabelProduct(drug_label=dl)
-        lp.save()
-        ps = ProductSection(
-            label_product=lp,
-            section_name="INDICATIONS",
-            section_text="Cures cognitive deficit disorder",
-        )
-        ps.save()
-        ps = ProductSection(
-            label_product=lp, section_name="WARN", section_text="May cause x, y, z"
-        )
-        ps.save()
-        ps = ProductSection(
-            label_product=lp, section_name="PREG", section_text="Good to go"
-        )
-        ps.save()
+        return raw_text
 
     def get_next_drug_label_url(self):
         """For now, only supporting 3 hard-coded EMA drug labels"""

@@ -126,3 +126,9 @@ class DrugLabelModelTests(TestCase):
         # this second save raises a django.db.utils.IntegrityError
         with self.assertRaises(IntegrityError):
             dl2.save()
+
+    def test_raw_text_is_saved(self):
+        """Verify that we can get the correct values from the pdf"""
+        management.call_command("load_ema_data")
+        dl_saved = DrugLabel.objects.filter(product_name="Skilarence").all()[:1].get()
+        self.assertGreater(len(dl_saved.raw_text), 100, f"len(dl_saved.raw_text) was only: {len(dl_saved.raw_text)}")
