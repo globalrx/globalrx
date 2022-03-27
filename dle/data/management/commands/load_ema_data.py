@@ -1,4 +1,5 @@
 from django.core.management.base import BaseCommand, CommandError
+from django.db import IntegrityError
 from data.models import DrugLabel, LabelProduct, ProductSection
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
@@ -9,6 +10,7 @@ from bs4 import BeautifulSoup
 import re
 import datetime
 import pandas as pd
+import time
 
 EMA_EPAR_EXCEL_URL = "https://www.ema.europa.eu/sites/default/files/Medicines_output_european_public_assessment_reports.xlsx"
 
@@ -56,26 +58,23 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         urls = self.get_ema_epar_urls()
+        self.stdout.write(f"total urls to process: {len(urls)}")
         for url in urls:
-            self.stdout.write(f"found url: {url}")
-        self.stdout.write(f"total num urls: {len(urls)}")
-
+            try:
+                self.stdout.write(f"processing url: {url}")
+                dl = self.get_drug_label_from_url(url)
+                self.stdout.write(self.style.SUCCESS(repr(dl)))
+                # dl.link is url of pdf
+                # for now, assume only one LabelProduct per DrugLabel
+                lp = LabelProduct(drug_label=dl)
+                lp.save()
+                raw_text = self.parse_pdf(dl.link, lp)
+                dl.raw_text = raw_text
+                dl.save()
+            except IntegrityError as e:
+                self.stderr.write(self.style.ERROR("Label already in db"))
+            time.sleep(1)
         return
-        # # get the next url to parse the data from EMA website
-        # # while loop terminates when get_next_drug_label_url returns None or False
-        # while url := self.get_next_drug_label_url():
-        #     self.stdout.write(f"processing url: {url}")
-        #     dl = self.get_drug_label_from_url(url)
-        #     self.stdout.write(self.style.SUCCESS(repr(dl)))
-        #     # dl.link is url of pdf
-        #     # for now, assume only one LabelProduct per DrugLabel
-        #     lp = LabelProduct(drug_label=dl)
-        #     lp.save()
-        #     raw_text = self.parse_pdf(dl.link, lp)
-        #     dl.raw_text = raw_text
-        #     dl.save()
-        #     # TODO need to consider how to handle errors, log unexpected results
-        # return
 
     def get_drug_label_from_url(self, url):
         dl = DrugLabel()  # empty object to populate as we go
@@ -223,25 +222,6 @@ class Command(BaseCommand):
 
         self.stdout.write(self.style.SUCCESS("Success"))
         return raw_text
-
-    def get_next_drug_label_url(self):
-        """For now, only supporting 3 hard-coded EMA drug labels"""
-
-        # 3 sample data urls for testing
-        if self.drug_label_idx == 0:
-            url = "https://www.ema.europa.eu/en/medicines/human/EPAR/skilarence"
-        elif self.drug_label_idx == 1:
-            url = "https://www.ema.europa.eu/en/medicines/human/EPAR/lyrica"
-        elif self.drug_label_idx == 2:
-            url = "https://www.ema.europa.eu/en/medicines/human/EPAR/ontilyv"
-        else:
-            url = None
-
-        self.drug_label_idx += 1
-        return url
-
-# pip install pandas
-# pip install openpyxl
 
     def get_ema_epar_urls(self):
         """Download the EMA provided Excel file and grab the urls from there"""

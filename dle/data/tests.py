@@ -81,9 +81,9 @@ class DrugLabelModelTests(TestCase):
     def test_load_ema_data(self):
         num_dl_entries = DrugLabel.objects.count()
         management.call_command("load_ema_data")
-        # should insert 3 dl records
+        # should insert over 1200 dl records
         num_new_dl_entries = DrugLabel.objects.count()
-        self.assertEqual(num_dl_entries + 3, num_new_dl_entries)
+        self.assertGreater(num_new_dl_entries, num_dl_entries + 1000)
 
     def test_can_insert_skilarence(self):
         """Verify that we can get the correct values from the pdf"""
