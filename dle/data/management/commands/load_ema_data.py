@@ -8,13 +8,9 @@ import fitz  # PyMuPDF
 from bs4 import BeautifulSoup
 import re
 import datetime
+import pandas as pd
 
-# pip install bs4
-# pip install pymupdf
-
-
-EMA_DATA_URL = "https://www.ema.europa.eu/en/medicines/field_ema_web_categories%253Aname_field/Human/ema_group_types/ema_medicine"
-
+EMA_EPAR_EXCEL_URL = "https://www.ema.europa.eu/sites/default/files/Medicines_output_european_public_assessment_reports.xlsx"
 
 class EmaSectionDef:
     """struct to hold info that helps us parse the Sections"""
@@ -59,21 +55,27 @@ class Command(BaseCommand):
         self.drug_label_idx = 0
 
     def handle(self, *args, **options):
-        # get the next url to parse the data from EMA website
-        # while loop terminates when get_next_drug_label_url returns None or False
-        while url := self.get_next_drug_label_url():
-            self.stdout.write(f"processing url: {url}")
-            dl = self.get_drug_label_from_url(url)
-            self.stdout.write(self.style.SUCCESS(repr(dl)))
-            # dl.link is url of pdf
-            # for now, assume only one LabelProduct per DrugLabel
-            lp = LabelProduct(drug_label=dl)
-            lp.save()
-            raw_text = self.parse_pdf(dl.link, lp)
-            dl.raw_text = raw_text
-            dl.save()
-            # TODO need to consider how to handle errors, log unexpected results
+        urls = self.get_ema_epar_urls()
+        for url in urls:
+            self.stdout.write(f"found url: {url}")
+        self.stdout.write(f"total num urls: {len(urls)}")
+
         return
+        # # get the next url to parse the data from EMA website
+        # # while loop terminates when get_next_drug_label_url returns None or False
+        # while url := self.get_next_drug_label_url():
+        #     self.stdout.write(f"processing url: {url}")
+        #     dl = self.get_drug_label_from_url(url)
+        #     self.stdout.write(self.style.SUCCESS(repr(dl)))
+        #     # dl.link is url of pdf
+        #     # for now, assume only one LabelProduct per DrugLabel
+        #     lp = LabelProduct(drug_label=dl)
+        #     lp.save()
+        #     raw_text = self.parse_pdf(dl.link, lp)
+        #     dl.raw_text = raw_text
+        #     dl.save()
+        #     # TODO need to consider how to handle errors, log unexpected results
+        # return
 
     def get_drug_label_from_url(self, url):
         dl = DrugLabel()  # empty object to populate as we go
@@ -237,3 +239,21 @@ class Command(BaseCommand):
 
         self.drug_label_idx += 1
         return url
+
+# pip install pandas
+# pip install openpyxl
+
+    def get_ema_epar_urls(self):
+        """Download the EMA provided Excel file and grab the urls from there"""
+        # return a list of the epar urls, e.g. ["https://www.ema.europa.eu/en/medicines/human/EPAR/lyrica"]
+        # load excel file into pandas, directly from url
+        # there are some header rows to skip
+        # only load the columns we are interested in
+        df = pd.read_excel(EMA_EPAR_EXCEL_URL, skiprows=8, usecols=["Category", "Authorisation status", "URL"], engine='openpyxl')
+        # filter results by:
+        # "Category" == "Human"
+        # "Authorisation status" == "Authorised"
+        df = df[df["Category"] == "Human"]
+        # TODO verify we only want "Authorised" medicines
+        df = df[df["Authorisation status"] == "Authorised"]
+        return df["URL"]
