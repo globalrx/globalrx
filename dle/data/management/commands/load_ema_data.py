@@ -1,5 +1,7 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.db import IntegrityError
+from urllib3.exceptions import InvalidChunkLength
+
 from data.models import DrugLabel, LabelProduct, ProductSection
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
@@ -161,7 +163,13 @@ class Command(BaseCommand):
 
     def parse_pdf(self, pdf_url, lp):
         # save pdf to default_storage / MEDIA_ROOT
-        response = requests.get(pdf_url)
+        try:
+            response = requests.get(pdf_url)
+        except InvalidChunkLength as e:
+            self.stderr.write(self.style.ERROR("Unable to read url"))
+            # TODO maybe put in a back-off
+            return
+
         filename = default_storage.save(
             settings.MEDIA_ROOT / "ema.pdf", ContentFile(response.content)
         )
