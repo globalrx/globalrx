@@ -1,5 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.db import IntegrityError
+from requests.exceptions import ChunkedEncodingError
 from urllib3.exceptions import InvalidChunkLength
 
 from data.models import DrugLabel, LabelProduct, ProductSection
@@ -227,8 +228,10 @@ class Command(BaseCommand):
                 time.sleep(t)
                 response = requests.get(pdf_url)
                 break # no Exception means we were successful
-            except ValueError:
-                logger.warning(self.style.WARNING("Unable to read url"))
+            except (ValueError, ChunkedEncodingError) as e:
+                logger.error(self.style.ERROR(f"caught error: {e.__class__.__name__}"))
+                logger.warning(self.style.WARNING("Unable to read url, may continue"))
+                response = None
 
         if not response:
             logger.error(self.style.ERROR("unable to grab url contents"))
