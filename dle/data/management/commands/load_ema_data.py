@@ -106,9 +106,9 @@ class Command(BaseCommand):
 
         for url in urls:
             try:
-                self.stdout.write(f"processing url: {url}")
+                logger.info(f"processing url: {url}")
                 dl = self.get_drug_label_from_url(url)
-                self.stdout.write(self.style.SUCCESS(repr(dl)))
+                logger.debug(repr(dl))
                 # dl.link is url of pdf
                 # for now, assume only one LabelProduct per DrugLabel
                 lp = LabelProduct(drug_label=dl)
@@ -118,9 +118,9 @@ class Command(BaseCommand):
                 dl.save()
                 self.num_drug_labels_parsed += 1
             except IntegrityError as e:
-                self.stderr.write(self.style.ERROR("Label already in db"))
+                logger.warning(self.style.WARNING("Label already in db"))
             time.sleep(1)
-        self.stdout.write(self.style.SUCCESS(f"num_drug_labels_parsed: {self.num_drug_labels_parsed}"))
+        logger.info(f"num_drug_labels_parsed: {self.num_drug_labels_parsed}")
         return
 
     def get_drug_label_from_url(self, url):
@@ -130,8 +130,8 @@ class Command(BaseCommand):
         # grab the webpage
         response = requests.get(url)
         soup = BeautifulSoup(response.text, "html.parser")
-        # self.stdout.write(soup.prettify())
-        # self.stdout.write(repr(soup))
+        # logger.debug(soup.prettify())
+        # logger.debug(repr(soup))
 
         # ref: https://www.crummy.com/software/BeautifulSoup/bs4/doc/
 
@@ -161,7 +161,7 @@ class Command(BaseCommand):
         cell = tag.find_next("td", string=re.compile(r"\sName\s"))
         # grab the text from the 'next sibling'
         str = cell.find_next_sibling().get_text(strip=True)
-        # self.stdout.write(repr(str))
+        # logger.debug(repr(str))
         # set it in our object
         dl.product_name = str
 
@@ -211,14 +211,14 @@ class Command(BaseCommand):
         try:
             response = requests.get(pdf_url)
         except InvalidChunkLength as e:
-            self.stderr.write(self.style.ERROR("Unable to read url"))
+            logger.critical(self.style.ERROR("Unable to read url"))
             # TODO maybe put in a back-off
             return
 
         filename = default_storage.save(
             settings.MEDIA_ROOT / "ema.pdf", ContentFile(response.content)
         )
-        self.stdout.write(f"saved file to: {filename}")
+        logger.info(f"saved file to: {filename}")
 
         # PyMuPDF references
         # ty: https://stackoverflow.com/a/63486976/1807627
@@ -235,31 +235,27 @@ class Command(BaseCommand):
         # so keep track of where to start the search in each iteration
         start_idx = 0
         for section in EMA_PDF_PRODUCT_SECTIONS:
-            self.stdout.write(f"section.name: {section.name}")
-            self.stdout.write(f"looking for section.start_text: {section.start_text}")
+            logger.info(f"section.name: {section.name}")
+            logger.debug(f"looking for section.start_text: {section.start_text}")
             idx = raw_text.find(section.start_text, start_idx)
             if idx == -1:
-                self.stderr.write(self.style.ERROR("Unable to find section_start_text"))
+                logger.error(self.style.ERROR("Unable to find section_start_text"))
                 continue
             else:
-                self.stdout.write(
-                    self.style.SUCCESS(f"Found section.start_text, idx: {idx}")
-                )
+                logger.debug(f"Found section.start_text, idx: {idx}")
 
             # look for section_end_text
-            self.stdout.write(f"looking for section.end_text: {section.end_text}")
+            logger.debug(f"looking for section.end_text: {section.end_text}")
             end_idx = raw_text.find(section.end_text, idx)
             if end_idx == -1:
-                self.stderr.write(self.style.ERROR("Unable to find section.end_text"))
+                logger.error(self.style.ERROR("Unable to find section.end_text"))
                 continue
             else:
-                self.stdout.write(
-                    self.style.SUCCESS(f"Found section.end_text, end_idx: {end_idx}")
-                )
+                logger.debug(f"Found section.end_text, end_idx: {end_idx}")
 
             # the section_text is between idx and end_idx
             section_text = raw_text[idx:end_idx]
-            self.stdout.write(f"found section_text: {section_text}")
+            logger.debug(f"found section_text: {section_text}")
             ps = ProductSection(
                 label_product=lp, section_name=section.name, section_text=section_text
             )
@@ -268,12 +264,12 @@ class Command(BaseCommand):
             # start search for next section after the end_idx of this section
             start_idx = end_idx
 
-        # self.stdout.write(f"raw_text: {repr(raw_text)}")
+        # logger.debug(f"raw_text: {repr(raw_text)}")
 
         # delete the file when done
         default_storage.delete(filename)
 
-        self.stdout.write(self.style.SUCCESS("Success"))
+        logger.info("Success")
         return raw_text
 
     def get_ema_epar_urls(self):
