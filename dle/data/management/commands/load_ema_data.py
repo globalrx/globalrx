@@ -99,7 +99,8 @@ class Command(BaseCommand):
 
         if import_type == "rand_test":
             # pick a random 3 urls for the test
-            urls = random.sample(urls, 3)
+            urls = random.sample(list(urls), 3)
+            logger.debug(f"first rand url: {urls[0]}")
 
         logger.info(f"total urls to process: {len(urls)}")
 
