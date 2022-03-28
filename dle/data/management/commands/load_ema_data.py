@@ -13,6 +13,10 @@ import re
 import datetime
 import pandas as pd
 import time
+import logging
+import random
+
+logger = logging.getLogger(__name__)
 
 EMA_EPAR_EXCEL_URL = "https://www.ema.europa.eu/sites/default/files/Medicines_output_european_public_assessment_reports.xlsx"
 
@@ -51,16 +55,54 @@ EMA_PDF_PRODUCT_SECTIONS = [
 ]
 
 # runs with `python manage.py load_ema_data`
+# add `--type full` to import the full dataset
+# add `--type rand_test` to import 3 random records
+# add `--verbosity 2` for info output
+# add `--verbosity 3` for debug output
 class Command(BaseCommand):
     help = "Loads data from EMA"
 
     def __init__(self, stdout=None, stderr=None, no_color=False, force_color=False):
         super().__init__(stdout, stderr, no_color, force_color)
-        self.drug_label_idx = 0
+        self.num_drug_labels_parsed = 0
+
+    def add_arguments(self, parser):
+        parser.add_argument('--type', type=str, help="'full', 'test' or 'rand_test'", default="test")
 
     def handle(self, *args, **options):
-        urls = self.get_ema_epar_urls()
-        self.stdout.write(f"total urls to process: {len(urls)}")
+        # import_type is 'full', 'test' or 'rand_test'
+        import_type = options['type']
+        if import_type not in ['full', 'test', 'rand_test']:
+            raise CommandError("'type' parameter must be 'full', 'test' or 'rand_test'")
+
+        # basic logging config is in settings.py
+        # verbosity is 1 by default, gives critical, error and warning output
+        # `--verbosity 2` gives info output
+        # `--verbosity 3` gives debug output
+        verbosity = int(options['verbosity'])
+        root_logger = logging.getLogger('')
+        if verbosity == 2:
+            root_logger.setLevel(logging.INFO)
+        elif verbosity == 3:
+            root_logger.setLevel(logging.DEBUG)
+
+        logger.info(f"import_type: {import_type}")
+
+        if import_type == "test":
+            urls = [
+                "https://www.ema.europa.eu/en/medicines/human/EPAR/skilarence",
+                "https://www.ema.europa.eu/en/medicines/human/EPAR/lyrica",
+                "https://www.ema.europa.eu/en/medicines/human/EPAR/ontilyv",
+            ]
+        else:
+            urls = self.get_ema_epar_urls()
+
+        if import_type == "rand_test":
+            # pick a random 3 urls for the test
+            urls = random.sample(urls, 3)
+
+        logger.info(f"total urls to process: {len(urls)}")
+
         for url in urls:
             try:
                 self.stdout.write(f"processing url: {url}")
@@ -73,9 +115,11 @@ class Command(BaseCommand):
                 raw_text = self.parse_pdf(dl.link, lp)
                 dl.raw_text = raw_text
                 dl.save()
+                self.num_drug_labels_parsed += 1
             except IntegrityError as e:
                 self.stderr.write(self.style.ERROR("Label already in db"))
             time.sleep(1)
+        self.stdout.write(self.style.SUCCESS(f"num_drug_labels_parsed: {self.num_drug_labels_parsed}"))
         return
 
     def get_drug_label_from_url(self, url):

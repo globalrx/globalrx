@@ -80,14 +80,21 @@ class DrugLabelModelTests(TestCase):
 
     def test_load_ema_data(self):
         num_dl_entries = DrugLabel.objects.count()
-        management.call_command("load_ema_data")
-        # should insert over 1200 dl records
+        management.call_command("load_ema_data", type="test")
+        # should insert 3 dl records
         num_new_dl_entries = DrugLabel.objects.count()
-        self.assertGreater(num_new_dl_entries, num_dl_entries + 1000)
+        self.assertEqual(num_dl_entries + 3, num_new_dl_entries)
+
+    # def test_load_ema_data_full(self):
+    #     num_dl_entries = DrugLabel.objects.count()
+    #     management.call_command("load_ema_data", type="full")
+    #     # should insert over 1200 dl records
+    #     num_new_dl_entries = DrugLabel.objects.count()
+    #     self.assertGreater(num_new_dl_entries, num_dl_entries + 1000)
 
     def test_can_insert_skilarence(self):
         """Verify that we can get the correct values from the pdf"""
-        management.call_command("load_ema_data")
+        management.call_command("load_ema_data", type="test")
         dl = DrugLabel(
             source="EMA",
             product_name="Skilarence",
@@ -129,6 +136,7 @@ class DrugLabelModelTests(TestCase):
 
     def test_raw_text_is_saved(self):
         """Verify that we can get the correct values from the pdf"""
-        management.call_command("load_ema_data")
+        management.call_command("load_ema_data", type="test")
         dl_saved = DrugLabel.objects.filter(product_name="Skilarence").all()[:1].get()
         self.assertGreater(len(dl_saved.raw_text), 100, f"len(dl_saved.raw_text) was only: {len(dl_saved.raw_text)}")
+
