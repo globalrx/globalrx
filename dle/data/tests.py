@@ -85,13 +85,6 @@ class DrugLabelModelTests(TestCase):
         num_new_dl_entries = DrugLabel.objects.count()
         self.assertEqual(num_dl_entries + 3, num_new_dl_entries)
 
-    # def test_load_ema_data_full(self):
-    #     num_dl_entries = DrugLabel.objects.count()
-    #     management.call_command("load_ema_data", type="full")
-    #     # should insert over 1200 dl records
-    #     num_new_dl_entries = DrugLabel.objects.count()
-    #     self.assertGreater(num_new_dl_entries, num_dl_entries + 1000)
-
     def test_can_insert_skilarence(self):
         """Verify that we can get the correct values from the pdf"""
         management.call_command("load_ema_data", type="test")
@@ -139,4 +132,11 @@ class DrugLabelModelTests(TestCase):
         management.call_command("load_ema_data", type="test")
         dl_saved = DrugLabel.objects.filter(product_name="Skilarence").all()[:1].get()
         self.assertGreater(len(dl_saved.raw_text), 100, f"len(dl_saved.raw_text) was only: {len(dl_saved.raw_text)}")
+
+    def test_load_ema_data_full(self):
+        num_dl_entries = DrugLabel.objects.count()
+        management.call_command("load_ema_data", type="full", verbosity=2)
+        # should insert over 1200 dl records
+        num_new_dl_entries = DrugLabel.objects.count()
+        self.assertGreater(num_new_dl_entries, num_dl_entries + 1000)
 

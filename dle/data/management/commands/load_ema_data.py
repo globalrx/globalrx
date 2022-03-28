@@ -121,6 +121,7 @@ class Command(BaseCommand):
                 logger.warning(self.style.WARNING("Label already in db"))
             time.sleep(1)
         logger.info(f"num_drug_labels_parsed: {self.num_drug_labels_parsed}")
+        logger.info(self.style.SUCCESS("process complete"))
         return
 
     def get_drug_label_from_url(self, url):
@@ -206,15 +207,32 @@ class Command(BaseCommand):
         dl.save()
         return dl
 
-    def parse_pdf(self, pdf_url, lp):
-        # save pdf to default_storage / MEDIA_ROOT
-        try:
-            response = requests.get(pdf_url)
-        except InvalidChunkLength as e:
-            logger.critical(self.style.ERROR("Unable to read url"))
-            # TODO maybe put in a back-off
-            return
+    def get_backoff_time(self, tries=5):
+        """Get an amount of time to backoff. Starts with no backoff.
+        Returns: number of seconds to wait
+        """
+        # starts with no backoff
+        yield 0
+        # then we have an exponential backoff with jitter
+        for i in range(tries-1):
+            yield 2 ** i + random.uniform(0, 1)
 
+    def parse_pdf(self, pdf_url, lp):
+        # have a backoff time for pulling the pdf from the website
+        for t in self.get_backoff_time(5):
+            try:
+                logger.info(f"time to sleep: {t}")
+                time.sleep(t)
+                response = requests.get(pdf_url)
+                break # no Exception means we were successful
+            except InvalidChunkLength as e:
+                logger.warning(self.style.WARNING("Unable to read url"))
+
+        if not response:
+            logger.error(self.style.ERROR("unable to grab url contents"))
+            return "unable to download pdf"
+
+        # save pdf to default_storage / MEDIA_ROOT
         filename = default_storage.save(
             settings.MEDIA_ROOT / "ema.pdf", ContentFile(response.content)
         )
