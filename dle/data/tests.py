@@ -139,4 +139,3 @@ class DrugLabelModelTests(TestCase):
         # should insert over 1200 dl records
         num_new_dl_entries = DrugLabel.objects.count()
         self.assertGreater(num_new_dl_entries, num_dl_entries + 1000)
-

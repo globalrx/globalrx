@@ -86,6 +86,7 @@ class Command(BaseCommand):
         elif verbosity == 3:
             root_logger.setLevel(logging.DEBUG)
 
+        logger.info(self.style.SUCCESS("start process"))
         logger.info(f"import_type: {import_type}")
 
         if import_type == "test":
@@ -119,6 +120,7 @@ class Command(BaseCommand):
                 self.num_drug_labels_parsed += 1
             except IntegrityError as e:
                 logger.warning(self.style.WARNING("Label already in db"))
+            logger.info(f"sleep 1s")
             time.sleep(1)
         logger.info(f"num_drug_labels_parsed: {self.num_drug_labels_parsed}")
         logger.info(self.style.SUCCESS("process complete"))
@@ -225,7 +227,7 @@ class Command(BaseCommand):
                 time.sleep(t)
                 response = requests.get(pdf_url)
                 break # no Exception means we were successful
-            except InvalidChunkLength as e:
+            except ValueError:
                 logger.warning(self.style.WARNING("Unable to read url"))
 
         if not response:
