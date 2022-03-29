@@ -9,6 +9,7 @@ from zipfile import ZipFile
 
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
+from django.db.utils import IntegrityError
 
 from data.models import DrugLabel, LabelProduct, ProductSection
 
@@ -153,5 +154,9 @@ class Command(BaseCommand):
 
                 dl.link = "ftp://public.nlm.nih.gov/nlmdata/.dailymed"
 
-                dl.save()
-                logging.debug(f"Saving new drug label: {dl}")
+                try:
+                    dl.save()
+                    logging.info(f"Saving new drug label: {dl}")
+                except IntegrityError as e:
+                    logging.error(str(e))
+                    continue
