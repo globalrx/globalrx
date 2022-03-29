@@ -19,61 +19,82 @@ logger = logging.getLogger(__name__)
 
 EMA_EPAR_EXCEL_URL = "https://www.ema.europa.eu/sites/default/files/Medicines_output_european_public_assessment_reports.xlsx"
 
-class EmaSectionDef:
-    """struct to hold info that helps us parse the Sections"""
+class EmaSectionRe:
+    """Use regular expressions to parse the Sections from the text"""
 
-    def __init__(self, start_text, end_text, name):
-        self.start_text = start_text
-        self.end_text = end_text
+    def __init__(self, pattern, name):
+        """
+        Args:
+            pattern: re pattern to use to match a section
+            name: section_name for inserting into the db
+        """
+        self.prog = re.compile(pattern, re.DOTALL)
         self.name = name
+        self.end_idx = -1
+
+    def find_match(self, text, start_idx):
+        """
+        Args:
+            text: the string to search
+            start_idx: the start index for where to start the search
+
+        Returns: The section_text matched or None
+        """
+        match = self.prog.search(text, start_idx)
+        if match:
+            self.end_idx = match.end(2)
+            return match[2]
+        else:
+            return None
+
+    def get_end_idx(self):
+        """
+        Returns: The end index for the match. Or -1 if there was no match.
+        """
+        return self.end_idx
 
 
-# only doing a few to start
 # these should be in order of how they appear in the pdf
 EMA_PDF_PRODUCT_SECTIONS = [
-    EmaSectionDef(
-        "4.1 \nTherapeutic indications",
-        "4.2 \nPosology and method of administration",
+    # notes for the re pattern:
+    # escape the period we want to match e.g. "1.0" => r"1\.0"
+    # look for one or more whitespace characters r"\s+"
+    # find any characters (one or more times) r"(.+)" with re.DOTALL flag
+    # stop when we find the closing string
+    EmaSectionRe(
+        r"(4\.1\s+Therapeutic indications)(.+)(4\.2\s+Posology and method of administration)",
         "INDICATIONS",
     ),
-    EmaSectionDef(
-        "4.2 \nPosology and method of administration",
-        "4.3 \nContraindications",
+    EmaSectionRe(
+        r"(4\.2\s+Posology and method of administration)(.+)(4\.3\s+Contraindications)",
         "POSE",
     ),
-    EmaSectionDef(
-        "4.3 \nContraindications",
-        "4.4 \nSpecial warnings and precautions for use",
+    EmaSectionRe(
+        r"(4\.3\s+Contraindications)(.+)(4\.4\s+Special warnings and precautions for use)",
         "CONTRA",
     ),
-    EmaSectionDef(
-        "4.4 \nSpecial warnings and precautions for use",
-        "4.5 \nInteraction with other medicinal products and other forms of interaction",
+    EmaSectionRe(
+        r"(4\.4\s+Special warnings and precautions for use)(.+)(4\.5\s+Interaction with other medicinal products and other forms of interaction)",
         "WARN",
     ),
-    EmaSectionDef(
-        "4.5 \nInteraction with other medicinal products and other forms of interaction",
-        "4.6 \nFertility, pregnancy and lactation",
+    EmaSectionRe(
+        r"(4\.5\s+Interaction with other medicinal products and other forms of interaction)(.+)(4\.6\s+Fertility, pregnancy and lactation)",
         "INTERACT",
     ),
-    EmaSectionDef(
-        "4.6 \nFertility, pregnancy and lactation",
-        "4.7 \nEffects on ability to drive and use machines",
+    EmaSectionRe(
+        r"(4\.6\s+Fertility, pregnancy and lactation)(.+)(4\.7\s+Effects on ability to drive and use machines)",
         "PREG",
     ),
-    EmaSectionDef(
-        "4.7 \nEffects on ability to drive and use machines",
-        "4.8 \nUndesirable effects",
+    EmaSectionRe(
+        r"(4\.7\s+Effects on ability to drive and use machines)(.+)(4\.8\s+Undesirable effects)",
         "DRIVE",
     ),
-    EmaSectionDef(
-        "4.8 \nUndesirable effects",
-        "4.9 \nOverdose",
+    EmaSectionRe(
+        r"(4\.8\s+Undesirable effects)(.+)(4\.9\s+Overdose)",
         "SIDE",
     ),
-    EmaSectionDef(
-        "4.9 \nOverdose",
-        "5. \nPHARMACOLOGICAL PROPERTIES",
+    EmaSectionRe(
+        r"(4\.9\s+Overdose)(.+)(5\.\s+PHARMACOLOGICAL PROPERTIES)",
         "OVER",
     ),
 ]
@@ -294,28 +315,18 @@ class Command(BaseCommand):
         start_idx = 0
         for section in EMA_PDF_PRODUCT_SECTIONS:
             logger.info(f"section.name: {section.name}")
-            logger.debug(f"looking for section.start_text: {section.start_text}")
-            idx = raw_text.find(section.start_text, start_idx)
-            if idx == -1:
-                logger.error(self.style.ERROR("Unable to find section_start_text"))
+
+            section_text = section.find_match(raw_text, start_idx)
+            end_idx = section.get_end_idx()
+
+            if not section_text:
+                logger.error(self.style.ERROR("Unable to find section_text"))
                 self.error_urls[pdf_url] = True
                 continue
-            else:
-                logger.debug(f"Found section.start_text, idx: {idx}")
 
-            # look for section_end_text
-            logger.debug(f"looking for section.end_text: {section.end_text}")
-            end_idx = raw_text.find(section.end_text, idx)
-            if end_idx == -1:
-                logger.error(self.style.ERROR("Unable to find section.end_text"))
-                self.error_urls[pdf_url] = True
-                continue
-            else:
-                logger.debug(f"Found section.end_text, end_idx: {end_idx}")
-
-            # the section_text is between idx and end_idx
-            section_text = raw_text[idx:end_idx]
             logger.debug(f"found section_text: {section_text}")
+            logger.debug(f"end_idx: {end_idx}")
+
             ps = ProductSection(
                 label_product=lp, section_name=section.name, section_text=section_text
             )
