@@ -1,8 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.db import IntegrityError
 from requests.exceptions import ChunkedEncodingError
-from urllib3.exceptions import InvalidChunkLength
-
 from data.models import DrugLabel, LabelProduct, ProductSection
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
@@ -91,6 +89,9 @@ class Command(BaseCommand):
     def __init__(self, stdout=None, stderr=None, no_color=False, force_color=False):
         super().__init__(stdout, stderr, no_color, force_color)
         self.num_drug_labels_parsed = 0
+        "keep track of the number of labels processed"
+        self.error_urls = {}
+        "dictionary to keep track of the urls that have parsing errors; form: {url: True}"
 
     def add_arguments(self, parser):
         parser.add_argument('--type', type=str, help="'full', 'test' or 'rand_test'", default="test")
@@ -148,6 +149,10 @@ class Command(BaseCommand):
                 logger.warning(self.style.WARNING("Label already in db"))
             logger.info(f"sleep 1s")
             time.sleep(1)
+
+        for url in self.error_urls.keys():
+            logger.warning(self.style.WARNING(f"error parsing url: {url}"))
+
         logger.info(f"num_drug_labels_parsed: {self.num_drug_labels_parsed}")
         logger.info(self.style.SUCCESS("process complete"))
         return
@@ -205,12 +210,15 @@ class Command(BaseCommand):
         str = cell.find_next_sibling().get_text(strip=True)
         dl.source_product_number = str
 
-        # marketer
-        cell = tag.find_next(
-            "td", string=re.compile(r"\sMarketing-authorisation holder\s")
-        )
-        str = cell.find_next_sibling().get_text(strip=True)
-        dl.marketer = str
+        # marketer -- can be missing / null
+        try:
+            cell = tag.find_next(
+                "td", string=re.compile(r"\sMarketing-authorisation holder\s")
+            )
+            str = cell.find_next_sibling().get_text(strip=True)
+            dl.marketer = str
+        except AttributeError:
+            dl.marketer = ""
 
         tag = soup.find(id="product-information-section")
 
@@ -261,6 +269,7 @@ class Command(BaseCommand):
 
         if not response:
             logger.error(self.style.ERROR("unable to grab url contents"))
+            self.error_urls[pdf_url] = True
             return "unable to download pdf"
 
         # save pdf to default_storage / MEDIA_ROOT
@@ -289,6 +298,7 @@ class Command(BaseCommand):
             idx = raw_text.find(section.start_text, start_idx)
             if idx == -1:
                 logger.error(self.style.ERROR("Unable to find section_start_text"))
+                self.error_urls[pdf_url] = True
                 continue
             else:
                 logger.debug(f"Found section.start_text, idx: {idx}")
@@ -298,6 +308,7 @@ class Command(BaseCommand):
             end_idx = raw_text.find(section.end_text, idx)
             if end_idx == -1:
                 logger.error(self.style.ERROR("Unable to find section.end_text"))
+                self.error_urls[pdf_url] = True
                 continue
             else:
                 logger.debug(f"Found section.end_text, end_idx: {end_idx}")
