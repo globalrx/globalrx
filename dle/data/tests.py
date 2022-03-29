@@ -108,19 +108,19 @@ class DrugLabelModelTests(TestCase):
     def test_unique_constraint(self):
         """Unique constraint on DrugLabel should prevent us from adding
         entries where all of the following are identical:
-        source, product_name, version_date
+        source, source_product_number, version_date
 
         """
         dl = DrugLabel(
             source="EMA",
-            product_name="Fake-1",
+            source_product_number="Fake-1",
             version_date="2022-03-08",
         )
         dl.save()
 
         dl2 = DrugLabel(
             source="EMA",
-            product_name="Fake-1",
+            source_product_number="Fake-1",
             version_date="2022-03-08",
         )
         # this second save raises a django.db.utils.IntegrityError

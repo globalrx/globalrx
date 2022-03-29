@@ -48,7 +48,7 @@ class DrugLabel(models.Model):
     class Meta:
         constraints = [
             # add a unique constraint to prevent duplicate entries
-            models.UniqueConstraint(fields=["source", "product_name", "version_date"], name="unique_dl")
+            models.UniqueConstraint(fields=["source", "source_product_number", "version_date"], name="unique_dl")
         ]
 
     def __str__(self):
