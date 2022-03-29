@@ -19,6 +19,7 @@ logger = logging.getLogger(__name__)
 
 EMA_EPAR_EXCEL_URL = "https://www.ema.europa.eu/sites/default/files/Medicines_output_european_public_assessment_reports.xlsx"
 
+
 class EmaSectionRe:
     """Use regular expressions to parse the Sections from the text"""
 
@@ -115,20 +116,22 @@ class Command(BaseCommand):
         "dictionary to keep track of the urls that have parsing errors; form: {url: True}"
 
     def add_arguments(self, parser):
-        parser.add_argument('--type', type=str, help="'full', 'test' or 'rand_test'", default="test")
+        parser.add_argument(
+            "--type", type=str, help="'full', 'test' or 'rand_test'", default="test"
+        )
 
     def handle(self, *args, **options):
         # import_type is 'full', 'test' or 'rand_test'
-        import_type = options['type']
-        if import_type not in ['full', 'test', 'rand_test']:
+        import_type = options["type"]
+        if import_type not in ["full", "test", "rand_test"]:
             raise CommandError("'type' parameter must be 'full', 'test' or 'rand_test'")
 
         # basic logging config is in settings.py
         # verbosity is 1 by default, gives critical, error and warning output
         # `--verbosity 2` gives info output
         # `--verbosity 3` gives debug output
-        verbosity = int(options['verbosity'])
-        root_logger = logging.getLogger('')
+        verbosity = int(options["verbosity"])
+        root_logger = logging.getLogger("")
         if verbosity == 2:
             root_logger.setLevel(logging.INFO)
         elif verbosity == 3:
@@ -223,7 +226,7 @@ class Command(BaseCommand):
         # generic_name
         cell = tag.find_next("td", string=re.compile(r"\sActive substance\s"))
         str = cell.find_next_sibling().get_text(strip=True)
-        str = str[0:255] # limiting to 255 chars
+        str = str[0:255]  # limiting to 255 chars
         dl.generic_name = str
 
         # source_product_number
@@ -272,8 +275,8 @@ class Command(BaseCommand):
         # starts with no backoff
         yield 0
         # then we have an exponential backoff with jitter
-        for i in range(tries-1):
-            yield 2 ** i + random.uniform(0, 1)
+        for i in range(tries - 1):
+            yield 2**i + random.uniform(0, 1)
 
     def parse_pdf(self, pdf_url, lp):
         # have a backoff time for pulling the pdf from the website
@@ -282,7 +285,7 @@ class Command(BaseCommand):
                 logger.info(f"time to sleep: {t}")
                 time.sleep(t)
                 response = requests.get(pdf_url)
-                break # no Exception means we were successful
+                break  # no Exception means we were successful
             except (ValueError, ChunkedEncodingError) as e:
                 logger.error(self.style.ERROR(f"caught error: {e.__class__.__name__}"))
                 logger.warning(self.style.WARNING("Unable to read url, may continue"))
@@ -349,7 +352,12 @@ class Command(BaseCommand):
         # load excel file into pandas, directly from url
         # there are some header rows to skip
         # only load the columns we are interested in
-        df = pd.read_excel(EMA_EPAR_EXCEL_URL, skiprows=8, usecols=["Category", "Authorisation status", "URL"], engine='openpyxl')
+        df = pd.read_excel(
+            EMA_EPAR_EXCEL_URL,
+            skiprows=8,
+            usecols=["Category", "Authorisation status", "URL"],
+            engine="openpyxl",
+        )
         # filter results by:
         # "Category" == "Human"
         # "Authorisation status" == "Authorised"

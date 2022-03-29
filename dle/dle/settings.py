@@ -16,11 +16,16 @@ import os
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-STATIC_ROOT = os.path.join(BASE_DIR, 'static/')
+STATIC_ROOT = os.path.join(BASE_DIR, "static/")
 
 MEDIA_ROOT = BASE_DIR / "media"
 
-ALLOWED_HOSTS = ['34.218.101.115', 'druglabelexplorer.org', 'www.druglabelexplorer.org', '127.0.0.1']
+ALLOWED_HOSTS = [
+    "34.218.101.115",
+    "druglabelexplorer.org",
+    "www.druglabelexplorer.org",
+    "127.0.0.1",
+]
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
@@ -80,14 +85,14 @@ WSGI_APPLICATION = "dle.wsgi.application"
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'dle',
-        'USER': 'dle_user',
-        'PASSWORD': 'uDyvfMXHIKCJ',
+    "default": {
+        "ENGINE": "django.db.backends.mysql",
+        "NAME": "dle",
+        "USER": "dle_user",
+        "PASSWORD": "uDyvfMXHIKCJ",
         # 'HOST': '172.31.12.231', # private IP
-        'HOST': '44.238.69.61', # public IP
-        'PORT': '3306',
+        "HOST": "44.238.69.61",  # public IP
+        "PORT": "3306",
     }
 }
 
@@ -134,26 +139,26 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 LOGGING = {
-    'version': 1,                       # the dictConfig format version
-    'disable_existing_loggers': False,  # retain the default loggers
-    'handlers': {
-        'file': {
-            'class': 'logging.FileHandler',
-            'filename': 'general.log',
+    "version": 1,  # the dictConfig format version
+    "disable_existing_loggers": False,  # retain the default loggers
+    "handlers": {
+        "file": {
+            "class": "logging.FileHandler",
+            "filename": "general.log",
         },
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple',
-        },
-    },
-    'formatters': {
-        'simple': {
-            'format': '{asctime} {levelname} {message}',
-            'style': '{',
+        "console": {
+            "class": "logging.StreamHandler",
+            "formatter": "simple",
         },
     },
-    'root': {
-        'handlers': ['console'],
-        'level': 'WARNING',
+    "formatters": {
+        "simple": {
+            "format": "{asctime} {levelname} {message}",
+            "style": "{",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": "WARNING",
     },
 }
