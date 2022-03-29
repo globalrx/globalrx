@@ -63,6 +63,8 @@ class Command(BaseCommand):
         elif import_type == "test":
             archive_url = f"ftp://public.nlm.nih.gov/nlmdata/.dailymed/dm_spl_daily_update_10262021.zip"
             records.append(self.download_single_zip(archive_url, file_dir))
+            archive_url = f"ftp://public.nlm.nih.gov/nlmdata/.dailymed/dm_spl_daily_update_10182021.zip"
+            records.append(self.download_single_zip(archive_url, file_dir))
         else:
             raise CommandError("Type must be one of 'full', 'monthly', or 'test'")
 
@@ -139,7 +141,7 @@ class Command(BaseCommand):
 
                 dl.generic_name = content.find("genericmedicine").find("name").text
 
-                dl.version_date = content.find("effectivetime").get("value")
+                dl.version_date = datetime.strptime(content.find("effectivetime").get("value"), "%Y%m%d")
 
                 dl.source_product_number = content.find("code", attrs={"codesystem": "2.16.840.1.113883.6.69"}).get(
                     "code")
@@ -151,5 +153,5 @@ class Command(BaseCommand):
 
                 dl.link = "ftp://public.nlm.nih.gov/nlmdata/.dailymed"
 
-                # dl.save()
+                dl.save()
                 logging.debug(f"Saving new drug label: {dl}")
