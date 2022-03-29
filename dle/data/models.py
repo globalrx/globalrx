@@ -16,6 +16,11 @@ SECTION_NAMES = [
     ("CONTRA", "Contraindications"),
     ("WARN", "Warnings"),
     ("PREG", "Pregnancy"),
+    ("POSE", "Posology"),
+    ("INTERACT", "Interactions"),
+    ("DRIVE", "Effects on driving"),
+    ("SIDE", "Side effects"),
+    ("OVER", "Overdose"),
 ]
 "This is a WIP"
 

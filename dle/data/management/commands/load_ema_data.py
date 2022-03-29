@@ -39,6 +39,11 @@ EMA_PDF_PRODUCT_SECTIONS = [
         "INDICATIONS",
     ),
     EmaSectionDef(
+        "4.2 \nPosology and method of administration",
+        "4.3 \nContraindications",
+        "POSE",
+    ),
+    EmaSectionDef(
         "4.3 \nContraindications",
         "4.4 \nSpecial warnings and precautions for use",
         "CONTRA",
@@ -49,9 +54,29 @@ EMA_PDF_PRODUCT_SECTIONS = [
         "WARN",
     ),
     EmaSectionDef(
+        "4.5 \nInteraction with other medicinal products and other forms of interaction",
+        "4.6 \nFertility, pregnancy and lactation",
+        "INTERACT",
+    ),
+    EmaSectionDef(
         "4.6 \nFertility, pregnancy and lactation",
         "4.7 \nEffects on ability to drive and use machines",
         "PREG",
+    ),
+    EmaSectionDef(
+        "4.7 \nEffects on ability to drive and use machines",
+        "4.8 \nUndesirable effects",
+        "DRIVE",
+    ),
+    EmaSectionDef(
+        "4.8 \nUndesirable effects",
+        "4.9 \nOverdose",
+        "SIDE",
+    ),
+    EmaSectionDef(
+        "4.9 \nOverdose",
+        "5. \nPHARMACOLOGICAL PROPERTIES",
+        "OVER",
     ),
 ]
 
@@ -172,6 +197,7 @@ class Command(BaseCommand):
         # generic_name
         cell = tag.find_next("td", string=re.compile(r"\sActive substance\s"))
         str = cell.find_next_sibling().get_text(strip=True)
+        str = str[0:255] # limiting to 255 chars
         dl.generic_name = str
 
         # source_product_number
