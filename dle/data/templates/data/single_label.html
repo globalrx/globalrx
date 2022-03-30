@@ -12,8 +12,11 @@
 <p>Product Number: {{ drug_label.source_product_number }}</p>
 <p>Marketing Authorization Holder: {{ drug_label.marketer }}</p>
 <a href="{{ drug_label.link }}">Link</a>
-<p>{{ drug_label.raw_text }}</p>
-
+<p>Label Product Sections:</p>
+{% for section in product_sections %}
+  <h4>{{ section.section_name }}</h4>
+  <p>{{ section.section_text }}</p>
+{% endfor %}
   </body>
 </html>
 

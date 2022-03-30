@@ -81,14 +81,12 @@ WSGI_APPLICATION = "dle.wsgi.application"
 
 DATABASES = {
     'default': {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-        # 'ENGINE': 'django.db.backends.mysql',
-        # 'NAME': 'dle',
-        # 'USER': 'dle_user',
-        # 'PASSWORD': 'uDyvfMXHIKCJ',
-        # 'HOST': '172.31.56.135', # private IP: '172.31.56.135', # public IP: '44.238.69.61',
-        # 'PORT': '3306',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'dle',
+        'USER': 'dle_user',
+        'PASSWORD': 'uDyvfMXHIKCJ',
+        'HOST': '44.238.69.61',
+        'PORT': '3306',
     }
 }
 
