@@ -152,7 +152,8 @@ class Command(BaseCommand):
 
                 dl.marketer = content.find("author").find("name").text
 
-                dl.link = "ftp://public.nlm.nih.gov/nlmdata/.dailymed"
+                root = content.find("setid").get("root")
+                dl.link = f"https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid={root}"
 
                 try:
                     dl.save()
