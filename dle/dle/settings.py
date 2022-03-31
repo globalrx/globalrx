@@ -85,7 +85,8 @@ DATABASES = {
         'NAME': 'dle',
         'USER': 'dle_user',
         'PASSWORD': 'uDyvfMXHIKCJ',
-        'HOST': '44.238.69.61',
+        # 'HOST': '172.31.12.231', # private IP
+        'HOST': '44.238.69.61', # public IP
         'PORT': '3306',
     }
 }

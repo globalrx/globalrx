@@ -1,6 +1,21 @@
 
 ### Drug Label Explorer Setup
 
+#### Overview
+
+- Main parameters for system setup are: host, db\_host, db\_password
+  - host: the public url for the website
+  - db\_host: the private url that the django instance will use to connect to the db instance
+  - db\_password: the password for the db_user
+- Hosts need to be configured. Using AWS -> Route 53
+  - Register public domain name
+  - Allocate Elastic IP addresses in EC2
+  - Assign IP addresses to the domain names chosen
+- Configure settings in `dle/dle/settings.py`, `dle.conf`, `server_instance_setup.sh`, `db_instance_setup.sh`
+- Launch Server Instance
+- Launch DB Instance
+- Verify setup
+
 #### DNS
 
 - register druglabelexplorer.org on AWS / Route 53
@@ -13,6 +28,8 @@
 - create 'A' record to route traffic to the Elastic IP address we created: create two: one for 'www' and one for ''
 
 - maybe takes a bit for the DNS changes, esp new domain name...
+
+- TODO: setup a private Hosting Zone for the DB-server
 
 #### Application Server
 
@@ -66,14 +83,16 @@ Allocate Elastic IP Address
 
 Launch EC2 Instance
 
-Amazon Linux 2 AMI
-arm
-m6g.medium
+```
+Ubuntu 18.04
+x86
+t2.medium
 16GB gp3 disk
 Tags: 'Name' => 'dle-maria'
 Create Security Group (maria-dev): open 22, 3306 to all incomming traffic
 Create key-pair (dle-dev) # using existing key-pair
 Launch Instance
+```
 
 Associate Elastic IP address
 
@@ -105,8 +124,10 @@ sudo mysql --user=root --password=''
 mysql --user=dle_user --password=uDyvfMXHIKCJ --host=172.31.56.135 --port=3306 dle
 ```
 
-##### enable TLS for db traffic *** Not doing this yet, using private network IP
-/etc/my.cnf
+##### enable TLS for db traffic *** Not doing this, using private network IP
+
+> /etc/my.cnf
+
 ```
 [mariadb]
 ...
@@ -115,8 +136,8 @@ ssl_cert = /etc/my.cnf.d/certificates/server-cert.pem
 ssl_key = /etc/my.cnf.d/certificates/server-key.pem
 ssl_ca = /etc/my.cnf.d/certificates/ca.pem
 ```
-# file settings for db encryption at rest
-/etc/my.cnf.d/enable_encryption.preset
+Also see:
+> /etc/my.cnf.d/enable_encryption.preset
 
 ______
 
@@ -150,6 +171,15 @@ References:
 
 [ELB](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-application-load-balancer.html)
 
+[MariaDB ColumnStore Tables](https://mariadb.com/docs/multi-node/columnstore/schema-design/create-table/)
+
+[MariaDB Deployment](https://mariadb.com/docs/deploy/)
+
+[MariaDB ColumnStore configuration](https://mariadb.com/docs/deploy/topologies/columnstore-object-storage/enterprise-server-10-6/)
+
+[MariaDB ColumnStore test installation](https://fromdual.com/create-a-single-node-mariadb-columnstore-test-installation)
+
+[MariaDB ColumnStore Deployment](https://mariadb.com/docs/deploy/topologies/single-node/community-columnstore-cs10-6/)
 _____
 
 TODO: https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
