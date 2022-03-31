@@ -16,6 +16,11 @@ SECTION_NAMES = [
     ("CONTRA", "Contraindications"),
     ("WARN", "Warnings"),
     ("PREG", "Pregnancy"),
+    ("POSE", "Posology"),
+    ("INTERACT", "Interactions"),
+    ("DRIVE", "Effects on driving"),
+    ("SIDE", "Side effects"),
+    ("OVER", "Overdose"),
 ]
 "This is a WIP"
 
@@ -39,6 +44,15 @@ class DrugLabel(models.Model):
     "marketer is 'like' the manufacturer, but technically the manufacturer can be different"
     link = models.URLField()
     "link is url to the external data source website"
+
+    class Meta:
+        constraints = [
+            # add a unique constraint to prevent duplicate entries
+            models.UniqueConstraint(
+                fields=["source", "source_product_number", "version_date"],
+                name="unique_dl",
+            )
+        ]
 
     def __str__(self):
         return (
