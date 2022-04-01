@@ -130,7 +130,7 @@ class Command(BaseCommand):
                         xml_files.append(outfile)
         return xml_files
 
-    def import_records(self, xml_records):
+    def import_records(self, xml_records, user_id=None):
         logging.info("Building Drug Label DB records from XMLs")
         for xml_file in xml_records:
             with open(xml_file) as f:
