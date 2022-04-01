@@ -142,10 +142,6 @@ LOGGING = {
     "version": 1,  # the dictConfig format version
     "disable_existing_loggers": False,  # retain the default loggers
     "handlers": {
-        "file": {
-            "class": "logging.FileHandler",
-            "filename": "general.log",
-        },
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "simple",
