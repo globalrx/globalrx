@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Drug Label</title>
+  </head>
+  <body>
+<h1>{{ drug_label.product_name }}</h1>
+<h3>{{ drug_label.generic_name }}</h3>
+<p>Label date: {{ drug_label.version_date }}</p>
+<p>Source: {{ drug_label.source }}</p>
+<p>Product Number: {{ drug_label.source_product_number }}</p>
+<p>Marketing Authorization Holder: {{ drug_label.marketer }}</p>
+<a href="{{ drug_label.link }}">Link</a>
+<p>Label Product Sections:</p>
+{% for section in product_sections %}
+  <h4>{{ section.section_name }}</h4>
+  <p>{{ section.section_text }}</p>
+{% endfor %}
+  </body>
+</html>
+
+
+
