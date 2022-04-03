@@ -7,14 +7,14 @@
   {% for result, highlighted_text in search_results %}
   <div class="max-w-xl mb-8 md:ml-48">
     <div class="group">
-      <a href=/search/{{result.drug_generic_name}} class="text-sml
-      text-stone-900" > {{result.manufacturer}} <a
-      href=/search/{{result.drug_generic_name}}>
+      <a href=/search/{{result.id}} class="text-sml
+      text-stone-900" > {{result.generic_name}} <a
+      href=/search/{{result.id}}>
       <h2 class="text-xl text-blue-700 group-hover:underline">
-        {{result.drug_generic_name}}
+        {{result.product_name}}
       </h2>
     </div>
-    <p class="text-gray-800">{{highlighted_text|safe}}</p>
+    <p class="text-gray-800">...{{highlighted_text|safe}}...</p>
   </div>
   {% endfor %}
 </ul>

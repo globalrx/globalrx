@@ -1,0 +1,10 @@
+{% extends "search/base.html" %} {% block content %}
+<div>
+  <span> {{drug.generic_name}}</span>
+  <h3><b>{{drug.product_name}}</b></h3>
+  <div class="max-w-screen-md">
+  <p>{{drug.raw_text}}</p>
+</div>
+</div>
+
+{% endblock %}
