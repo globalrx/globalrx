@@ -55,11 +55,11 @@ def process_search(search_request: SearchRequest) -> List[DrugLabel]:
         if v and k in search_filter_mapping:
             param_key = search_filter_mapping[k]
             if k == "select_section" and not v:
-                pass
+                continue
             sql_params[param_key] = v
             additional_filter = f"AND LOWER({param_key}) = LOWER(%({param_key})s) "
             raw_sql += additional_filter
-    raw_sql += "LIMIT 30"
+    raw_sql += "LIMIT 30" #can remove this once we're done testing
     print(raw_sql)
     return [d for d in DrugLabel.objects.raw(raw_sql, params=sql_params)]
 
