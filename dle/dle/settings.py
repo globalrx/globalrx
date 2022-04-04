@@ -41,6 +41,7 @@ DEBUG = True
 
 INSTALLED_APPS = [
     "data.apps.DataConfig",
+    "compare.apps.CompareConfig",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",

@@ -1,0 +1,35 @@
+{% extends "compare/layout.html" %}
+
+{% block body %}
+
+    <!-- <p>DL Name: {{ dl_name }}</p>
+    <p>DL Version Date: {{ dl_version }}</p> -->
+    
+    <div id="compare-form-block">
+        <h4> Enter labels to compare.</h4>
+        <form action="{% url 'compare:compare_result' %}" method="get">
+            <label for="first-label">First Product Name: </label>
+            <input id="first-label" type="text" name="first-label" value="">
+            <label for="second-label">Second Product Name: </label>
+            <input id="second-label" type="text" name="second-label" value="">
+            <br>
+            <label for="first-version">Frist Product Version: </label>
+            <input id="first-version" type="text" name="first-version" value="">
+            <label for="second-version">Second Product Version: </label>
+            <input id="second-version" type="text" name="second-version" value="">
+            <br>
+            <input type="submit" value="Compare Products">
+        </form>
+    </div>
+    <hr>
+    {% if pname_version %}
+        <ul>
+            {% for item in pname_version %}
+                <ol>{{ item }}</ol>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+{% endblock %}
+
+

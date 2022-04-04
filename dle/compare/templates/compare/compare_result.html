@@ -1,0 +1,70 @@
+
+{% extends "compare/layout.html" %}
+
+{% block body %}
+    <div class="container">     
+        <div class="row">
+            <h5> Comparison result view. Showing all sections.</h5>
+        </div>
+        <div class="row sec-content">
+            <div class="col-sm">
+                <dl>
+                    <dt>Source: {{ dl1.source }}</dt>
+                    <dt>Product Name: {{ dl1.product_name }}</dt>
+                    <dt>Generic Name: {{ dl1.generic_name }}</dt>
+                    <dt>Version Date: {{ dl1.version_date }}</dt>
+                    <dt>Product Number: {{ dl1.source_product_number }}</dt>
+                    <dt>Marketer: {{ dl1.marketer }}</dt>
+                </dl>
+            </div>
+            <div class="col-sm">
+                <dl>
+                    <dt>Source: {{ dl2.source }}</dt>
+                    <dt>Product Name: {{ dl2.product_name }}</dt>
+                    <dt>Generic Name: {{ dl2.generic_name }}</dt>
+                    <dt>Version Date: {{ dl2.version_date }}</dt>
+                    <dt>Product Number: {{ dl2.source_product_number }}</dt>
+                    <dt>Marketer: {{ dl2.marketer }}</dt>
+                </dl>
+            </div>
+        </div>
+        {% if sections %}
+            {% for section in sections %}
+                <!-- insert the section header -->
+                <div class="row sec-header">
+                    <div class="col-sm">
+                        <h5>{{ section.section_name }}</h5>
+                    </div>
+                </div>
+                <!-- insert the section contents, div highlighted red/green -->
+                <div class="row sec-content {{ section.textMatches }}">
+                    <div class="col-sm">
+                        <p>
+                            {% for tuple in section.section_text %}
+                                {% if tuple.0 == 0 %}
+                                    {{ tuple.1 }}
+                                {% elif tuple.0 == -1 %}
+                                    <span class="diff-text">{{ tuple.1 }}</span>
+                                {% endif %}
+                            {% endfor %}
+                        </p>
+                    </div>
+                    <div class="col-sm">
+                        <p>
+                            {% for tuple in section.section_text %}
+                                {% if tuple.0 == 0 %}
+                                    {{ tuple.1 }}
+                                {% elif tuple.0 == 1 %}
+                                    <span class="diff-text">{{ tuple.1 }}</span>
+                                {% endif %}
+                            {% endfor %}
+                        </p>
+                    </div>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>No sections are available.</p>
+        {% endif %}
+    </div>
+
+{% endblock %}
