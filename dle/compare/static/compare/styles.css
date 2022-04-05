@@ -24,8 +24,11 @@
 .sec-diff > div {
     border:3px solid red;
 }
-.diff-text {
+.diff-text-highlight {
     background-color:rgba(240, 14, 14, 0.575);
+}
+.matching-text-highlight {
+    background-color:rgba(14, 240, 74, 0.575);
 }
 .error-msg-display {
     background-color:rgba(240, 14, 14, 0.575);

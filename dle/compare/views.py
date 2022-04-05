@@ -27,6 +27,7 @@ def list_labels(request):
 
     return render(request, 'compare/index.html', context)
 
+
 def compare_result(request):
     # get DrugLabel matching product_name and version_date
     product_name1, date1 = request.GET['first-label'].split(':')
@@ -50,16 +51,20 @@ def compare_result(request):
     # get dict in the form {section_name: [section_text1, section_text2]}
     sections_dict = {}
     for section in dl1_sections:
-        sections_dict[map_section_names(section.section_name)] = ["", ""]
+        # sections_dict[map_section_names(section.section_name)] = ["", ""]
+        sections_dict[section.section_name] = ["", ""]
     
     for section in  dl2_sections:
-        sections_dict[map_section_names(section.section_name)] = ["", ""]
+        # sections_dict[map_section_names(section.section_name)] = ["", ""]
+        sections_dict[section.section_name] = ["", ""]
 
     for section in dl1_sections:
-        sections_dict[map_section_names(section.section_name)][0] = section.section_text
+        # sections_dict[map_section_names(section.section_name)][0] = section.section_text
+        sections_dict[section.section_name][0] = section.section_text
 
     for section in dl2_sections:
-        sections_dict[map_section_names(section.section_name)][1] = section.section_text
+        # sections_dict[map_section_names(section.section_name)][1] = section.section_text
+        sections_dict[section.section_name][1] = section.section_text
 
     context = { 'dl1': drug_label1, 'dl2': drug_label2, "sections": []}
 
@@ -67,13 +72,19 @@ def compare_result(request):
     # determine if the two drug labels have same product_name
     same_product = drug_label1.product_name == drug_label2.product_name
 
+    if same_product:
+        context['text_highlight'] = "diff-text-highlight"
+    else:
+        context['text_highlight'] = "matching-text-highlight"
+
     # compare each section and insert data in context.sections
     for sec_name in sections_dict.keys():
         text1 = sections_dict[sec_name][0]
         text2 = sections_dict[sec_name][1]
-        
+
         if same_product:
             diff1, diff2 = get_diff_for_diff_versions(text1, text2)
+
         else:
             diff1, diff2 = get_diff_for_diff_products(text1, text2)
 
@@ -90,35 +101,3 @@ def compare_result(request):
         context["sections"].append(data)
 
     return render(request, 'compare/compare_result.html', context)
-
-
-# def index(request):
-#     context = {'route': 'compare/index.html'}
-
-#     dls_fda = DrugLabel.objects.filter(source = "FDA")[:6]
-#     dls_ema = DrugLabel.objects.filter(source = "EMA")[:6]
-#     # one_lp = LabelProduct.objects.filter(drug_label = dls[0])
-#     # first_DL_sections = ProductSection.objects.filter(label_product = one_lp[0])
-
-#     for dl in dls_fda:
-#         print("--------------")
-#         print(dl.source)
-#         print(dl.product_name)
-#         print(dl.generic_name)
-#         print(dl.version_date)
-#         print(dl.source_product_number)
-#         print(dl.marketer)
-#         print(dl.link)
-
-#     for dl in dls_ema:
-#         print("--------------")
-#         print(dl.source)
-#         print(dl.product_name)
-#         print(dl.generic_name)
-#         print(dl.version_date)
-#         print(dl.source_product_number)
-#         print(dl.marketer)
-#         print(dl.link)
-    
-#     # context = {"dl_name": dls[0].product_name, "dl_version": dls[0].version_date}    
-#     return render(request, 'compare/index.html')

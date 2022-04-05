@@ -44,7 +44,7 @@
                                 {% if tuple.0 == 0 %}
                                     {{ tuple.1 }}
                                 {% elif tuple.0 == -1 %}
-                                    <span class="diff-text">{{ tuple.1 }}</span>
+                                    <span class="{{ text_highlight }}">{{ tuple.1 }}</span>
                                 {% endif %}
                             {% endfor %}
                         </p>
@@ -55,7 +55,7 @@
                                 {% if tuple.0 == 0 %}
                                     {{ tuple.1 }}
                                 {% elif tuple.0 == 1 %}
-                                    <span class="diff-text">{{ tuple.1 }}</span>
+                                    <span class="{{ text_highlight }}">{{ tuple.1 }}</span>
                                 {% endif %}
                             {% endfor %}
                         </p>
