@@ -40,7 +40,7 @@
                 <div class="row sec-content {{ section.textMatches }}">
                     <div class="col-sm">
                         <p>
-                            {% for tuple in section.section_text %}
+                            {% for tuple in section.section_text1 %}
                                 {% if tuple.0 == 0 %}
                                     {{ tuple.1 }}
                                 {% elif tuple.0 == -1 %}
@@ -51,7 +51,7 @@
                     </div>
                     <div class="col-sm">
                         <p>
-                            {% for tuple in section.section_text %}
+                            {% for tuple in section.section_text2 %}
                                 {% if tuple.0 == 0 %}
                                     {{ tuple.1 }}
                                 {% elif tuple.0 == 1 %}
@@ -63,7 +63,7 @@
                 </div>
             {% endfor %}
         {% else %}
-            <p>No sections are available.</p>
+            <p>No section texts are found.</p>
         {% endif %}
     </div>
 

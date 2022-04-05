@@ -24,3 +24,9 @@
 .sec-diff > div {
     border:3px solid red;
 }
+.diff-text {
+    background-color:rgba(240, 14, 14, 0.575);
+}
+.error-msg-display {
+    background-color:rgba(240, 14, 14, 0.575);
+}

@@ -1,25 +1,39 @@
 from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
 from django.core.exceptions import ObjectDoesNotExist
-import diff_match_patch as dmp_module
 from .models import *
+from .util import *
 
 
 def index(request):
-    labels_fda = DrugLabel.objects.filter(source = "FDA")[:10]
-    labels_ema = DrugLabel.objects.filter(source = "EMA")[:10]
-    context = {"pname_version": []}
+    return render(request, 'compare/index.html')
 
-    for drug_labels in [labels_fda, labels_ema]:
-        for drug_label in drug_labels:
-            context["pname_version"].append(drug_label.product_name + " : " + str(drug_label.version_date))
+
+def list_labels(request):
+    context = { 'labelsFound': False}
+    drug_labels1 = DrugLabel.objects.filter(product_name = request.GET['first-label'])
+    if drug_labels1:
+        context["drug_labels"] = [label for label in drug_labels1]
+        context["labelsFound"] = True
+    
+    drug_labels2 = DrugLabel.objects.filter(product_name = request.GET['second-label'])
+    if drug_labels2:
+        if "drug_labels" in context:
+            for label in drug_labels2: 
+                context["drug_labels"].append(label) 
+        else:
+            context["drug_labels"] = [label for label in drug_labels2]
+        context["labelsFound"] = True
 
     return render(request, 'compare/index.html', context)
 
 def compare_result(request):
     # get DrugLabel matching product_name and version_date
-    drug_label1 = get_object_or_404(DrugLabel, product_name = request.GET['first-label'], version_date = request.GET['first-version'])
-    drug_label2 = get_object_or_404(DrugLabel, product_name = request.GET['second-label'], version_date = request.GET['second-version'])
+    product_name1, date1 = request.GET['first-label'].split(':')
+    product_name2, date2 = request.GET['second-label'].split(':')
+
+    drug_label1 = get_object_or_404(DrugLabel, product_name = product_name1, version_date = get_date_obj(date1))
+    drug_label2 = get_object_or_404(DrugLabel, product_name = product_name2, version_date = get_date_obj(date2))
 
     try:
         label_product1 = LabelProduct.objects.filter(drug_label = drug_label1).first()
@@ -36,32 +50,36 @@ def compare_result(request):
     # get dict in the form {section_name: [section_text1, section_text2]}
     sections_dict = {}
     for section in dl1_sections:
-        sections_dict[section.section_name] = ["", ""]
+        sections_dict[map_section_names(section.section_name)] = ["", ""]
     
     for section in  dl2_sections:
-        sections_dict[section.section_name] = ["", ""]
+        sections_dict[map_section_names(section.section_name)] = ["", ""]
 
     for section in dl1_sections:
-        sections_dict[section.section_name][0] = section.section_text
+        sections_dict[map_section_names(section.section_name)][0] = section.section_text
 
     for section in dl2_sections:
-        sections_dict[section.section_name][1] = section.section_text
+        sections_dict[map_section_names(section.section_name)][1] = section.section_text
 
     context = { 'dl1': drug_label1, 'dl2': drug_label2, "sections": []}
 
-    dmp = dmp_module.diff_match_patch()
+    # dmp = dmp_module.diff_match_patch()
+    # determine if the two drug labels have same product_name
+    same_product = drug_label1.product_name == drug_label2.product_name
 
     # compare each section and insert data in context.sections
     for sec_name in sections_dict.keys():
         text1 = sections_dict[sec_name][0]
         text2 = sections_dict[sec_name][1]
-
-        # compare using dmp and run cleanupSemantic
-        diff = dmp.diff_main(text1, text2)
-        dmp.diff_cleanupSemantic(diff)
+        
+        if same_product:
+            diff1, diff2 = get_diff_for_diff_versions(text1, text2)
+        else:
+            diff1, diff2 = get_diff_for_diff_products(text1, text2)
 
         data = { "section_name": sec_name, 
-                "section_text": diff}
+                "section_text1": diff1,
+                "section_text2": diff2}
 
         # compare if sections are exact match (maybe not necessary to highlight all sections)
         if text1 == text2:
