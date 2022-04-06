@@ -2,34 +2,43 @@
     margin: 10px;
     padding: 10px
 }
+
 #compare-all-block {
     margin: 10px;
     padding: 10px;
 }
+
 .row {
     margin: 10px;
     /* padding-left: 10px;  */
 }
+
 .sec-header > div {
     text-align: center;
 }
+
 .sec-content > div {
-    margin-left: 5px;
-    padding-left: 10px;
+    margin-left: 10px;
+    padding-left: 1px;
     border-radius: 8px;
 }
+
 .sec-match > div {
     border:3px solid green;
 }
+
 .sec-diff > div {
     border:3px solid red;
 }
+
 .diff-text-highlight {
     background-color:rgba(240, 14, 14, 0.575);
 }
+
 .matching-text-highlight {
     background-color:rgba(14, 240, 74, 0.575);
 }
+
 .error-msg-display {
     background-color:rgba(240, 14, 14, 0.575);
 }
