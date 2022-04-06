@@ -1,0 +1,18 @@
+<div>
+  <label for="country_input">generic name:</label>
+</div>
+<datalist id="generic_name_typeahead_list">
+  {% for option in type_ahead_generic_name %}
+  <option value="{{option}}"></option>
+  {% endfor %}
+</datalist>
+<div>
+  <input
+    type="text"
+    name="generic_name_input"
+    class="h-10 w-60 px-3 py-1.5 shadow border border-solid border-gray-300 rounded"
+    aria-label="Default generic_name"
+    list="generic_name_typeahead_list"
+    placeholder="any generic name"
+  />
+</div>
