@@ -30,11 +30,8 @@ def list_labels(request):
 
 def compare_result(request):
     # get DrugLabel matching product_name and version_date
-    product_name1, date1 = request.GET['first-label'].split(':')
-    product_name2, date2 = request.GET['second-label'].split(':')
-
-    drug_label1 = get_object_or_404(DrugLabel, product_name = product_name1, version_date = get_date_obj(date1))
-    drug_label2 = get_object_or_404(DrugLabel, product_name = product_name2, version_date = get_date_obj(date2))
+    drug_label1 = get_object_or_404(DrugLabel, id = request.GET['first-label'])
+    drug_label2 = get_object_or_404(DrugLabel, id = request.GET['second-label'])
 
     try:
         label_product1 = LabelProduct.objects.filter(drug_label = drug_label1).first()
@@ -68,7 +65,6 @@ def compare_result(request):
 
     context = { 'dl1': drug_label1, 'dl2': drug_label2, "sections": []}
 
-    # dmp = dmp_module.diff_match_patch()
     # determine if the two drug labels have same product_name
     same_product = drug_label1.product_name == drug_label2.product_name
 

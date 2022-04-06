@@ -14,19 +14,20 @@
 
     {% if labelsFound == True %}
         <hr>
+        <h5> Select labels to compare:</h5>
         <form action="{% url 'compare:compare_result' %}" method="get">
             <label for="frist-label">Compare</label>
             <select name="first-label">
                 <option value="Select label1">Select label1</option>
                 {% for label in drug_labels %}
-                <option value="{{ label.product_name }}:{{ label.version_date }}">{{ label.product_name }} ({{ label.version_date }})</option>
+                <option value="{{ label.id }}">{{ label.product_name }} ({{ label.version_date }})</option>
                 {% endfor %}
             </select>
             <label for="second-label"> Vs </label>
             <select name="second-label">
                 <option value="Select label2">Select label2</option>
                 {% for label in drug_labels %}
-                <option value="{{ label.product_name }}:{{ label.version_date }}">{{ label.product_name }} ({{ label.version_date }})</option>
+                <option value="{{ label.id }}">{{ label.product_name }} ({{ label.version_date }})</option>
                 {% endfor %}
             </select>
             <br>

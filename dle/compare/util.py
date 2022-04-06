@@ -25,11 +25,6 @@ SECTION_NAMES_DICT = {
     "('OVER', 'Overdose')": 'Overdose',
 }
 
-def get_date_obj(str_date):
-    month, day_year = str_date.split('.')
-    day, year = day_year.split(',')
-    return datetime.strptime(month + ' ' + day + ' ' + year, '%b %d %Y')
-
 def map_section_names(str):
     return SECTION_NAMES_DICT[str]
 
