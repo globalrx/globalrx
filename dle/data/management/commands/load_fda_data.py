@@ -2,6 +2,7 @@ from bs4 import BeautifulSoup
 from contextlib import closing
 from datetime import datetime, timedelta
 import logging
+import re
 import shutil
 import urllib.request as request
 import os
@@ -11,7 +12,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 from django.db.utils import IntegrityError
 
-from data.models import DrugLabel, LabelProduct, ProductSection
+from data.models import DrugLabel, LabelProduct, ProductSection, FDA_SECTION_NAMES
 
 
 # runs with `python manage.py load_fda_data --type {type}`
@@ -29,6 +30,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--type', type=str, help="full, monthly, or test", default="monthly")
+        parser.add_argument('--insert', type=bool, help="Set to connect to DB", default=False)
 
     """
     Entry point into class from command line
@@ -36,10 +38,21 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         import_type = options['type']
+        insert = options['insert']
         root_zips = self.download_records(import_type)
         record_zips = self.extract_prescription_zips(root_zips)
+        if(import_type == "test"):
+            record_zips.extend([
+                "/Users/kennethbr/cs599/dle/dle/media/fda/record_zips/20120118_4c222831-90af-4336-8bf6-5628ddf24326.zip",
+                "/Users/kennethbr/cs599/dle/dle/media/fda/record_zips/20120118_4c222831-90af-4336-8bf6-5628ddf24326.zip",
+                "/Users/kennethbr/cs599/dle/dle/media/fda/record_zips/20210302_8bc4bed6-9a97-4aa1-b34d-6053bdb143a4.zip",
+                "/Users/kennethbr/cs599/dle/dle/media/fda/record_zips/20210417_36338030-20e2-4ddb-bc06-6c43be4f50a0.zip",
+                "/Users/kennethbr/cs599/dle/dle/media/fda/record_zips/20210611_3dd61fa5-1620-4ebf-bbdb-ede29b92fce2.zip",
+                "/Users/kennethbr/cs599/dle/dle/media/fda/record_zips/20210731_bc2b7a3d-72cf-497c-95b0-ba2b71f63c64.zip",
+                "/Users/kennethbr/cs599/dle/dle/media/fda/record_zips/20211029_8df0ca6a-58cf-41fc-b890-5c7fa5a3792c.zip"
+            ])
         xml_files = self.extract_xmls(record_zips)
-        self.import_records(xml_files)
+        self.import_records(xml_files, insert=insert)
         logging.info("DONE")
 
     def download_records(self, import_type):
@@ -130,7 +143,7 @@ class Command(BaseCommand):
                         xml_files.append(outfile)
         return xml_files
 
-    def import_records(self, xml_records, user_id=None):
+    def import_records(self, xml_records, user_id=None, insert=False):
         logging.info("Building Drug Label DB records from XMLs")
         for xml_file in xml_records:
             with open(xml_file) as f:
@@ -158,18 +171,58 @@ class Command(BaseCommand):
                 dl.link = f"https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid={root}"
 
                 try:
-                    dl.save()
-                    lp.save()
-                    logging.debug(f"Saving new drug label: {dl}")
+                    if insert:
+                        dl.save()
+                        logging.info(f"Saving new drug label: {dl}")
                 except IntegrityError as e:
                     logging.error(str(e))
                     continue
 
+                try:
+                    if insert:
+                        lp.save()
+                        logging.info(f"Saving new label product")
+                except IntegrityError as e:
+                    logging.error(str(e))
+                    continue
+
+                # In the following section we will build the different sections. We do this by matching XML components
+                # to predetermined FDA_SECTION_NAMES, and for components that do not match, we add them to an "OTHER"
+                # category
+                section_map = {}
                 for section in content.find_all("component"):
                     if section.find("title") is None:
                         continue
+
+                    # From the title of the component, find the corresponding section name
+                    title = section.find("title").text.strip().upper()
+                    match = None
+                    section_name = None
+                    for fda_section_name in FDA_SECTION_NAMES:
+                        match = re.search(fda_section_name, title)
+                        if match:
+                            section_name = fda_section_name
+                            break;
+                    if match is None:
+                        section_name = "OTHER"
+
+                    # Now that we have determined what section, grab all the text in the component and add it as the
+                    # value to a corresponding hashmap. If a value already exists, add it to the end
                     raw_section_texts = [p.text for p in section.find_all("paragraph")]
                     section_texts = "\n".join(raw_section_texts)
-                    ps = ProductSection(label_product=lp, section_name=section.find("title").text, section_text=section_texts)
-                    ps.save()
-                    return
+                    if section_map.get(section_name) is None:
+                        section_map[section_name] = section_texts
+                    else:
+                        if section_name is not "OTHER":
+                            logging.debug(f"Found another section: {section_name}\twith title\t{title}")
+                        section_map[section_name] = section_map[section_name] + f"\n{title}\n" + section_texts
+
+                # Now that the sections have been parsed, save them
+                for section_name, section_text in section_map.items():
+                    ps = ProductSection(label_product=lp, section_name=section_name.upper(), section_text=section_text)
+                    try:
+                        if insert:
+                            ps.save()
+                            logging.info(f"Saving new product section {ps}")
+                    except IntegrityError as e:
+                        logging.error(str(e))
