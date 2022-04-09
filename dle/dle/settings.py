@@ -41,6 +41,7 @@ DEBUG = True
 # Application definition
 
 INSTALLED_APPS = [
+    'users.apps.UsersConfig',
     "data.apps.DataConfig",
     "compare.apps.CompareConfig",
     "django.contrib.admin",
