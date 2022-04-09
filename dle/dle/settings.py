@@ -53,6 +53,8 @@ INSTALLED_APPS = [
     "search.apps.SearchConfig",
 ]
 
+AUTH_USER_MODEL = 'users.User'
+
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -130,6 +132,7 @@ USE_I18N = True
 
 USE_TZ = True
 
+USE_L10N = True 
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
