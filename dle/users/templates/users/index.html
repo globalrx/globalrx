@@ -1,1 +1,35 @@
-"users"
+{% extends "users/layout.html" %}
+
+
+{% block body %}
+<!--shows brief information regarding supplies so it's easy for the client to go through
+especially once list becomes much longer-->
+
+    <div class="listbar">
+
+       <h2>Drug Labels</h2>
+         <br>
+    </div>
+
+   
+    {% for item in items %}
+
+
+        <div class="card mb-3" style="border: none;" >
+         
+                <div class="row no-gutters">
+                 
+                            <div class="card-body" >
+                                
+                                <p class="card-text"><small class="text-muted">
+                               
+                            </div>
+
+                        </div>
+                </div>
+          
+        </div>
+    {% empty %}
+        Welcome to DrugLabelExlorer! No items have been entered yet.
+    {% endfor %}
+{% endblock %}
