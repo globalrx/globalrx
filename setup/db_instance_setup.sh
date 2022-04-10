@@ -34,9 +34,16 @@ collation_server = utf8_general_ci
 # default_storage_engine = ColumnStore
 # TODO additional setup
 
+# 4GB RAM on box
+innodb_buffer_pool_size = 3G
+innodb_buffer_pool_instances = 4
+innodb_buffer_pool_chunk_size = 128M
+
 # override settings from /etc/mysql/mariadb.conf.d/50-server.cnf
 [mysqld]
 bind-address = 0.0.0.0
+
+innodb_buffer_pool_size=1342177280
 
 EOF
 
