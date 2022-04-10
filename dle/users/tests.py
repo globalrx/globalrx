@@ -28,11 +28,34 @@ class User_tests(TestCase):
 #        self.assertTemplateUsed(response,'dle/users/templates/users/register.html') 
 
 
-    # def test_login_users(self):
-    #     user= User.objects.filter(email=self.user['email']).first()
-    #     user.is_active=True
-    #     user.save()
-    #     self.assertEqual(response.status_code,302) 
+    def test_login_users(self):
+        client = Client()
+        response = client.post('/users/login/', {
+            "username": 'testuser',
+          #  "email": 'testuser@gmail.com',
+            "password": 'testuser'
+         #   "confirmation": 'testuser'
+        })
+        print(response.status_code)
+        self.assertEqual(response.status_code,200)
+
+
+    def test_logout_users(self):
+        client = Client()
+        response = client.post('/users/login/', {
+            "username": 'testuser',
+          #  "email": 'testuser@gmail.com',
+            "password": 'testuser'
+         #   "confirmation": 'testuser'
+        })
+        print(response.status_code)
+        response = client.get('/users/logout/')
+        self.assertEqual(response.status_code,302)
+        
+        #  user= User.objects.filter(email=self.user['email']).first()
+        #  user.is_active=True
+        #  user.save()
+        #  self.assertEqual(response.status_code,302) 
 
     # def test_login_page(self):
     #     response = self.login_url
