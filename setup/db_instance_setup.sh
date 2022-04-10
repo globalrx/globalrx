@@ -43,8 +43,6 @@ innodb_buffer_pool_chunk_size = 128M
 [mysqld]
 bind-address = 0.0.0.0
 
-innodb_buffer_pool_size=1342177280
-
 EOF
 
 ##### Start and enable the services
