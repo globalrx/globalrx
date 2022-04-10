@@ -41,6 +41,7 @@ DEBUG = True
 # Application definition
 
 INSTALLED_APPS = [
+    'users.apps.UsersConfig',
     "data.apps.DataConfig",
     "compare.apps.CompareConfig",
     "django.contrib.admin",
@@ -51,6 +52,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "search.apps.SearchConfig",
 ]
+
+AUTH_USER_MODEL = 'users.User'
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -129,6 +132,7 @@ USE_I18N = True
 
 USE_TZ = True
 
+USE_L10N = True 
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/

@@ -1,0 +1,38 @@
+{% extends "users/layout.html" %}
+
+{% block body %}
+    <div class="register">
+        <h2>Register</h2>
+        <!--registration page, from previous project templates -->
+        <br>
+
+        Welcome to DrugLabelExlorer! Please register here.
+        <br> <br>
+
+        {% if message %}
+            <div>{{ message }}</div>
+        {% endif %}
+
+        <form action="{% url 'register' %}" method="post">
+            {% csrf_token %}
+
+            <div class="form-group">
+                <input class="row form-control" autofocus type="text" name="username" placeholder="Username">
+            </div>
+            <div class="form-group">
+                <input class="row form-control" type="email" name="email" placeholder="Email Address">
+            </div>
+            <div class="form-group">
+                <input class="row form-control" type="password" name="password" placeholder="Password">
+            </div>
+            <div class="form-group">
+                <input class="row form-control" type="password" name="confirmation" placeholder="Confirm Password">
+            </div>
+            <input class="btn btn-dark" type="submit" value="Register"> 
+        </form> <br>
+
+        Already have an account? <a href="{% url 'login' %}">Log In here.</a>
+
+    </div>
+
+{% endblock %}
