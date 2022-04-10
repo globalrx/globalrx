@@ -28,9 +28,7 @@
             <!--navigation tool for moving to different pages-->
             {% if user.is_authenticated %}
 
-                <li class="nav-item">
-                    <a class="nav-link" href="{% url 'newitem' %}">Add Item</a>
-                </li>
+               
              
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'logout' %}">Log out</a>
