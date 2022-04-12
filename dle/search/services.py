@@ -2,9 +2,10 @@ from typing import List, Tuple, Dict
 from .models import SearchRequest, InvalidSearchRequest
 from .search_constants import MAX_LENGTH_SEARCH_RESULT_DISPLAY
 from data.models import DrugLabel, ProductSection
-
 from django.http import QueryDict
+import logging
 
+logger = logging.getLogger(__name__)
 
 def validate_search(request_query_params_dict: QueryDict) -> SearchRequest:
     """Validates search params and returns the seach request object if valid.
@@ -60,7 +61,7 @@ def process_search(search_request: SearchRequest) -> List[DrugLabel]:
             additional_filter = f"AND LOWER({param_key}) = LOWER(%({param_key})s) "
             raw_sql += additional_filter
     raw_sql += "LIMIT 30" #can remove this once we're done testing
-    print(raw_sql)
+    logger.debug(raw_sql)
     return [d for d in DrugLabel.objects.raw(raw_sql, params=sql_params)]
 
 
@@ -156,7 +157,7 @@ def get_type_ahead_mapping() -> Dict[str, str]:
             "section_name", flat=True
         ).distinct()
     ]
-    print([s.lower() for s in section_names])
+    logger.debug([s.lower() for s in section_names])
     type_ahead_mapping = {
         "manufacturers": [m.lower() for m in marketers],
         "generic_name": [g.lower() for g in generic_names],
