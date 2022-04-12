@@ -25,7 +25,7 @@ ALLOWED_HOSTS = [
     "druglabelexplorer.org",
     "www.druglabelexplorer.org",
     "127.0.0.1",
-    "localhost",    
+    "localhost",
 ]
 
 # Quick-start development settings - unsuitable for production
@@ -41,7 +41,7 @@ DEBUG = True
 # Application definition
 
 INSTALLED_APPS = [
-    'users.apps.UsersConfig',
+    "users.apps.UsersConfig",
     "data.apps.DataConfig",
     "compare.apps.CompareConfig",
     # "django.contrib.admin",
@@ -53,7 +53,7 @@ INSTALLED_APPS = [
     "search.apps.SearchConfig",
 ]
 
-AUTH_USER_MODEL = 'users.User'
+AUTH_USER_MODEL = "users.User"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -132,7 +132,7 @@ USE_I18N = True
 
 USE_TZ = True
 
-USE_L10N = True 
+USE_L10N = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/

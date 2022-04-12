@@ -77,7 +77,9 @@ class SearchPerformanceTests(TestCase):
                 logger.debug(f"response context: {response.context}")
 
                 try:
-                    logger.info(f"num search results: {len(response.context['search_results'])}")
+                    logger.info(
+                        f"num search results: {len(response.context['search_results'])}"
+                    )
                 except KeyError:
                     logger.info(f"NO search results found")
 
@@ -85,5 +87,3 @@ class SearchPerformanceTests(TestCase):
 
             query_time_csv_str = ",".join(query_times) + "\n"
             f.write(query_time_csv_str)
-
-
