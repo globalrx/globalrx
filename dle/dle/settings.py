@@ -26,6 +26,7 @@ ALLOWED_HOSTS = [
     "www.druglabelexplorer.org",
     "127.0.0.1",
     "localhost",
+    "testserver",
 ]
 
 # Quick-start development settings - unsuitable for production

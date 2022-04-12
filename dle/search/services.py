@@ -7,6 +7,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 def validate_search(request_query_params_dict: QueryDict) -> SearchRequest:
     """Validates search params and returns the seach request object if valid.
 
@@ -22,6 +23,7 @@ def validate_search(request_query_params_dict: QueryDict) -> SearchRequest:
     search_request_object = SearchRequest.from_search_query_dict(
         request_query_params_dict
     )
+    logger.debug(f"search_request_object: {search_request_object}")
 
     if search_request_object.search_text is not None:
         return search_request_object
@@ -60,7 +62,7 @@ def process_search(search_request: SearchRequest) -> List[DrugLabel]:
             sql_params[param_key] = v
             additional_filter = f"AND LOWER({param_key}) = LOWER(%({param_key})s) "
             raw_sql += additional_filter
-    raw_sql += "LIMIT 30" #can remove this once we're done testing
+    raw_sql += "LIMIT 30"  # can remove this once we're done testing
     logger.debug(raw_sql)
     return [d for d in DrugLabel.objects.raw(raw_sql, params=sql_params)]
 
