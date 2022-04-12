@@ -44,7 +44,7 @@ INSTALLED_APPS = [
     'users.apps.UsersConfig',
     "data.apps.DataConfig",
     "compare.apps.CompareConfig",
-    "django.contrib.admin",
+    # "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",

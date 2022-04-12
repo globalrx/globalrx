@@ -25,7 +25,7 @@ def redirect_from_root_view(request: HttpRequest):
 
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
+    # path("admin/", admin.site.urls),
     path("users/", include("users.urls")),
     path("data/", include("data.urls")),
     path("", redirect_from_root_view),

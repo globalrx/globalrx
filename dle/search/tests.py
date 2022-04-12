@@ -37,7 +37,9 @@ class SearchPerformanceTests(TestCase):
         self.client = Client()
         root_logger = logging.getLogger("")
         root_logger.setLevel(logging.INFO)
-        logger.info(f"setting logger level to INFO")
+        # root_logger.setLevel(logging.DEBUG)
+        logger.info(f"logger includes INFO")
+        logger.debug(f"logger includes DEBUG")
 
     def test_true(self):
         self.assertTrue(True)
@@ -54,21 +56,31 @@ class SearchPerformanceTests(TestCase):
 
         NUM_RUNS = 2
 
-        date_str = dt.datetime.now().strftime("%Y%m%d_%H%I%S")
-        output_file = settings.MEDIA_ROOT / f"perf_test_{date_str}.csv"
+        output_file = settings.MEDIA_ROOT / "perf_test.csv"
+        f = default_storage.open(output_file, "a")
         logger.info(f"saving data to: {output_file}")
-        f = default_storage.open(output_file, "w")
 
         for i in range(NUM_RUNS):
             logger.info(f"run number: {i+1}")
 
             query_times = []
+            date_str = dt.datetime.now().strftime("%Y%m%d_%H%I%S")
+            query_times.append(date_str)
+
             for query_obj in SearchPerformanceTests.TEST_QUERIES:
                 start_time = time.perf_counter()
-                response = self.client.get("/search/", query_obj)
+                response = self.client.get("/search/results", query_obj)
                 end_time = time.perf_counter()
                 query_time = end_time - start_time
-                query_times.append(str(query_time))
+                query_times.append(str(round(query_time, 3)))
+                logger.debug(f"response content: {response.content}")
+                logger.debug(f"response context: {response.context}")
+
+                try:
+                    logger.info(f"num search results: {len(response.context['search_results'])}")
+                except KeyError:
+                    logger.info(f"NO search results found")
+
                 self.assertEqual(response.status_code, 200)
 
             query_time_csv_str = ",".join(query_times) + "\n"
