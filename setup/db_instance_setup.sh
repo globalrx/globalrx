@@ -35,7 +35,7 @@ collation_server = utf8_general_ci
 # TODO additional setup
 
 # 4GB RAM on box
-innodb_buffer_pool_size = 3G
+innodb_buffer_pool_size = 2G
 innodb_buffer_pool_instances = 4
 innodb_buffer_pool_chunk_size = 128M
 
