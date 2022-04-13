@@ -576,6 +576,60 @@ class Command(BaseCommand):
         num_rows = df.shape[0]
         num_cols = df.shape[1]
 
+        column_label_map = {
+            1: "all sections",
+            2: "single section",
+            3: "all sections + manufacturer",
+            4: "single section + manufacturer",
+            5: "all sections + generic",
+            6: "single section + generic",
+            7: "all sections + 4 inputs",
+            8: "single section + 4 inputs",
+            9: "all sections",
+            10: "single section",
+            11: "all sections + manufacturer",
+            12: "single section + manufacturer",
+            13: "all sections + generic",
+            14: "single section + generic",
+            15: "all sections + 4 inputs",
+            16: "single section + 4 inputs",
+            17: "all sections",
+            18: "single section",
+            19: "all sections + manufacturer",
+            20: "single section + manufacturer",
+            21: "all sections + generic",
+            22: "single section + generic",
+            23: "all sections + 4 inputs",
+            24: "single section + 4 inputs",
+            25: "all sections",
+            26: "single section",
+            27: "all sections + manufacturer",
+            28: "single section + manufacturer",
+            29: "all sections + generic",
+            30: "single section + generic",
+            31: "all sections + 4 inputs",
+            32: "single section + 4 inputs",
+            33: "all sections",
+            34: "single section",
+            35: "all sections + manufacturer",
+            36: "single section + manufacturer",
+            37: "all sections + generic",
+            38: "single section + generic",
+            39: "all sections + 4 inputs",
+            40: "single section + 4 inputs",
+        }
+        # x and y values for each of the labels
+        label_vals = {
+            "all sections": [[], []],
+            "single section": [[], []],
+            "all sections + manufacturer": [[], []],
+            "single section + manufacturer": [[], []],
+            "all sections + generic": [[], []],
+            "single section + generic": [[], []],
+            "all sections + 4 inputs": [[], []],
+            "single section + 4 inputs": [[], []],
+        }
+
         x = []
         y = []
         x_avg = []
@@ -588,14 +642,38 @@ class Command(BaseCommand):
 
             for row in range(num_rows):
                 logger.debug(f"row: {row}; col: {col}; value: {df[col][row]}")
-                x.append(col)
-                y.append(df[col][row])
+                label = column_label_map[col]
+                vals = label_vals[label]
+                vals[0].append(col)
+                vals[1].append(df[col][row])
+                label_vals[label] = vals
+                # x.append(col)
+                # y.append(df[col][row])
 
         total_avg = sum(y_avg) / len(y_avg)
         logger.info(f"total average query time: {total_avg}")
 
         plt.figure(figsize=(16, 6))
-        plt.scatter(x, y, label="query time")
+        # plt.scatter(x, y, label="query time")
+
+        for label, vals in label_vals.items():
+            plt.scatter(vals[0], vals[1], label=label)
+
+        # plt.scatter([x[1], x[9], x[17], x[25], x[33]],
+        #             [y[1], y[9], y[17], y[25], y[33]], label="single section")
+        # plt.scatter([x[2], x[10], x[18], x[26], x[34]],
+        #             [y[2], y[10], y[18], y[26], y[34]], label="all sections + manufacturer")
+        # plt.scatter([x[3], x[11], x[19], x[27], x[35]],
+        #             [y[3], y[11], y[19], y[27], y[35]], label="single section + manufacturer")
+        # plt.scatter([x[4], x[12], x[20], x[28], x[36]],
+        #             [y[4], y[12], y[20], y[28], y[36]], label="all sections + generic")
+        # plt.scatter([x[5], x[13], x[21], x[29], x[37]],
+        #             [y[5], y[13], y[21], y[29], y[37]], label="single section + generic")
+        # plt.scatter([x[6], x[14], x[22], x[30], x[38]],
+        #             [y[6], y[14], y[22], y[30], y[38]], label="all sections + 4 inputs")
+        # plt.scatter([x[7], x[15], x[23], x[31], x[39]],
+        #             [y[7], y[15], y[23], y[31], y[39]], label="single section + 4 inputs")
+
         plt.scatter(x_avg, y_avg, label="avg query time per query")
         plt.axhline(total_avg, label="avg query time")
         plt.title("Performance testing")
