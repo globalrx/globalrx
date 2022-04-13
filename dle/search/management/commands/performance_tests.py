@@ -6,125 +6,464 @@ from django.conf import settings
 import time
 import datetime as dt
 import logging
+import random
 
 logger = logging.getLogger(__name__)
 
 PERF_TEST_CSV = "perf_test.csv"
 PERF_TEST_PNG = "perf_test.png"
 
+SECTIONS = [
+    "OTHER",
+    "INDICATIONS",
+    "DOSAGE",
+    "WARN",
+    "DESCRIPTION",
+    "CLINICAL PHARMACOLOGY",
+    "PHARMACOKINETICS",
+    "PRECAUTIONS",
+    "CONTRA",
+    "POSE",
+]
+SEARCH_TEXTS_ONE_WORD = [
+    "kidney",
+    "bone",
+    "heart",
+    "lung",
+    "death",
+    "birth",
+    "pregnancy",
+    "warning",
+    "health",
+    "doctor",
+]
+SEARCH_TEXTS_TWO_WORDS = [
+    "kidney disease",
+    "bone cancer",
+    "atrial fibrillation",
+    "lung cancer",
+    "death certificate",
+    "heart disease",
+    "birth affects",
+    "serious warning",
+    "health affects",
+    "doctor visit",
+]
+AGENCIES = ["FDA", "EMA"]
+
+# select marketer, count(*) from data_druglabel group by 1 order by 2 desc limit 10;
+MARKETERS = [
+    "bryant ranch prepack",
+    "A-S Medication Solutions",
+    "REMEDYREPACK INC.",
+    "NuCare Pharmaceuticals,Inc.",
+    "Proficient Rx LP",
+    "Physicians Total Care, Inc.",
+    "Aphena Pharma Solutions - Tennessee, LLC",
+    "PD-Rx Pharmaceuticals, Inc.",
+    "Denton Pharma, Inc. DBA Northwind Pharmaceuticals",
+    "Direct Rx",
+]
+
+# select generic_name, count(*) from data_druglabel group by 1 order by 2 desc limit 10;
+GENERIC_NAMES = [
+    "OXYGEN",
+    "Gabapentin",
+    "Metformin Hydrochloride",
+    "bupropion hydrochloride",
+    "Ibuprofen",
+    "Prednisone",
+    "Lisinopril",
+    "Diclofenac Sodium",
+    "acyclovir",
+    "Hydrochlorothiazide",
+]
+
+# select product_name, count(*) from data_druglabel group by 1 order by 2 desc limit 10;
+PRODUCT_NAMES = [
+    "Gabapentin",
+    "Oxygen",
+    "Metformin Hydrochloride",
+    "Prednisone",
+    "Lisinopril",
+    "ATORVASTATIN CALCIUM ",
+    "Ciprofloxacin",
+    "Ibuprofen",
+    "cyclobenzaprine hydrochloride",
+    "HYDROCHLOROTHIAZIDE",
+]
+
 TEST_QUERIES = [
     # select_section=&search_text=&select_agency=&manufacturer_input=&generic_name_input=&brand_name_input=
+
+    # one word NLP search
+    # - all sections
+    # - single section
+    # - all sections + manufacturer
+    # - single section + manufacturer
+    # - all sections + generic
+    # - single section + generic
+    # - all sections + 4 inputs
+    # - single section + 4 inputs
     {
         "select_section": "",
-        "search_text": "kidney",
+        "search_text": random.choice(SEARCH_TEXTS_ONE_WORD),
         "select_agency": "",
         "manufacturer_input": "",
         "generic_name_input": "",
         "brand_name_input": "",
     },
     {
-        "select_section": "indications",
-        "search_text": "heart disease",
+        "select_section": random.choice(SECTIONS),
+        "search_text": random.choice(SEARCH_TEXTS_ONE_WORD),
         "select_agency": "",
         "manufacturer_input": "",
         "generic_name_input": "",
-        "brand_name_input": "",
-    },
-    {
-        "select_section": "indications",
-        "search_text": '"heart disease"',
-        "select_agency": "",
-        "manufacturer_input": "",
-        "generic_name_input": "",
-        "brand_name_input": "",
-    },
-    {
-        "select_section": "",
-        "search_text": '"heart disease"',
-        "select_agency": "",
-        "manufacturer_input": "",
-        "generic_name_input": "",
-        "brand_name_input": "",
-    },
-    {
-        "select_section": "indications",
-        "search_text": '"heart disease"',
-        "select_agency": "",
-        "manufacturer_input": "",
-        "generic_name_input": "",
-        "brand_name_input": "",
-    },
-    {
-        "select_section": "indications",
-        "search_text": '"heart disease"',
-        "select_agency": "FDA",
-        "manufacturer_input": "",
-        "generic_name_input": "",
-        "brand_name_input": "",
-    },
-    {
-        "select_section": "indications",
-        "search_text": '"heart disease"',
-        "select_agency": "EMA",
-        "manufacturer_input": "",
-        "generic_name_input": "",
-        "brand_name_input": "",
-    },
-    {
-        "select_section": "indications",
-        "search_text": '"heart disease"',
-        "select_agency": "FDA",
-        "manufacturer_input": "",
-        "generic_name_input": "ibuprofen",
-        "brand_name_input": "",
-    },
-    {
-        "select_section": "indications",
-        "search_text": '"heart disease"',
-        "select_agency": "FDA",
-        "manufacturer_input": "pfizer",
-        "generic_name_input": "ibuprofen",
-        "brand_name_input": "",
-    },
-    {
-        "select_section": "indications",
-        "search_text": '"heart disease"',
-        "select_agency": "FDA",
-        "manufacturer_input": "pfizer",
-        "generic_name_input": "ibuprofen",
-        "brand_name_input": "latuda",
-    },
-    {
-        "select_section": "",
-        "search_text": "Atrial fibrillation",
-        "select_agency": "",
-        "manufacturer_input": "",
-        "generic_name_input": "ibuprofen",
         "brand_name_input": "",
     },
     {
         "select_section": "",
-        "search_text": '"Atrial fibrillation"',
+        "search_text": random.choice(SEARCH_TEXTS_ONE_WORD),
         "select_agency": "",
-        "manufacturer_input": "",
-        "generic_name_input": "ibuprofen",
+        "manufacturer_input": random.choice(MARKETERS),
+        "generic_name_input": "",
         "brand_name_input": "",
     },
     {
-        "select_section": "indications",
-        "search_text": "Atrial fibrillation",
+        "select_section": random.choice(SECTIONS),
+        "search_text": random.choice(SEARCH_TEXTS_ONE_WORD),
         "select_agency": "",
-        "manufacturer_input": "",
-        "generic_name_input": "ibuprofen",
+        "manufacturer_input": random.choice(MARKETERS),
+        "generic_name_input": "",
         "brand_name_input": "",
     },
     {
-        "select_section": "indications",
-        "search_text": '"Atrial fibrillation"',
+        "select_section": "",
+        "search_text": random.choice(SEARCH_TEXTS_ONE_WORD),
         "select_agency": "",
         "manufacturer_input": "",
-        "generic_name_input": "ibuprofen",
+        "generic_name_input": random.choice(GENERIC_NAMES),
         "brand_name_input": "",
+    },
+    {
+        "select_section": random.choice(SECTIONS),
+        "search_text": random.choice(SEARCH_TEXTS_ONE_WORD),
+        "select_agency": "",
+        "manufacturer_input": "",
+        "generic_name_input": random.choice(GENERIC_NAMES),
+        "brand_name_input": "",
+    },
+    {
+        "select_section": "",
+        "search_text": random.choice(SEARCH_TEXTS_ONE_WORD),
+        "select_agency": random.choice(AGENCIES),
+        "manufacturer_input": random.choice(MARKETERS),
+        "generic_name_input": random.choice(GENERIC_NAMES),
+        "brand_name_input": random.choice(PRODUCT_NAMES),
+    },
+    {
+        "select_section": random.choice(SECTIONS),
+        "search_text": random.choice(SEARCH_TEXTS_ONE_WORD),
+        "select_agency": random.choice(AGENCIES),
+        "manufacturer_input": random.choice(MARKETERS),
+        "generic_name_input": random.choice(GENERIC_NAMES),
+        "brand_name_input": random.choice(PRODUCT_NAMES),
+    },
+
+    # two word NLP search
+    # - all sections
+    # - single section
+    # - all sections + manufacturer
+    # - single section + manufacturer
+    # - all sections + generic
+    # - single section + generic
+    # - all sections + 4 inputs
+    # - single section + 4 inputs
+    {
+        "select_section": "",
+        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS),
+        "select_agency": "",
+        "manufacturer_input": "",
+        "generic_name_input": "",
+        "brand_name_input": "",
+    },
+    {
+        "select_section": random.choice(SECTIONS),
+        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS),
+        "select_agency": "",
+        "manufacturer_input": "",
+        "generic_name_input": "",
+        "brand_name_input": "",
+    },
+    {
+        "select_section": "",
+        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS),
+        "select_agency": "",
+        "manufacturer_input": random.choice(MARKETERS),
+        "generic_name_input": "",
+        "brand_name_input": "",
+    },
+    {
+        "select_section": random.choice(SECTIONS),
+        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS),
+        "select_agency": "",
+        "manufacturer_input": random.choice(MARKETERS),
+        "generic_name_input": "",
+        "brand_name_input": "",
+    },
+    {
+        "select_section": "",
+        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS),
+        "select_agency": "",
+        "manufacturer_input": "",
+        "generic_name_input": random.choice(GENERIC_NAMES),
+        "brand_name_input": "",
+    },
+    {
+        "select_section": random.choice(SECTIONS),
+        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS),
+        "select_agency": "",
+        "manufacturer_input": "",
+        "generic_name_input": random.choice(GENERIC_NAMES),
+        "brand_name_input": "",
+    },
+    {
+        "select_section": "",
+        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS),
+        "select_agency": random.choice(AGENCIES),
+        "manufacturer_input": random.choice(MARKETERS),
+        "generic_name_input": random.choice(GENERIC_NAMES),
+        "brand_name_input": random.choice(PRODUCT_NAMES),
+    },
+    {
+        "select_section": random.choice(SECTIONS),
+        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS),
+        "select_agency": random.choice(AGENCIES),
+        "manufacturer_input": random.choice(MARKETERS),
+        "generic_name_input": random.choice(GENERIC_NAMES),
+        "brand_name_input": random.choice(PRODUCT_NAMES),
+    },
+
+    # three word NLP search
+    # - all sections
+    # - single section
+    # - all sections + manufacturer
+    # - single section + manufacturer
+    # - all sections + generic
+    # - single section + generic
+    # - all sections + 4 inputs
+    # - single section + 4 inputs
+    {
+        "select_section": "",
+        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD),
+        "select_agency": "",
+        "manufacturer_input": "",
+        "generic_name_input": "",
+        "brand_name_input": "",
+    },
+    {
+        "select_section": random.choice(SECTIONS),
+        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD),
+        "select_agency": "",
+        "manufacturer_input": "",
+        "generic_name_input": "",
+        "brand_name_input": "",
+    },
+    {
+        "select_section": "",
+        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD),
+        "select_agency": "",
+        "manufacturer_input": random.choice(MARKETERS),
+        "generic_name_input": "",
+        "brand_name_input": "",
+    },
+    {
+        "select_section": random.choice(SECTIONS),
+        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD),
+        "select_agency": "",
+        "manufacturer_input": random.choice(MARKETERS),
+        "generic_name_input": "",
+        "brand_name_input": "",
+    },
+    {
+        "select_section": "",
+        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD),
+        "select_agency": "",
+        "manufacturer_input": "",
+        "generic_name_input": random.choice(GENERIC_NAMES),
+        "brand_name_input": "",
+    },
+    {
+        "select_section": random.choice(SECTIONS),
+        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD),
+        "select_agency": "",
+        "manufacturer_input": "",
+        "generic_name_input": random.choice(GENERIC_NAMES),
+        "brand_name_input": "",
+    },
+    {
+        "select_section": "",
+        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD),
+        "select_agency": random.choice(AGENCIES),
+        "manufacturer_input": random.choice(MARKETERS),
+        "generic_name_input": random.choice(GENERIC_NAMES),
+        "brand_name_input": random.choice(PRODUCT_NAMES),
+    },
+    {
+        "select_section": random.choice(SECTIONS),
+        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD),
+        "select_agency": random.choice(AGENCIES),
+        "manufacturer_input": random.choice(MARKETERS),
+        "generic_name_input": random.choice(GENERIC_NAMES),
+        "brand_name_input": random.choice(PRODUCT_NAMES),
+    },
+
+    # two word exact match search
+    # - all sections
+    # - single section
+    # - all sections + manufacturer
+    # - single section + manufacturer
+    # - all sections + generic
+    # - single section + generic
+    # - all sections + 4 inputs
+    # - single section + 4 inputs
+    {
+        "select_section": "",
+        "search_text": '"' + random.choice(SEARCH_TEXTS_TWO_WORDS) + '"',
+        "select_agency": "",
+        "manufacturer_input": "",
+        "generic_name_input": "",
+        "brand_name_input": "",
+    },
+    {
+        "select_section": random.choice(SECTIONS),
+        "search_text": '"' + random.choice(SEARCH_TEXTS_TWO_WORDS) + '"',
+        "select_agency": "",
+        "manufacturer_input": "",
+        "generic_name_input": "",
+        "brand_name_input": "",
+    },
+    {
+        "select_section": "",
+        "search_text": '"' + random.choice(SEARCH_TEXTS_TWO_WORDS) + '"',
+        "select_agency": "",
+        "manufacturer_input": random.choice(MARKETERS),
+        "generic_name_input": "",
+        "brand_name_input": "",
+    },
+    {
+        "select_section": random.choice(SECTIONS),
+        "search_text": '"' + random.choice(SEARCH_TEXTS_TWO_WORDS) + '"',
+        "select_agency": "",
+        "manufacturer_input": random.choice(MARKETERS),
+        "generic_name_input": "",
+        "brand_name_input": "",
+    },
+    {
+        "select_section": "",
+        "search_text": '"' + random.choice(SEARCH_TEXTS_TWO_WORDS) + '"',
+        "select_agency": "",
+        "manufacturer_input": "",
+        "generic_name_input": random.choice(GENERIC_NAMES),
+        "brand_name_input": "",
+    },
+    {
+        "select_section": random.choice(SECTIONS),
+        "search_text": '"' + random.choice(SEARCH_TEXTS_TWO_WORDS) + '"',
+        "select_agency": "",
+        "manufacturer_input": "",
+        "generic_name_input": random.choice(GENERIC_NAMES),
+        "brand_name_input": "",
+    },
+    {
+        "select_section": "",
+        "search_text": '"' + random.choice(SEARCH_TEXTS_TWO_WORDS) + '"',
+        "select_agency": random.choice(AGENCIES),
+        "manufacturer_input": random.choice(MARKETERS),
+        "generic_name_input": random.choice(GENERIC_NAMES),
+        "brand_name_input": random.choice(PRODUCT_NAMES),
+    },
+    {
+        "select_section": random.choice(SECTIONS),
+        "search_text": '"' + random.choice(SEARCH_TEXTS_TWO_WORDS) + '"',
+        "select_agency": random.choice(AGENCIES),
+        "manufacturer_input": random.choice(MARKETERS),
+        "generic_name_input": random.choice(GENERIC_NAMES),
+        "brand_name_input": random.choice(PRODUCT_NAMES),
+    },
+
+    # three word exact match search
+    # - all sections
+    # - single section
+    # - all sections + manufacturer
+    # - single section + manufacturer
+    # - all sections + generic
+    # - single section + generic
+    # - all sections + 4 inputs
+    # - single section + 4 inputs
+    {
+        "select_section": "",
+        "search_text": '"' + random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD) + '"',
+        "select_agency": "",
+        "manufacturer_input": "",
+        "generic_name_input": "",
+        "brand_name_input": "",
+    },
+    {
+        "select_section": random.choice(SECTIONS),
+        "search_text": '"' + random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD) + '"',
+        "select_agency": "",
+        "manufacturer_input": "",
+        "generic_name_input": "",
+        "brand_name_input": "",
+    },
+    {
+        "select_section": "",
+        "search_text": '"' + random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD) + '"',
+        "select_agency": "",
+        "manufacturer_input": random.choice(MARKETERS),
+        "generic_name_input": "",
+        "brand_name_input": "",
+    },
+    {
+        "select_section": random.choice(SECTIONS),
+        "search_text": '"' + random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD) + '"',
+        "select_agency": "",
+        "manufacturer_input": random.choice(MARKETERS),
+        "generic_name_input": "",
+        "brand_name_input": "",
+    },
+    {
+        "select_section": "",
+        "search_text": '"' + random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD) + '"',
+        "select_agency": "",
+        "manufacturer_input": "",
+        "generic_name_input": random.choice(GENERIC_NAMES),
+        "brand_name_input": "",
+    },
+    {
+        "select_section": random.choice(SECTIONS),
+        "search_text": '"' + random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD) + '"',
+        "select_agency": "",
+        "manufacturer_input": "",
+        "generic_name_input": random.choice(GENERIC_NAMES),
+        "brand_name_input": "",
+    },
+    {
+        "select_section": "",
+        "search_text": '"' + random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD) + '"',
+        "select_agency": random.choice(AGENCIES),
+        "manufacturer_input": random.choice(MARKETERS),
+        "generic_name_input": random.choice(GENERIC_NAMES),
+        "brand_name_input": random.choice(PRODUCT_NAMES),
+    },
+    {
+        "select_section": random.choice(SECTIONS),
+        "search_text": '"' + random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD) + '"',
+        "select_agency": random.choice(AGENCIES),
+        "manufacturer_input": random.choice(MARKETERS),
+        "generic_name_input": random.choice(GENERIC_NAMES),
+        "brand_name_input": random.choice(PRODUCT_NAMES),
     },
 ]
 
