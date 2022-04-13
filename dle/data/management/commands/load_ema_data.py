@@ -180,6 +180,7 @@ class Command(BaseCommand):
                 self.num_drug_labels_parsed += 1
             except IntegrityError as e:
                 logger.warning(self.style.WARNING("Label already in db"))
+                logger.debug(e, exc_info=True)
             logger.info(f"sleep 1s")
             time.sleep(1)
 

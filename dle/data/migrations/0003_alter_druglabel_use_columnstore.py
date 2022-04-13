@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.RunSQL(
-            sql="ALTER TABLE data_druglabel MODIFY id BIGINT NOT NULL;",
+            sql="ALTER TABLE data_druglabel MODIFY id BIGINT DEFAULT 42;",
             reverse_sql="ALTER TABLE data_druglabel MODIFY id BIGINT NOT NULL PRIMARY KEY AUTO_INCREMENT;",
         ),
         migrations.RunSQL(
