@@ -94,10 +94,42 @@ TEST_QUERIES = [
         "generic_name_input": "ibuprofen",
         "brand_name_input": "latuda",
     },
+    {
+        "select_section": "",
+        "search_text": "Atrial fibrillation",
+        "select_agency": "",
+        "manufacturer_input": "",
+        "generic_name_input": "ibuprofen",
+        "brand_name_input": "",
+    },
+    {
+        "select_section": "",
+        "search_text": '"Atrial fibrillation"',
+        "select_agency": "",
+        "manufacturer_input": "",
+        "generic_name_input": "ibuprofen",
+        "brand_name_input": "",
+    },
+    {
+        "select_section": "indications",
+        "search_text": "Atrial fibrillation",
+        "select_agency": "",
+        "manufacturer_input": "",
+        "generic_name_input": "ibuprofen",
+        "brand_name_input": "",
+    },
+    {
+        "select_section": "indications",
+        "search_text": '"Atrial fibrillation"',
+        "select_agency": "",
+        "manufacturer_input": "",
+        "generic_name_input": "ibuprofen",
+        "brand_name_input": "",
+    },
 ]
 
 # runs with `python manage.py performance_tests`
-# e.g. `python manage.py performance_tests --verbosity 2 --num_runs 2`
+# e.g. `python manage.py performance_tests --verbosity 2 --num_runs 3`
 # `--num_runs X` sets the number of runs
 # `--verbosity 2` gives info output
 # `--verbosity 3` gives debug output

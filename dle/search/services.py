@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 def validate_search(request_query_params_dict: QueryDict) -> SearchRequest:
-    """Validates search params and returns the seach request object if valid.
+    """Validates search params and returns the search request object if valid.
 
     Args:
         request_query_params_dict (QueryDict): Request dictionary returned from HttpRequest.GET
