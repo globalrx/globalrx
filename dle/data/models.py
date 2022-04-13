@@ -23,12 +23,7 @@ SECTION_NAMES = [
 "This is a WIP"
 
 
-class DrugLabel(models.Model):
-    """
-    Using ColumnStore for DrugLabel, so cannot have Keys/Indexes.
-    Using label_id as a string-id to tie to InnoDB tables
-    """
-
+class DrugLabelBase(models.Model):
     label_id = models.CharField(max_length=255)
     "label_id is: (source + version_date + product_name)[:255]"
     source = models.CharField(max_length=8)
@@ -43,18 +38,6 @@ class DrugLabel(models.Model):
     "source-specific product-id"
     marketer = models.CharField(max_length=255)
     "marketer is 'like' the manufacturer, but technically the manufacturer can be different"
-
-    @staticmethod
-    def from_child(drug_label_doc):
-        dl = DrugLabel()
-        dl.label_id = drug_label_doc.label_id
-        dl.source = drug_label_doc.source
-        dl.product_name = drug_label_doc.product_name
-        dl.version_date = drug_label_doc.version_date
-        dl.generic_name = drug_label_doc.generic_name
-        dl.source_product_number = drug_label_doc.source_product_number
-        dl.marketer = drug_label_doc.marketer
-        return dl
 
     def set_label_id(self):
         self.label_id = (self.source + self.version_date + self.product_name)[:255]
@@ -71,8 +54,30 @@ class DrugLabel(models.Model):
             f"label_id: {self.label_id}, "
         )
 
+    class Meta:
+        abstract = True
 
-class DrugLabelDoc(DrugLabel):
+
+class DrugLabel(DrugLabelBase):
+    """
+    Using ColumnStore for DrugLabel, so cannot have Keys/Indexes.
+    Using label_id as a string-id to tie to InnoDB tables
+    """
+
+    @staticmethod
+    def from_child(drug_label_doc):
+        dl = DrugLabel()
+        dl.label_id = drug_label_doc.label_id
+        dl.source = drug_label_doc.source
+        dl.product_name = drug_label_doc.product_name
+        dl.version_date = drug_label_doc.version_date
+        dl.generic_name = drug_label_doc.generic_name
+        dl.source_product_number = drug_label_doc.source_product_number
+        dl.marketer = drug_label_doc.marketer
+        return dl
+
+
+class DrugLabelDoc(DrugLabelBase):
     """Version-specific document for a medication from EMA, FDA or other source (e.g. user-uploaded)
     - can have multiple versions of the same medication (different version_date's)
     - medication may exist in multiple regions (source's)
