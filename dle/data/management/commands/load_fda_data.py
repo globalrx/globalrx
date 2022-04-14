@@ -9,7 +9,7 @@ from zipfile import ZipFile
 
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
-from django.db.utils import IntegrityError
+from django.db.utils import IntegrityError, OperationalError
 
 from data.models import (
     DrugLabel,
@@ -198,4 +198,8 @@ class Command(BaseCommand):
                     section_name = section.find("title").text
                     section_name = section_name[:42]
                     ps = ProductSection(label_product=lp, section_name=section_name, section_text=section_texts)
-                    ps.save()
+
+                    try:
+                        ps.save()
+                    except OperationalError as e:
+                        logger.error(str(e))
