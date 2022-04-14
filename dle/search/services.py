@@ -3,6 +3,7 @@ from .models import SearchRequest, InvalidSearchRequest
 from .search_constants import MAX_LENGTH_SEARCH_RESULT_DISPLAY
 from data.models import DrugLabel, ProductSection
 from django.http import QueryDict
+from django.db.models import Count
 import logging
 
 logger = logging.getLogger(__name__)
@@ -153,12 +154,10 @@ def get_type_ahead_mapping() -> Dict[str, str]:
     marketers = DrugLabel.objects.values_list("marketer", flat=True).distinct()
     generic_names = DrugLabel.objects.values_list("generic_name", flat=True).distinct()
     product_names = DrugLabel.objects.values_list("product_name", flat=True).distinct()
-    section_names = [
-        s.lower()
-        for s in ProductSection.objects.values_list(
-            "section_name", flat=True
-        ).distinct()
-    ]
+
+    values = ProductSection.objects.values('section_name').annotate(count=Count('section_name')).order_by('-count')[:20]
+    section_names = [ps["section_name"] for ps in values]
+
     logger.debug([s.lower() for s in section_names])
     type_ahead_mapping = {
         "manufacturers": [m.lower() for m in marketers],
