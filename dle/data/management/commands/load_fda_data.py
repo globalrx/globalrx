@@ -19,16 +19,15 @@ from data.models import (
     ProductSection,
 )
 
+logger = logging.getLogger(__name__)
 
 # runs with `python manage.py load_fda_data --type {type}`
 class Command(BaseCommand):
     help = "Loads data from FDA"
 
     def __init__(self, stdout=None, stderr=None, no_color=False, force_color=False):
-        logging.basicConfig(
-            format='%(asctime)s %(levelname)-8s %(message)s',
-            level=logging.INFO,
-            datefmt='%Y-%m-%d %H:%M:%S')
+        root_logger = logging.getLogger("")
+        root_logger.setLevel(logging.INFO)
         self.root_dir = settings.MEDIA_ROOT / "fda"
         os.makedirs(self.root_dir, exist_ok=True)
         super().__init__(stdout, stderr, no_color, force_color)
@@ -46,10 +45,10 @@ class Command(BaseCommand):
         record_zips = self.extract_prescription_zips(root_zips)
         xml_files = self.extract_xmls(record_zips)
         self.import_records(xml_files)
-        logging.info("DONE")
+        logger.info("DONE")
 
     def download_records(self, import_type):
-        logging.info("Downloading bulk archives.")
+        logger.info("Downloading bulk archives.")
         file_dir = self.root_dir / import_type
         os.makedirs(file_dir, exist_ok=True)
         records = []
@@ -82,13 +81,13 @@ class Command(BaseCommand):
         file_path = dest / url_filename
 
         if os.path.exists(file_path):
-            logging.info(f"File already exists: {file_path}. Skipping.")
+            logger.info(f"File already exists: {file_path}. Skipping.")
             return file_path
 
         # Download the drug labels archive file
         with closing(request.urlopen(ftp)) as r:
             with open(file_path, "wb") as f:
-                logging.info(f"Downloading {ftp} to {file_path}")
+                logger.info(f"Downloading {ftp} to {file_path}")
                 shutil.copyfileobj(r, f)
         return file_path
 
@@ -98,7 +97,7 @@ class Command(BaseCommand):
     """
 
     def extract_prescription_zips(self, zips):
-        logging.info("Extracting prescription Archives")
+        logger.info("Extracting prescription Archives")
         file_dir = self.root_dir / "record_zips"
         os.makedirs(file_dir, exist_ok=True)
         record_zips = []
@@ -110,15 +109,15 @@ class Command(BaseCommand):
                         outfile = file_dir / os.path.basename(file_info.filename)
                         file_info.filename = os.path.basename(file_info.filename)
                         if (os.path.exists(outfile)):
-                            logging.info(f"Record Zip already exists: {outfile}. Skipping.")
+                            logger.info(f"Record Zip already exists: {outfile}. Skipping.")
                         else:
-                            logging.info(f"Creating Record Zip {outfile}")
+                            logger.info(f"Creating Record Zip {outfile}")
                             zip_file_object.extract(file_info, file_dir)
                         record_zips.append(outfile)
         return record_zips
 
     def extract_xmls(self, zips):
-        logging.info("Extracting XMLs")
+        logger.info("Extracting XMLs")
         file_dir = self.root_dir / "xmls"
         os.makedirs(file_dir, exist_ok=True)
         xml_files = []
@@ -129,15 +128,15 @@ class Command(BaseCommand):
                     if file.endswith(".xml"):
                         outfile = file_dir / file
                         if (os.path.exists(outfile)):
-                            logging.info(f"XML already exists: {outfile}. Skipping.")
+                            logger.info(f"XML already exists: {outfile}. Skipping.")
                         else:
-                            logging.info(f"Creating XML {outfile}")
+                            logger.info(f"Creating XML {outfile}")
                             zip_file_object.extract(file, file_dir)
                         xml_files.append(outfile)
         return xml_files
 
     def import_records(self, xml_records, user_id=None):
-        logging.info("Building Drug Label DB records from XMLs")
+        logger.info("Building Drug Label DB records from XMLs")
         for xml_file in xml_records:
             with open(xml_file) as f:
                 content = BeautifulSoup(f.read(), "lxml")
@@ -168,9 +167,9 @@ class Command(BaseCommand):
                     rt.save()
                     dl = DrugLabel.from_child(dld)
                     dl.save()
-                    logging.debug(f"Saving new drug label: {dl}")
+                    logger.debug(f"Saving new drug label: {dl}")
                 except IntegrityError as e:
-                    logging.error(str(e))
+                    logger.error(str(e))
                     continue
 
                 for section in content.find_all("component"):
