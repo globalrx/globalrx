@@ -201,7 +201,7 @@ class Command(BaseCommand):
                     dl = DrugLabel.from_child(dld)
                     dl.save()
                     logger.debug(f"Saving new drug label: {dl}")
-                except IntegrityError as e:
+                except (IntegrityError, OperationalError) as e:
                     logger.error(str(e))
                     continue
 
