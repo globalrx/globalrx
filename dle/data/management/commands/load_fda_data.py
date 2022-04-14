@@ -155,9 +155,14 @@ class Command(BaseCommand):
 
                 dld.product_name = content.find("subject").find("name").text
 
-                dld.generic_name = content.find("genericmedicine").find("name").text
+                # TODO should be a many to 1 instead of text
+                generic_name = content.find("genericmedicine").find("name").text
+                dld.generic_name = generic_name[:255]
 
-                dld.version_date = datetime.strptime(content.find("effectivetime").get("value"), "%Y%m%d")
+                try:
+                    dld.version_date = datetime.strptime(content.find("effectivetime").get("value"), "%Y%m%d")
+                except ValueError:
+                    dld.version_date = datetime.now()
 
                 dld.source_product_number = content.find("code", attrs={"codesystem": "2.16.840.1.113883.6.69"}).get(
                     "code")
