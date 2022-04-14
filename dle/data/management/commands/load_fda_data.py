@@ -150,6 +150,8 @@ class Command(BaseCommand):
                 texts = [p.text for p in content.find_all("paragraph")]
                 dl.raw_text = "\n".join(texts)
 
+                lp = LabelProduct(drug_label=dl)
+
                 dl.marketer = content.find("author").find("name").text
 
                 root = content.find("setid").get("root")
@@ -157,7 +159,17 @@ class Command(BaseCommand):
 
                 try:
                     dl.save()
-                    logging.info(f"Saving new drug label: {dl}")
+                    lp.save()
+                    logging.debug(f"Saving new drug label: {dl}")
                 except IntegrityError as e:
                     logging.error(str(e))
                     continue
+
+                for section in content.find_all("component"):
+                    if section.find("title") is None:
+                        continue
+                    raw_section_texts = [p.text for p in section.find_all("paragraph")]
+                    section_texts = "\n".join(raw_section_texts)
+                    ps = ProductSection(label_product=lp, section_name=section.find("title").text, section_text=section_texts)
+                    ps.save()
+                    return
