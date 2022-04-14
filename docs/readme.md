@@ -1,4 +1,0 @@
-
-
-#### [DLE documentation](../readme.md)
-
