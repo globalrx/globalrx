@@ -3,6 +3,35 @@
 
 #### Overview
 
+This document contains information relating to deploying the DLE system in AWS.
+
+#### DLE Deployment
+
+The current architecture of DLE includes 2 EC2 instances (one for Django server and one for MariaDB server), and uses Route 53 for the domain name and DNS.
+
+There are currently 2 scripts that are provided that can assist with the deployment of the instances: `server_instance_setup.sh`, and `db_instance_setup.sh`.
+
+Overview of current procedure:
+
+- Configure hosts in Route 53
+- Launch DB Server
+- Launch Django Server
+
+
+#### Configure DNS, hosts in AWS / Route 53
+
+- First, we register a domain name on Route 53 (using druglabelexplorer.org)
+- Then, we allocate 2 Elastic IP addresses (one for django-server and one for db-server) in EC2. These can be tagged / named (django-server and db-server) to more easily identify them in the future.
+- In the Hosting Zone created for the chosen domain name (druglabelexplorer.org), create two 'A' records to route traffic to the public Elastic IP address we created for the django-server: create one for 'www' and one for ''.
+- Create a private Hosted Zone for the DB (using drug-label-db.org), specify the VPC that will host the instances
+- Create an 'A' record for the db – specify the private IP from from the Elastic IP allocated for the db-instance. Record name can be ''.
+- Note the public host name created for the website (druglabelexplorer.org) and the private host name created for the database (drug-label-db.org).
+
+#### Configure parameters
+#### Launch DB Server
+#### Launch Django Server
+
+
 - Main parameters for system setup are: host, db\_host, db\_password
   - host: the public url for the website
   - db\_host: the private url that the django instance will use to connect to the db instance
@@ -16,22 +45,9 @@
 - Launch DB Instance
 - Verify setup
 
-#### DNS
 
-- register druglabelexplorer.org on AWS / Route 53
 
-- allocate Elastic IP in EC2
-> 34.218.101.115
-
-- in Route 53, use Hosting Zone created for the domain name
-
-- create 'A' record to route traffic to the Elastic IP address we created: create two: one for 'www' and one for ''
-
-- maybe takes a bit for the DNS changes, esp new domain name...
-
-- TODO: setup a private Hosting Zone for the DB-server
-
-#### Application Server
+#### Launch and Setup Application Server
 
 - in EC2, Launch Instance
 (using these settings for now, may modify)
@@ -49,7 +65,6 @@ Launch Instance
 
 - Associate Elastic IP with Instance
 
-#### Application Server Setup
 
 ##### ssh/login to the server
 ```
@@ -73,7 +88,7 @@ sudo tail -n 100 /var/log/httpd/ssl_error_log # ssl error log
 
 ______
 
-#### Setup database server
+#### Launch and Setup Database Server
 
 Maria DB Instance
 
