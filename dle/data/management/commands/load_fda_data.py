@@ -11,7 +11,13 @@ from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 from django.db.utils import IntegrityError
 
-from data.models import DrugLabel, LabelProduct, ProductSection
+from data.models import (
+    DrugLabel,
+    DrugLabelDoc,
+    DrugLabelRawText,
+    LabelProduct,
+    ProductSection,
+)
 
 
 # runs with `python manage.py load_fda_data --type {type}`
@@ -135,31 +141,33 @@ class Command(BaseCommand):
         for xml_file in xml_records:
             with open(xml_file) as f:
                 content = BeautifulSoup(f.read(), "lxml")
-                dl = DrugLabel()
-                dl.source = "FDA"
+                dld = DrugLabelDoc()
+                dld.source = "FDA"
 
-                dl.product_name = content.find("subject").find("name").text
+                dld.product_name = content.find("subject").find("name").text
 
-                dl.generic_name = content.find("genericmedicine").find("name").text
+                dld.generic_name = content.find("genericmedicine").find("name").text
 
-                dl.version_date = datetime.strptime(content.find("effectivetime").get("value"), "%Y%m%d")
+                dld.version_date = datetime.strptime(content.find("effectivetime").get("value"), "%Y%m%d")
 
-                dl.source_product_number = content.find("code", attrs={"codesystem": "2.16.840.1.113883.6.69"}).get(
+                dld.source_product_number = content.find("code", attrs={"codesystem": "2.16.840.1.113883.6.69"}).get(
                     "code")
 
-                texts = [p.text for p in content.find_all("paragraph")]
-                dl.raw_text = "\n".join(texts)
-
-                lp = LabelProduct(drug_label=dl)
-
-                dl.marketer = content.find("author").find("name").text
+                dld.marketer = content.find("author").find("name").text
 
                 root = content.find("setid").get("root")
-                dl.link = f"https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid={root}"
+                dld.link = f"https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid={root}"
 
                 try:
-                    dl.save()
+                    dld.save()
+                    lp = LabelProduct(drug_label=dld)
                     lp.save()
+                    texts = [p.text for p in content.find_all("paragraph")]
+                    raw_text = "\n".join(texts)
+                    rt = DrugLabelRawText(drug_label=dld, raw_text=raw_text)
+                    rt.save()
+                    dl = DrugLabel.from_child(dld)
+                    dl.save()
                     logging.debug(f"Saving new drug label: {dl}")
                 except IntegrityError as e:
                     logging.error(str(e))
