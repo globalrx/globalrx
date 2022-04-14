@@ -156,7 +156,13 @@ class Command(BaseCommand):
                 dld.product_name = content.find("subject").find("name").text
 
                 # TODO should be a many to 1 instead of text
-                generic_name = content.find("genericmedicine").find("name").text
+                try:
+                    generic_name = content.find("genericmedicine").find("name").text
+                except AttributeError:
+                    # don't insert record if we cannot find this
+                    logger.error("unable to find generic_name")
+                    continue
+
                 dld.generic_name = generic_name[:255]
 
                 try:
