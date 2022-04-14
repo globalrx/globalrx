@@ -252,7 +252,7 @@ class Command(BaseCommand):
             str = cell.find_next_sibling().get_text(strip=True)
             dld.marketer = str
         except AttributeError:
-            dld.marketer = ""
+            dld.marketer = "_"
 
         tag = soup.find(id="product-information-section")
 
