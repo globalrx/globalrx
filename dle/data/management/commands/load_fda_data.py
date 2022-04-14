@@ -28,6 +28,7 @@ class Command(BaseCommand):
     def __init__(self, stdout=None, stderr=None, no_color=False, force_color=False):
         root_logger = logging.getLogger("")
         root_logger.setLevel(logging.INFO)
+        root_logger.setLevel(logging.DEBUG)
         self.root_dir = settings.MEDIA_ROOT / "fda"
         os.makedirs(self.root_dir, exist_ok=True)
         super().__init__(stdout, stderr, no_color, force_color)
@@ -42,9 +43,23 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         import_type = options['type']
         root_zips = self.download_records(import_type)
-        record_zips = self.extract_prescription_zips(root_zips)
-        xml_files = self.extract_xmls(record_zips)
-        self.import_records(xml_files)
+
+        for root_zip in root_zips:
+            record_zips = self.extract_prescription_zips(root_zip)
+            for record_zip in record_zips:
+                xml_files = self.extract_xmls(record_zip)
+                self.import_records(xml_files)
+
+                # cleanup
+                try:
+                    record_dir = record_zip[:-4]
+                    logger.debug(f"rmdir: {record_dir}")
+                    os.rmdir(record_dir)
+                    logger.debug(f"remove: {record_zip}")
+                    os.remove(record_zip)
+                except OSError as e:
+                    logger.error("failed to rm files")
+
         logger.info("DONE")
 
     def download_records(self, import_type):
@@ -96,43 +111,41 @@ class Command(BaseCommand):
     extract individual drug label zips from the bulk archive.
     """
 
-    def extract_prescription_zips(self, zips):
+    def extract_prescription_zips(self, zip_file):
         logger.info("Extracting prescription Archives")
         file_dir = self.root_dir / "record_zips"
         os.makedirs(file_dir, exist_ok=True)
         record_zips = []
 
-        for zip_file in zips:
-            with ZipFile(zip_file, 'r') as zip_file_object:
-                for file_info in zip_file_object.infolist():
-                    if file_info.filename.startswith("prescription") and file_info.filename.endswith(".zip"):
-                        outfile = file_dir / os.path.basename(file_info.filename)
-                        file_info.filename = os.path.basename(file_info.filename)
-                        if (os.path.exists(outfile)):
-                            logger.info(f"Record Zip already exists: {outfile}. Skipping.")
-                        else:
-                            logger.info(f"Creating Record Zip {outfile}")
-                            zip_file_object.extract(file_info, file_dir)
-                        record_zips.append(outfile)
+        with ZipFile(zip_file, 'r') as zip_file_object:
+            for file_info in zip_file_object.infolist():
+                if file_info.filename.startswith("prescription") and file_info.filename.endswith(".zip"):
+                    outfile = file_dir / os.path.basename(file_info.filename)
+                    file_info.filename = os.path.basename(file_info.filename)
+                    if os.path.exists(outfile):
+                        logger.info(f"Record Zip already exists: {outfile}. Skipping.")
+                    else:
+                        logger.info(f"Creating Record Zip {outfile}")
+                        zip_file_object.extract(file_info, file_dir)
+                    record_zips.append(outfile)
         return record_zips
 
-    def extract_xmls(self, zips):
+    def extract_xmls(self, zip_file):
         logger.info("Extracting XMLs")
         file_dir = self.root_dir / "xmls"
         os.makedirs(file_dir, exist_ok=True)
         xml_files = []
 
-        for zip_file in zips:
-            with ZipFile(zip_file, 'r') as zip_file_object:
-                for file in zip_file_object.namelist():
-                    if file.endswith(".xml"):
-                        outfile = file_dir / file
-                        if (os.path.exists(outfile)):
-                            logger.info(f"XML already exists: {outfile}. Skipping.")
-                        else:
-                            logger.info(f"Creating XML {outfile}")
-                            zip_file_object.extract(file, file_dir)
-                        xml_files.append(outfile)
+        with ZipFile(zip_file, 'r') as zip_file_object:
+            for file in zip_file_object.namelist():
+                if file.endswith(".xml"):
+                    outfile = file_dir / file
+                    if os.path.exists(outfile):
+                        logger.info(f"XML already exists: {outfile}. Skipping.")
+                    else:
+                        logger.info(f"Creating XML {outfile}")
+                        zip_file_object.extract(file, file_dir)
+                    xml_files.append(outfile)
         return xml_files
 
     def import_records(self, xml_records, user_id=None):
