@@ -194,4 +194,3 @@ class Command(BaseCommand):
                     section_name = section_name[:42]
                     ps = ProductSection(label_product=lp, section_name=section_name, section_text=section_texts)
                     ps.save()
-                    return
