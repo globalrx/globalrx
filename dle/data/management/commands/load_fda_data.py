@@ -34,14 +34,16 @@ class Command(BaseCommand):
         super().__init__(stdout, stderr, no_color, force_color)
 
     def add_arguments(self, parser):
-        parser.add_argument('--type', type=str, help="full, monthly, or test", default="monthly")
+        parser.add_argument(
+            "--type", type=str, help="full, monthly, or test", default="monthly"
+        )
 
     """
     Entry point into class from command line
     """
 
     def handle(self, *args, **options):
-        import_type = options['type']
+        import_type = options["type"]
         root_zips = self.download_records(import_type)
 
         for root_zip in root_zips:
@@ -114,9 +116,11 @@ class Command(BaseCommand):
         os.makedirs(file_dir, exist_ok=True)
         record_zips = []
 
-        with ZipFile(zip_file, 'r') as zip_file_object:
+        with ZipFile(zip_file, "r") as zip_file_object:
             for file_info in zip_file_object.infolist():
-                if file_info.filename.startswith("prescription") and file_info.filename.endswith(".zip"):
+                if file_info.filename.startswith(
+                    "prescription"
+                ) and file_info.filename.endswith(".zip"):
                     outfile = file_dir / os.path.basename(file_info.filename)
                     file_info.filename = os.path.basename(file_info.filename)
                     if os.path.exists(outfile):
@@ -133,7 +137,7 @@ class Command(BaseCommand):
         os.makedirs(file_dir, exist_ok=True)
         xml_files = []
 
-        with ZipFile(zip_file, 'r') as zip_file_object:
+        with ZipFile(zip_file, "r") as zip_file_object:
             for file in zip_file_object.namelist():
                 if file.endswith(".xml"):
                     outfile = file_dir / file
@@ -166,12 +170,15 @@ class Command(BaseCommand):
                 dld.generic_name = generic_name[:255]
 
                 try:
-                    dld.version_date = datetime.strptime(content.find("effectivetime").get("value"), "%Y%m%d")
+                    dld.version_date = datetime.strptime(
+                        content.find("effectivetime").get("value"), "%Y%m%d"
+                    )
                 except ValueError:
                     dld.version_date = datetime.now()
 
-                dld.source_product_number = content.find("code", attrs={"codesystem": "2.16.840.1.113883.6.69"}).get(
-                    "code")
+                dld.source_product_number = content.find(
+                    "code", attrs={"codesystem": "2.16.840.1.113883.6.69"}
+                ).get("code")
 
                 try:
                     dld.marketer = content.find("author").find("name").text
@@ -179,7 +186,9 @@ class Command(BaseCommand):
                     dld.marketer = "_"
 
                 root = content.find("setid").get("root")
-                dld.link = f"https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid={root}"
+                dld.link = (
+                    f"https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid={root}"
+                )
 
                 try:
                     dld.save()
@@ -203,7 +212,11 @@ class Command(BaseCommand):
                     section_texts = "\n".join(raw_section_texts)
                     section_name = section.find("title").text
                     section_name = section_name[:42]
-                    ps = ProductSection(label_product=lp, section_name=section_name, section_text=section_texts)
+                    ps = ProductSection(
+                        label_product=lp,
+                        section_name=section_name,
+                        section_text=section_texts,
+                    )
 
                     try:
                         ps.save()
