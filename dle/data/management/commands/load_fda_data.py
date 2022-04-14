@@ -52,7 +52,8 @@ class Command(BaseCommand):
                 "/Users/kennethbr/cs599/dle/dle/media/fda/record_zips/20211029_8df0ca6a-58cf-41fc-b890-5c7fa5a3792c.zip"
             ])
         xml_files = self.extract_xmls(record_zips)
-        self.import_records(xml_files, insert=insert)
+        self.count_titles(xml_files)
+        # self.import_records(xml_files, insert=insert)
         logging.info("DONE")
 
     def download_records(self, import_type):
@@ -143,86 +144,128 @@ class Command(BaseCommand):
                         xml_files.append(outfile)
         return xml_files
 
+    def count_titles(self, xml_records):
+        import re
+        re_combine_whitespace = re.compile(r"\s+")
+        re_remove_nonalpha_characters = re.compile('[^a-zA-Z ]')
+
+        titles = []
+        m = 4000
+        for xml_file in xml_records:
+            try:
+                with open(xml_file) as f:
+                    content = BeautifulSoup(f.read(), 'lxml')
+                    content.find_all("2.16.840.1.113883.6.1")
+                    codes = content.find_all("code", attrs={"codesystem": "2.16.840.1.113883.6.1"})
+                    for code in codes:
+                        my_str = str(code.get("displayname")).upper()
+                        my_str = re_combine_whitespace.sub(" ", my_str).strip()
+                        my_str = re_remove_nonalpha_characters.sub("", my_str)
+                        titles.append(my_str)
+            except Exception as e:
+                logging.error("Error")
+                raise e
+            m = m - 1
+            if m %100 == 0:
+                logging.info(m)
+            if m < 0:
+                break
+        import collections
+        counter = collections.Counter(titles)
+        logging.info(counter.most_common(10))
+        import csv
+        with open("top_displaynames.csv", "w") as csvfile:
+            csvwriter = csv.writer(csvfile)
+            csvwriter.writerow(["displayname","count"])
+            csvwriter.writerows(counter.most_common(1000))
+
+
     def import_records(self, xml_records, user_id=None, insert=False):
         logging.info("Building Drug Label DB records from XMLs")
+
         for xml_file in xml_records:
-            with open(xml_file) as f:
-                content = BeautifulSoup(f.read(), "lxml")
-                dl = DrugLabel()
-                dl.source = "FDA"
+            try:
+                with open(xml_file) as f:
+                    content = BeautifulSoup(f.read(), "lxml")
+                    dl = DrugLabel()
+                    dl.source = "FDA"
 
-                dl.product_name = content.find("subject").find("name").text
+                    dl.product_name = content.find("subject").find("name").text
 
-                dl.generic_name = content.find("genericmedicine").find("name").text
+                    dl.generic_name = content.find("genericmedicine").find("name").text
 
-                dl.version_date = datetime.strptime(content.find("effectivetime").get("value"), "%Y%m%d")
+                    dl.version_date = datetime.strptime(content.find("effectivetime").get("value"), "%Y%m%d")
 
-                dl.source_product_number = content.find("code", attrs={"codesystem": "2.16.840.1.113883.6.69"}).get(
-                    "code")
+                    dl.source_product_number = content.find("code", attrs={"codesystem": "2.16.840.1.113883.6.69"}).get(
+                        "code")
 
-                texts = [p.text for p in content.find_all("paragraph")]
-                dl.raw_text = "\n".join(texts)
+                    texts = [p.text for p in content.find_all("paragraph")]
+                    dl.raw_text = "\n".join(texts)
 
-                lp = LabelProduct(drug_label=dl)
+                    lp = LabelProduct(drug_label=dl)
 
-                dl.marketer = content.find("author").find("name").text
+                    dl.marketer = content.find("author").find("name").text
 
-                root = content.find("setid").get("root")
-                dl.link = f"https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid={root}"
+                    root = content.find("setid").get("root")
+                    dl.link = f"https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid={root}"
 
-                try:
-                    if insert:
-                        dl.save()
-                        logging.info(f"Saving new drug label: {dl}")
-                except IntegrityError as e:
-                    logging.error(str(e))
-                    continue
-
-                try:
-                    if insert:
-                        lp.save()
-                        logging.info(f"Saving new label product")
-                except IntegrityError as e:
-                    logging.error(str(e))
-                    continue
-
-                # In the following section we will build the different sections. We do this by matching XML components
-                # to predetermined FDA_SECTION_NAMES, and for components that do not match, we add them to an "OTHER"
-                # category
-                section_map = {}
-                for section in content.find_all("component"):
-                    if section.find("title") is None:
-                        continue
-
-                    # From the title of the component, find the corresponding section name
-                    title = section.find("title").text.strip().upper()
-                    match = None
-                    section_name = None
-                    for fda_section_name in FDA_SECTION_NAMES:
-                        match = re.search(fda_section_name, title)
-                        if match:
-                            section_name = fda_section_name
-                            break;
-                    if match is None:
-                        section_name = "OTHER"
-
-                    # Now that we have determined what section, grab all the text in the component and add it as the
-                    # value to a corresponding hashmap. If a value already exists, add it to the end
-                    raw_section_texts = [p.text for p in section.find_all("paragraph")]
-                    section_texts = "\n".join(raw_section_texts)
-                    if section_map.get(section_name) is None:
-                        section_map[section_name] = section_texts
-                    else:
-                        if section_name is not "OTHER":
-                            logging.debug(f"Found another section: {section_name}\twith title\t{title}")
-                        section_map[section_name] = section_map[section_name] + f"\n{title}\n" + section_texts
-
-                # Now that the sections have been parsed, save them
-                for section_name, section_text in section_map.items():
-                    ps = ProductSection(label_product=lp, section_name=section_name.upper(), section_text=section_text)
                     try:
                         if insert:
-                            ps.save()
-                            logging.info(f"Saving new product section {ps}")
+                            dl.save()
+                            logging.info(f"Saving new drug label: {dl}")
                     except IntegrityError as e:
                         logging.error(str(e))
+                        continue
+
+                    try:
+                        if insert:
+                            lp.save()
+                            logging.info(f"Saving new label product")
+                    except IntegrityError as e:
+                        logging.error(str(e))
+                        continue
+
+                    # In the following section we will build the different sections. We do this by matching XML components
+                    # to predetermined FDA_SECTION_NAMES, and for components that do not match, we add them to an "OTHER"
+                    # category
+                    section_map = {}
+                    for section in content.find_all("component"):
+                        if section.find("title") is None:
+                            continue
+
+                        # From the title of the component, find the corresponding section name
+                        title = section.find("title").text.strip().upper()
+                        match = None
+                        section_name = None
+                        for fda_section_name in FDA_SECTION_NAMES:
+                            match = re.search(fda_section_name, title)
+                            if match:
+                                section_name = fda_section_name
+                                break;
+                        if match is None:
+                            section_name = "OTHER"
+
+                        # Now that we have determined what section, grab all the text in the component and add it as the
+                        # value to a corresponding hashmap. If a value already exists, add it to the end
+                        raw_section_texts = [p.text for p in section.find_all("paragraph")]
+                        section_texts = "\n".join(raw_section_texts)
+                        if section_map.get(section_name) is None:
+                            section_map[section_name] = section_texts
+                        else:
+                            if section_name is not "OTHER":
+                                logging.debug(f"Found another section: {section_name}\twith title\t{title}")
+                            section_map[section_name] = section_map[section_name] + f"\n{title}\n" + section_texts
+
+                    # Now that the sections have been parsed, save them
+                    for section_name, section_text in section_map.items():
+                        ps = ProductSection(label_product=lp, section_name=section_name.upper(), section_text=section_text)
+                        try:
+                            if insert:
+                                ps.save()
+                                logging.debug(f"Saving new product section {ps}")
+                        except IntegrityError as e:
+                            logging.error(str(e))
+            except Exception as e:
+                logging.error(f"Could not parse {xml_file}")
+                logging.error(str(e));
+                continue;
