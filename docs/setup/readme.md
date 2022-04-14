@@ -20,6 +20,11 @@ Overview of current procedure:
 
 #### Configure DNS, hosts in AWS / Route 53
 
+- Overview
+  - Register public domain name
+  - Allocate Elastic IP addresses in EC2
+  - Assign IP addresses to the domain names chosen
+
 - First, we register a domain name on Route 53 (using druglabelexplorer.org)
 - Then, we allocate 2 Elastic IP addresses (one for django-server and one for db-server) in EC2. These can be tagged / named (django-server and db-server) to more easily identify them in the future.
 - In the Hosting Zone created for the chosen domain name (druglabelexplorer.org), create two 'A' records to route traffic to the public Elastic IP address we created for the django-server: create one for 'www' and one for ''.
@@ -28,28 +33,55 @@ Overview of current procedure:
 - Note the public host name created for the website (druglabelexplorer.org) and the private host name created for the database (drug-label-db.org).
 
 #### Configure parameters
-#### Launch DB Server
-#### Launch Django Server
-
 
 - Main parameters for system setup are: host, db\_host, db\_password
   - host: the public url for the website
   - db\_host: the private url that the django instance will use to connect to the db instance
   - db\_password: the password for the db_user
-- Hosts need to be configured. Using AWS -> Route 53
-  - Register public domain name
-  - Allocate Elastic IP addresses in EC2
-  - Assign IP addresses to the domain names chosen
-- Configure settings in `dle/dle/settings.py`, `dle.conf`, `server_instance_setup.sh`, `db_instance_setup.sh`
-- Launch Server Instance
-- Launch DB Instance
-- Verify setup
+
+- These parameters need to be specified in the following files: 
+	- [`dle/dle/settings.py`](../../dle/dle/settings.py) in (`ALLOWED_HOSTS` and `DATABASES` (`NAME`, `USER`, `PASSWORD`, `HOST`))
+	- [`dle.conf`](./dle.conf) in (`ServerName`, `ServerAlias` and `ServerAdmin`)
+	- [`server_instance_setup.sh`](./server_instance_setup.sh) (in `HOST`, `HOST_ALIAS`, `HOST_EMAIL`)
+	- [`db_instance_setup.sh`](./db_instance_setup.sh) in (`DB_NAME`, `DB_USER`, `DB_USER_PW`)
 
 
+#### Launch and Setup Database Server
 
-#### Launch and Setup Application Server
+Launch EC2 Instance
+(using these settings for now, may modify)
 
-- in EC2, Launch Instance
+```
+Ubuntu 18.04
+x86
+t2.medium
+16GB gp3 disk
+Tags: 'Name' => 'dle-maria'
+Create Security Group (maria-dev): open 22, 3306 to all incomming traffic
+Create key-pair (dle-dev) # using existing key-pair
+Launch Instance
+```
+
+- Associate Elastic IP with Instance (private IP address for db-server)
+
+##### ssh/login to the server
+```
+# 'cd' to the directory that contains the private key
+
+# need to update the permissions for the downloaded private key
+chmod 600 dle-dev.pem
+
+ssh -i dle-dev.pem ec2-user@34.218.101.115
+```
+
+- Run the [`db_instance_setup.sh`](./db_instance_setup.sh) script on the server.
+
+
+#### Launch and Setup Django Application Server
+
+- NOTE that the `server_instance_setup.sh` script pulls the source code from the DLE repository here: [https://github.com/DrugLabelExplorer/dle](https://github.com/DrugLabelExplorer/dle). Changes to the files in the 'Configure parameters' section should be checked into VCS to be pulled by this script. Alternatively, the url for the repository can be modified in the script to point to a different fork or branch of the code.
+
+Launch EC2 Instance
 (using these settings for now, may modify)
 
 ```
@@ -63,7 +95,7 @@ Create key-pair (dle-dev)
 Launch Instance
 ```
 
-- Associate Elastic IP with Instance
+- Associate Elastic IP with Instance (public IP address for django-server)
 
 
 ##### ssh/login to the server
@@ -76,84 +108,33 @@ chmod 600 dle-dev.pem
 ssh -i dle-dev.pem ec2-user@34.218.101.115
 ```
 
-##### [Basic Django Linux server installation](./server_instance_setup.sh)
+- Run the [`server_instance_setup.sh`](./server_instance_setup.sh) script on the server.
 
-##### Apache help notes
+
+#### Verify Setup
+
+- Should be able to view the website on the specified domain name: [https://druglabelexplorer.org](https://druglabelexplorer.org)
+
+
+##### connect to db - cli
+```
+# on the db-server
+sudo mariadb
+
+# on the django-server, using the private host
+mysql --user=dle_user --password=12345 --host=drug-label-db.org --port=3306 dle
+```
+
+##### View the Apache logs (see if any errors)
 
 ```
+# on the django-server
 sudo apachectl configtest # tests for typos in the Apache config
 sudo tail -n 100 /var/log/httpd/error_log # apache error log
 sudo tail -n 100 /var/log/httpd/ssl_error_log # ssl error log
 ```
 
 ______
-
-#### Launch and Setup Database Server
-
-Maria DB Instance
-
-Allocate Elastic IP Address
-
-> 44.238.69.61
-
-Launch EC2 Instance
-
-```
-Ubuntu 18.04
-x86
-t2.medium
-16GB gp3 disk
-Tags: 'Name' => 'dle-maria'
-Create Security Group (maria-dev): open 22, 3306 to all incomming traffic
-Create key-pair (dle-dev) # using existing key-pair
-Launch Instance
-```
-
-Associate Elastic IP address
-
-##### [Maria DB Server Setup](./db_instance_setup.sh)
-
-##### connect to db - Django
-
-Update settings.py to match server
-```
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'dle',
-        'USER': 'dle_user',
-        'PASSWORD': 'uDyvfMXHIKCJ',
-        'HOST': '44.238.69.61',
-        'PORT': '3306',
-    }
-```
-
-##### connect to db - cli
-```
-# this 'should' allow to connect to MariaDB after we setup the user and password
-mysql --user=dle_user --password=uDyvfMXHIKCJ --host=44.238.69.61 --port=3306 dle
-
-# this works for root user before setting a pw
-sudo mysql --user=root --password=''
-
-# can use private IP address from "in network computer"
-mysql --user=dle_user --password=uDyvfMXHIKCJ --host=172.31.56.135 --port=3306 dle
-```
-
-##### enable TLS for db traffic *** Not doing this, using private network IP
-
-> /etc/my.cnf
-
-```
-[mariadb]
-...
-tls_version = TLSv1.2,TLSv1.3
-ssl_cert = /etc/my.cnf.d/certificates/server-cert.pem
-ssl_key = /etc/my.cnf.d/certificates/server-key.pem
-ssl_ca = /etc/my.cnf.d/certificates/ca.pem
-```
-Also see:
-> /etc/my.cnf.d/enable_encryption.preset
-
 ______
 
 References: 
@@ -197,8 +178,6 @@ References:
 [MariaDB ColumnStore Deployment](https://mariadb.com/docs/deploy/topologies/single-node/community-columnstore-cs10-6/)
 _____
 
-TODO: https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
+[TODO](https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/)
 
 _____
-
-
