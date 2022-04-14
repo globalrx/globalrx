@@ -51,14 +51,11 @@ class Command(BaseCommand):
                 self.import_records(xml_files)
 
                 # cleanup
-                try:
-                    record_dir = record_zip[:-4]
-                    logger.debug(f"rmdir: {record_dir}")
-                    os.rmdir(record_dir)
-                    logger.debug(f"remove: {record_zip}")
-                    os.remove(record_zip)
-                except OSError as e:
-                    logger.error("failed to rm files")
+                logger.debug(f"remove: {record_zip}")
+                os.remove(record_zip)
+                for file in xml_files:
+                    logger.debug(f"remove: {file}")
+                    os.remove(file)
 
         logger.info("DONE")
 
@@ -165,7 +162,10 @@ class Command(BaseCommand):
                 dld.source_product_number = content.find("code", attrs={"codesystem": "2.16.840.1.113883.6.69"}).get(
                     "code")
 
-                dld.marketer = content.find("author").find("name").text
+                try:
+                    dld.marketer = content.find("author").find("name").text
+                except AttributeError:
+                    dld.marketer = "_"
 
                 root = content.find("setid").get("root")
                 dld.link = f"https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid={root}"
@@ -190,6 +190,8 @@ class Command(BaseCommand):
                         continue
                     raw_section_texts = [p.text for p in section.find_all("paragraph")]
                     section_texts = "\n".join(raw_section_texts)
-                    ps = ProductSection(label_product=lp, section_name=section.find("title").text, section_text=section_texts)
+                    section_name = section.find("title").text
+                    section_name = section_name[:42]
+                    ps = ProductSection(label_product=lp, section_name=section_name, section_text=section_texts)
                     ps.save()
                     return

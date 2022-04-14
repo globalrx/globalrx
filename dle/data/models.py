@@ -40,7 +40,7 @@ class DrugLabelBase(models.Model):
     "marketer is 'like' the manufacturer, but technically the manufacturer can be different"
 
     def set_label_id(self):
-        self.label_id = (self.source + self.version_date + self.product_name)[:255]
+        self.label_id = (self.source + str(self.version_date) + self.product_name)[:255]
 
     def save(self, *args, **kwargs):
         self.set_label_id()
