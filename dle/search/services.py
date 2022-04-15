@@ -151,13 +151,13 @@ def map_custom_names_to_section_names(name_list: List[str]) -> List[str]:
 
 
 def get_type_ahead_mapping() -> Dict[str, str]:
-    values = ProductSection.objects.values('marketer').annotate(count=Count('marketer')).order_by('-count')[:20]
+    values = DrugLabel.objects.values('marketer').annotate(count=Count('marketer')).order_by('-count')[:20]
     marketers = [v["marketer"] for v in values]
 
-    values = ProductSection.objects.values('generic_name').annotate(count=Count('generic_name')).order_by('-count')[:20]
+    values = DrugLabel.objects.values('generic_name').annotate(count=Count('generic_name')).order_by('-count')[:20]
     generic_names = [v["generic_name"] for v in values]
 
-    values = ProductSection.objects.values('product_name').annotate(count=Count('product_name')).order_by('-count')[:20]
+    values = DrugLabel.objects.values('product_name').annotate(count=Count('product_name')).order_by('-count')[:20]
     product_names = [v["product_name"] for v in values]
 
     values = ProductSection.objects.values('section_name').annotate(count=Count('section_name')).order_by('-count')[:20]
