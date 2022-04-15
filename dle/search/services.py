@@ -32,7 +32,7 @@ def validate_search(request_query_params_dict: QueryDict) -> SearchRequest:
         raise InvalidSearchRequest("Search request is malformed")
 
 
-def process_search(search_request: SearchRequest) -> List[DrugLabel]:
+def process_search(search_request: SearchRequest) -> List[ProductSection]:
     search_filter_mapping = {
         "select_section": "section_name",
         "select_agency": "source",
@@ -43,29 +43,31 @@ def process_search(search_request: SearchRequest) -> List[DrugLabel]:
     }
     search_request_dict = search_request._asdict()
     sql_params = {"search_text": search_request.search_text}
+
     raw_sql = """
-        SELECT
-            DISTINCT dl.*
-        FROM
-            data_druglabel as dl
-        JOIN data_labelproduct as lp ON dl.id = lp.drug_label_id
-        JOIN data_productsection as ps ON lp.id = ps.label_product_id
+        SELECT id
+        FROM data_productsection
         WHERE
-            match(ps.section_text) AGAINST (
+            match(section_text) AGAINST (
                 %(search_text)s IN NATURAL LANGUAGE MODE
             )
     """
-    for k, v in search_request_dict.items():
-        if v and k in search_filter_mapping:
-            param_key = search_filter_mapping[k]
-            if k == "select_section" and not v:
-                continue
-            sql_params[param_key] = v
-            additional_filter = f"AND LOWER({param_key}) = LOWER(%({param_key})s) "
-            raw_sql += additional_filter
-    raw_sql += "LIMIT 30"  # can remove this once we're done testing
-    logger.debug(raw_sql)
-    return [d for d in DrugLabel.objects.raw(raw_sql, params=sql_params)]
+
+    qs = DrugLabel.objects.all()
+
+    #
+    # for k, v in search_request_dict.items():
+    #     if v and k in search_filter_mapping:
+    #         param_key = search_filter_mapping[k]
+    #         if k == "select_section" and not v:
+    #             continue
+    #         sql_params[param_key] = v
+    #         additional_filter = f"AND LOWER({param_key}) = LOWER(%({param_key})s) "
+    #         raw_sql += additional_filter
+    # raw_sql += "LIMIT 30"  # can remove this once we're done testing
+    # logger.debug(raw_sql)
+
+    return [ps for ps in ProductSection.objects.raw(raw_sql, params=sql_params)]
 
 
 def highlight_text_by_term(text: str, search_term: str) -> Tuple[str, bool]:
@@ -103,31 +105,29 @@ def highlight_text_by_term(text: str, search_term: str) -> Tuple[str, bool]:
     return " ".join(tokens), highlighted
 
 
-def build_search_result(
-    search_result: DrugLabel, search_term: str
-) -> Tuple[DrugLabel, str]:
-    """Returns search result objects with highlighted text
+def highlight_search_text(ps: ProductSection, search_term: str) -> str:
+    """Returns highlighted text, where the search_term is found in the text
 
     Args:
-        search_result (MockDrugLabel): A fake label that is used until we have a dataset
+        ps (ProductSection): The ProductSection from the DrugLabel
         search_term (str): The search text to highlight
 
     Returns:
-        Tuple[MockDrugLabel, str]: Tuple object with the full drug label object and a truncated version of its text
+        str: highlighted text
     """
     start, end, step = (
         0,
-        len(search_result.raw_text),
+        len(ps.section_text),
         MAX_LENGTH_SEARCH_RESULT_DISPLAY,
     )
     # sliding window approach to mimic google's truncation
     for i in range(start, end, step):
-        text = search_result.raw_text[i : i + step]
+        text = ps.section_text[i : i + step]
         highlighted_text, did_highlight = highlight_text_by_term(text, search_term)
         if did_highlight:
-            return search_result, highlighted_text
+            return highlighted_text
 
-    return search_result, search_result.raw_text[start:step]
+    return ps.section_text[start:step]
 
 
 def map_custom_names_to_section_names(name_list: List[str]) -> List[str]:
