@@ -151,19 +151,24 @@ def map_custom_names_to_section_names(name_list: List[str]) -> List[str]:
 
 
 def get_type_ahead_mapping() -> Dict[str, str]:
-    marketers = DrugLabel.objects.values_list("marketer", flat=True).distinct()
-    generic_names = DrugLabel.objects.values_list("generic_name", flat=True).distinct()
-    product_names = DrugLabel.objects.values_list("product_name", flat=True).distinct()
+    values = ProductSection.objects.values('marketer').annotate(count=Count('marketer')).order_by('-count')[:20]
+    marketers = [v["marketer"] for v in values]
+
+    values = ProductSection.objects.values('generic_name').annotate(count=Count('generic_name')).order_by('-count')[:20]
+    generic_names = [v["generic_name"] for v in values]
+
+    values = ProductSection.objects.values('product_name').annotate(count=Count('product_name')).order_by('-count')[:20]
+    product_names = [v["product_name"] for v in values]
 
     values = ProductSection.objects.values('section_name').annotate(count=Count('section_name')).order_by('-count')[:20]
-    section_names = [ps["section_name"] for ps in values]
+    section_names = [v["section_name"] for v in values]
 
     logger.debug([s.lower() for s in section_names])
     type_ahead_mapping = {
-        "manufacturers": [m.lower() for m in marketers],
-        "generic_name": [g.lower() for g in generic_names],
-        "brand_name": [p.lower() for p in product_names],
-        "section_name": map_custom_names_to_section_names(section_names),
+        "manufacturers": marketers,
+        "generic_name": generic_names,
+        "brand_name": product_names,
+        "section_name": section_names,
     }
 
     return type_ahead_mapping
