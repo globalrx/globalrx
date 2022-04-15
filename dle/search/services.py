@@ -4,10 +4,14 @@ from .search_constants import MAX_LENGTH_SEARCH_RESULT_DISPLAY
 from data.models import DrugLabel, ProductSection
 from django.http import QueryDict
 from django.db.models import Count
+from django.db import connection
 import logging
 
 logger = logging.getLogger(__name__)
 
+# TODO tmp
+root_logger = logging.getLogger("")
+root_logger.setLevel(logging.DEBUG)
 
 def validate_search(request_query_params_dict: QueryDict) -> SearchRequest:
     """Validates search params and returns the search request object if valid.
@@ -32,6 +36,40 @@ def validate_search(request_query_params_dict: QueryDict) -> SearchRequest:
         raise InvalidSearchRequest("Search request is malformed")
 
 
+def dl_query(search_request: SearchRequest) -> List[ProductSection]:
+    search_filter_mapping = {
+        "select_section": "section_name",
+        "select_agency": "source",
+        "manufacturer_input": "marketer",
+        "marketing_category_input": "marketer",
+        "generic_name_input": "generic_name",
+        "brand_name_input": "product_name",
+    }
+    sql_params = {"search_text": search_request.search_text}
+    sql = """
+        SELECT id
+        FROM data_productsection
+        WHERE
+            match(section_text) AGAINST (
+                %(search_text)s IN NATURAL LANGUAGE MODE
+            )
+    """
+    sql += " AND "
+
+    sql = """
+    SELECT count(*)
+    FROM data_druglabel
+    """
+    sql_params = {}
+    with connection.cursor() as cursor:
+        cursor.execute(sql, sql_params)
+        result = cursor.fetchall()
+
+    # get the matching drug labels
+    # get the sections where
+
+    return result
+
 def process_search(search_request: SearchRequest) -> List[ProductSection]:
     search_filter_mapping = {
         "select_section": "section_name",
@@ -45,27 +83,25 @@ def process_search(search_request: SearchRequest) -> List[ProductSection]:
     sql_params = {"search_text": search_request.search_text}
 
     raw_sql = """
-        SELECT id
-        FROM data_productsection
+        SELECT ps.*
+        FROM data_productsection AS ps
+        JOIN data_labelproduct as lp ON lp.id = ps.label_product_id
+        JOIN data_druglabeldoc as dld ON dld.id = lp.drug_label_id
+        JOIN data_druglabel as dl ON dld.label_id = dl.label_id
         WHERE
-            match(section_text) AGAINST (
-                %(search_text)s IN NATURAL LANGUAGE MODE
-            )
+            section_text = %(search_text)s
     """
+    # section_text LIKE '%% %(search_text)s %%'
+    # TODO look into: Function 'match' isn't supported ...?
 
-    qs = DrugLabel.objects.all()
-
-    #
-    # for k, v in search_request_dict.items():
-    #     if v and k in search_filter_mapping:
-    #         param_key = search_filter_mapping[k]
-    #         if k == "select_section" and not v:
-    #             continue
-    #         sql_params[param_key] = v
-    #         additional_filter = f"AND LOWER({param_key}) = LOWER(%({param_key})s) "
-    #         raw_sql += additional_filter
-    # raw_sql += "LIMIT 30"  # can remove this once we're done testing
-    # logger.debug(raw_sql)
+    for k, v in search_request_dict.items():
+        if v and k in search_filter_mapping:
+            param_key = search_filter_mapping[k]
+            sql_params[param_key] = v
+            additional_filter = f"AND LOWER({param_key}) = LOWER(%({param_key})s) "
+            raw_sql += additional_filter
+    raw_sql += "LIMIT 30"  # can remove this once we're done testing
+    logger.debug(raw_sql)
 
     return [ps for ps in ProductSection.objects.raw(raw_sql, params=sql_params)]
 

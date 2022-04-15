@@ -84,6 +84,8 @@ class DrugLabelDoc(DrugLabelBase):
     - A `DrugLabel` has one or more `LabelProduct`s
     - `LabelProduct`s then have multiple `ProductSection`s
     """
+    # extends fields from DrugLabelBase
+    # TODO add index to label_id
 
     link = models.URLField()
     "link is url to the external data source website"
