@@ -214,7 +214,7 @@ class Command(BaseCommand):
                     # category
                     section_map = {}
                     for section in content.find_all("component"):
-                        code = content.find("code", attrs={"codesystem": "2.16.840.1.113883.6.1"})
+                        code = section.find("code", attrs={"codesystem": "2.16.840.1.113883.6.1"})
                         if code is None:
                             continue
                         title = str(code.get("displayname")).upper()
@@ -229,12 +229,12 @@ class Command(BaseCommand):
 
                         # Now that we have determined what section, grab all the text in the component and add it as the
                         # value to a corresponding hashmap. If a value already exists, add it to the end
-                        raw_section_texts = [p.text for p in section.find_all("text")]
-                        section_texts = "\n".join(raw_section_texts)
+                        raw_section_texts = [str(p) for p in section.find_all("text")]
+                        section_texts = "<br>".join(raw_section_texts)
 
                         # Save other titles in section text
                         if section_name == "OTHER":
-                            section_texts = title + "\n" + section_texts
+                            section_texts = title + "<br>" + section_texts
 
                         # Save to keyed section of map, concatenating repeat sections
                         if section_map.get(section_name) is None:
@@ -242,7 +242,7 @@ class Command(BaseCommand):
                         else:
                             if section_name is not "OTHER":
                                 logging.debug(f"Found another section: {section_name}\twith title\t{title}")
-                            section_map[section_name] = section_map[section_name] + f"\n{title}\n" + section_texts
+                            section_map[section_name] = section_map[section_name] + f"<br>{title}<br>" + section_texts
 
                     # Now that the sections have been parsed, save them
                     for section_name, section_text in section_map.items():
@@ -253,6 +253,7 @@ class Command(BaseCommand):
                                 logging.debug(f"Saving new product section {ps}")
                         except IntegrityError as e:
                             logging.error(str(e))
+
             except Exception as e:
                 logging.error(f"Could not parse {xml_file}")
                 logging.error(str(e));
