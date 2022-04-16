@@ -23,16 +23,6 @@ SECTION_NAMES = [
     ("OVER", "Overdose"),
 ]
 
-FDA_SECTION_NAMES = [
-    "INDICATIONS",
-    "DOSAGE",
-    "WARN",
-    "CONTRA",
-    "DESCRIPTION",
-    "CLINICAL PHARMACOLOGY",
-    "PRECAUTIONS",
-    "PHARMACOKINETICS"
-]
 "This is a WIP"
 
 
