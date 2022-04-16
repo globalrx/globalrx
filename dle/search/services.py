@@ -27,40 +27,58 @@ def validate_search(request_query_params_dict: QueryDict) -> SearchRequest:
     else:
         raise InvalidSearchRequest("Search request is malformed")
 
+def build_match_query(search_query: str) -> str:
+    return """
+        AND match(ps.section_text) AGAINST (
+                %(search_query)s IN NATURAL LANGUAGE MODE
+            )    
+           """
+
 
 def process_search(search_request: SearchRequest) -> List[DrugLabel]:
     search_filter_mapping = {
         "select_section": "section_name",
         "select_agency": "source",
         "manufacturer_input": "marketer",
-        "marketing_category_input": "marketer",
         "generic_name_input": "generic_name",
         "brand_name_input": "product_name",
     }
     search_request_dict = search_request._asdict()
-    sql_params = {"search_text": search_request.search_text}
+    search_query = search_request.search_text.strip('"').lower()
     raw_sql = """
         SELECT
-            DISTINCT dl.*
+            DISTINCT dl.id,
+            dl.source,
+            dl.product_name,
+            dl.generic_name,
+            dl.version_date,
+            dl.source_product_number,
+            dl.marketer,
+            dl.link
         FROM
             data_druglabel as dl
         JOIN data_labelproduct as lp ON dl.id = lp.drug_label_id
         JOIN data_productsection as ps ON lp.id = ps.label_product_id
         WHERE
-            match(ps.section_text) AGAINST (
-                %(search_text)s IN NATURAL LANGUAGE MODE
-            )
-    """
+            1=1
+        """
+
+    # exact match query
+    if '"' in search_request.search_text:
+        raw_sql += " AND LOWER(ps.section_text) LIKE CONCAT('%%',%(search_query)s,'%%') "
+    else:
+        raw_sql += build_match_query(search_query)
+
+    sql_params = {"search_query": search_query}
     for k, v in search_request_dict.items():
         if v and k in search_filter_mapping:
             param_key = search_filter_mapping[k]
             if k == "select_section" and not v:
                 continue
             sql_params[param_key] = v
-            additional_filter = f"AND LOWER({param_key}) = LOWER(%({param_key})s) "
+            additional_filter = f"AND LOWER({param_key}) = %({param_key})s "
             raw_sql += additional_filter
     raw_sql += "LIMIT 30" #can remove this once we're done testing
-    print(raw_sql)
     return [d for d in DrugLabel.objects.raw(raw_sql, params=sql_params)]
 
 
@@ -113,55 +131,28 @@ def build_search_result(
     """
     start, end, step = (
         0,
-        len(search_result.raw_text),
+        len(search_result.generic_name), #TODO CHANGE THIS WHEN FIXING HIGHLIGHTING
         MAX_LENGTH_SEARCH_RESULT_DISPLAY,
     )
     # sliding window approach to mimic google's truncation
     for i in range(start, end, step):
-        text = search_result.raw_text[i : i + step]
+        text = search_result.generic_name[i : i + step]
         highlighted_text, did_highlight = highlight_text_by_term(text, search_term)
         if did_highlight:
             return search_result, highlighted_text
 
-    return search_result, search_result.raw_text[start:step]
-
-
-def map_custom_names_to_section_names(name_list: List[str]) -> List[str]:
-    SECTION_NAME_MAPPING = {
-        "('contra', 'contraindications')": "contra",
-        "('drive', 'effects on driving')": "drive",
-        "('indications', 'indications')": "indications",
-        "('interact', 'interactions')": "interact",
-        "('over', 'overdose')": "over",
-        "('pose', 'posology')": "pose",
-        "('preg', 'pregnancy')": "preg",
-        "('side', 'side effects')": "side",
-        "('warn', 'warnings')": "warn",
-    }
-    return list(
-        {
-            n if n not in SECTION_NAME_MAPPING else SECTION_NAME_MAPPING[n]
-            for n in name_list
-        }
-    )
+    return search_result, search_result.generic_name[start:step]
 
 
 def get_type_ahead_mapping() -> Dict[str, str]:
     marketers = DrugLabel.objects.values_list("marketer", flat=True).distinct()
     generic_names = DrugLabel.objects.values_list("generic_name", flat=True).distinct()
     product_names = DrugLabel.objects.values_list("product_name", flat=True).distinct()
-    section_names = [
-        s.lower()
-        for s in ProductSection.objects.values_list(
-            "section_name", flat=True
-        ).distinct()
-    ]
-    print([s.lower() for s in section_names])
     type_ahead_mapping = {
         "manufacturers": [m.lower() for m in marketers],
         "generic_name": [g.lower() for g in generic_names],
         "brand_name": [p.lower() for p in product_names],
-        "section_name": map_custom_names_to_section_names(section_names),
+        "section_name": ["warnings", "pregnancy", "indications", "overdose", "interact", "side effects"], # hardcode this until figure out subsections        
     }
 
     return type_ahead_mapping
