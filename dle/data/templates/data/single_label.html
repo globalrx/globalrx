@@ -15,7 +15,7 @@
 <p>Label Product Sections:</p>
 {% for section in product_sections %}
   <h4>{{ section.section_name }}</h4>
-  <p>{{ section.section_text }}</p>
+  <p>{{ section.section_text|safe }}</p>
 {% endfor %}
   </body>
 </html>
