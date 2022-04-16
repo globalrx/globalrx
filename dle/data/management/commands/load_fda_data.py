@@ -10,10 +10,12 @@ from zipfile import ZipFile
 
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
-from django.db.utils import IntegrityError
+from django.db.utils import IntegrityError, OperationalError
 
 from data.models import DrugLabel, LabelProduct, ProductSection
 from data.constants import FDA_SECTION_NAMES
+
+logger = logging.getLogger(__name__)
 
 
 # runs with `python manage.py load_fda_data --type {type}`
@@ -47,10 +49,12 @@ class Command(BaseCommand):
         xml_files = self.extract_xmls(record_zips)
         # self.count_titles(xml_files)
         self.import_records(xml_files, insert=insert)
-        logging.info("DONE")
+        # self.cleanup(record_zips)
+        # self.cleanup(xml_files)
+        logger.info("DONE")
 
     def download_records(self, import_type):
-        logging.info("Downloading bulk archives.")
+        logger.info("Downloading bulk archives.")
         file_dir = self.root_dir / import_type
         os.makedirs(file_dir, exist_ok=True)
         records = []
@@ -83,13 +87,13 @@ class Command(BaseCommand):
         file_path = dest / url_filename
 
         if os.path.exists(file_path):
-            logging.info(f"File already exists: {file_path}. Skipping.")
+            logger.info(f"File already exists: {file_path}. Skipping.")
             return file_path
 
         # Download the drug labels archive file
         with closing(request.urlopen(ftp)) as r:
             with open(file_path, "wb") as f:
-                logging.info(f"Downloading {ftp} to {file_path}")
+                logger.info(f"Downloading {ftp} to {file_path}")
                 shutil.copyfileobj(r, f)
         return file_path
 
@@ -99,7 +103,7 @@ class Command(BaseCommand):
     """
 
     def extract_prescription_zips(self, zips):
-        logging.info("Extracting prescription Archives")
+        logger.info("Extracting prescription Archives")
         file_dir = self.root_dir / "record_zips"
         os.makedirs(file_dir, exist_ok=True)
         record_zips = []
@@ -111,15 +115,15 @@ class Command(BaseCommand):
                         outfile = file_dir / os.path.basename(file_info.filename)
                         file_info.filename = os.path.basename(file_info.filename)
                         if (os.path.exists(outfile)):
-                            logging.info(f"Record Zip already exists: {outfile}. Skipping.")
+                            logger.info(f"Record Zip already exists: {outfile}. Skipping.")
                         else:
-                            logging.info(f"Creating Record Zip {outfile}")
+                            logger.info(f"Creating Record Zip {outfile}")
                             zip_file_object.extract(file_info, file_dir)
                         record_zips.append(outfile)
         return record_zips
 
     def extract_xmls(self, zips):
-        logging.info("Extracting XMLs")
+        logger.info("Extracting XMLs")
         file_dir = self.root_dir / "xmls"
         os.makedirs(file_dir, exist_ok=True)
         xml_files = []
@@ -130,9 +134,9 @@ class Command(BaseCommand):
                     if file.endswith(".xml"):
                         outfile = file_dir / file
                         if (os.path.exists(outfile)):
-                            logging.info(f"XML already exists: {outfile}. Skipping.")
+                            logger.info(f"XML already exists: {outfile}. Skipping.")
                         else:
-                            logging.info(f"Creating XML {outfile}")
+                            logger.info(f"Creating XML {outfile}")
                             zip_file_object.extract(file, file_dir)
                         xml_files.append(outfile)
         return xml_files
@@ -152,25 +156,24 @@ class Command(BaseCommand):
                         my_str = self.re_combine_whitespace.sub(" ", my_str).strip()
                         titles.append(my_str)
             except Exception as e:
-                logging.error("Error")
+                logger.error("Error")
                 raise e
             m = m - 1
-            if m %250 == 0:
-                logging.info(m)
+            if m % 250 == 0:
+                logger.info(m)
             if m < 0:
                 break
         import collections
         counter = collections.Counter(titles)
-        logging.info(counter.most_common(10))
+        logger.info(counter.most_common(10))
         import csv
         with open("top_displaynames.csv", "w") as csvfile:
             csvwriter = csv.writer(csvfile)
-            csvwriter.writerow(["displayname","count"])
+            csvwriter.writerow(["displayname", "count"])
             csvwriter.writerows(counter.most_common(1000))
 
-
     def import_records(self, xml_records, user_id=None, insert=False):
-        logging.info("Building Drug Label DB records from XMLs")
+        logger.info("Building Drug Label DB records from XMLs")
 
         for xml_file in xml_records:
             try:
@@ -179,9 +182,22 @@ class Command(BaseCommand):
                     dl = DrugLabel()
                     dl.source = "FDA"
                     dl.product_name = content.find("subject").find("name").text.upper()
-                    dl.generic_name = content.find("genericmedicine").find("name").text.upper()
-                    dl.version_date = datetime.strptime(content.find("effectivetime").get("value"), "%Y%m%d")
-                    dl.marketer = content.find("author").find("name").text.upper()
+                    try:
+                        generic_name = content.find("genericmedicine").find("name").text
+                    except AttributeError:
+                        # don't insert record if we cannot find this
+                        logger.error("unable to find generic_name")
+                        continue
+
+                    try:
+                        dl.version_date = datetime.strptime(content.find("effectivetime").get("value"), "%Y%m%d")
+                    except ValueError:
+                        dl.version_date = datetime.now()
+
+                    try:
+                        dl.marketer = content.find("author").find("name").text.upper()
+                    except AttributeError:
+                        dl.marketer = ""
                     dl.source_product_number = content.find("code", attrs={"codesystem": "2.16.840.1.113883.6.69"}).get(
                         "code")
 
@@ -196,17 +212,17 @@ class Command(BaseCommand):
                     try:
                         if insert:
                             dl.save()
-                            logging.info(f"Saving new drug label: {dl}")
+                            logger.info(f"Saving new drug label: {dl}")
                     except IntegrityError as e:
-                        logging.error(str(e))
+                        logger.error(str(e))
                         continue
 
                     try:
                         if insert:
                             lp.save()
-                            logging.info(f"Saving new label product")
+                            logger.info(f"Saving new label product")
                     except IntegrityError as e:
-                        logging.error(str(e))
+                        logger.error(str(e))
                         continue
 
                     # In the following section we will build the different sections. We do this by matching XML components
@@ -219,7 +235,7 @@ class Command(BaseCommand):
                             continue
                         title = str(code.get("displayname")).upper()
                         title = self.re_combine_whitespace.sub(" ", title).strip()
-                        title = self.re_remove_nonalpha_characters.sub("",title)
+                        title = self.re_remove_nonalpha_characters.sub("", title)
                         title = self.re_combine_whitespace.sub(" ", title).strip()
 
                         if title not in FDA_SECTION_NAMES:
@@ -241,20 +257,28 @@ class Command(BaseCommand):
                             section_map[section_name] = section_texts
                         else:
                             if section_name is not "OTHER":
-                                logging.debug(f"Found another section: {section_name}\twith title\t{title}")
+                                logger.debug(f"Found another section: {section_name}\twith title\t{title}")
                             section_map[section_name] = section_map[section_name] + f"<br>{title}<br>" + section_texts
 
                     # Now that the sections have been parsed, save them
                     for section_name, section_text in section_map.items():
-                        ps = ProductSection(label_product=lp, section_name=section_name.upper(), section_text=section_text)
+                        ps = ProductSection(label_product=lp, section_name=section_name.upper(),
+                                            section_text=section_text)
                         try:
                             if insert:
                                 ps.save()
-                                logging.debug(f"Saving new product section {ps}")
+                                logger.debug(f"Saving new product section {ps}")
                         except IntegrityError as e:
-                            logging.error(str(e))
+                            logger.error(str(e))
+                        except OperationalError as e:
+                            logger.error(str(e))
 
             except Exception as e:
-                logging.error(f"Could not parse {xml_file}")
-                logging.error(str(e));
+                logger.error(f"Could not parse {xml_file}")
+                logger.error(str(e));
                 continue;
+
+        def cleanup(self, files):
+            for file in files:
+                logger.debug(f"remove: {file}")
+                os.remove(file)
