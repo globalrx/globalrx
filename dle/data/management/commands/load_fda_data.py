@@ -188,6 +188,7 @@ class Command(BaseCommand):
                         # don't insert record if we cannot find this
                         logger.error("unable to find generic_name")
                         continue
+                    dl.generic_name = generic_name[:255]
 
                     try:
                         dl.version_date = datetime.strptime(content.find("effectivetime").get("value"), "%Y%m%d")
