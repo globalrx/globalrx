@@ -1,4 +1,7 @@
 
+# ignore media dir
+dle/media/
+
 # ide
 .idea/
 

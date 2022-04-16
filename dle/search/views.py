@@ -1,16 +1,23 @@
-from django.http import (
-    HttpRequest,
-    HttpResponse
-)
+from functools import reduce
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
-from .search_mock_utils import SEARCH_RESULTS
+from .services import get_type_ahead_mapping
 from . import services as SearchService
+from data.models import DrugLabel
 
 
 def index(request: HttpRequest) -> HttpResponse:
-    """Landing page search view.
-    """
-    return render(request, "search/search.html")
+    """Landing page search view."""
+    TYPE_AHEAD_MAPPING = get_type_ahead_mapping()
+    context = {
+        "type_ahead_manufacturer": TYPE_AHEAD_MAPPING["manufacturers"],
+        "type_ahead_generic_name": TYPE_AHEAD_MAPPING["generic_name"],
+        "type_ahead_brand_name": TYPE_AHEAD_MAPPING["brand_name"],
+        "type_ahead_section_name": TYPE_AHEAD_MAPPING["section_name"],
+    }
+
+    return render(request, "search/search_landing/search_landing.html", context)
+
 
 def list_search_results(request: HttpRequest) -> HttpResponse:
     """Search results list view
@@ -22,11 +29,18 @@ def list_search_results(request: HttpRequest) -> HttpResponse:
         HttpResponse: Search results view with highlighted text
     """
     search_request_object = SearchService.validate_search(request.GET)
-    search_results = [
-        SearchService.build_search_result(result,search_request_object.search_text)
-        for result in SEARCH_RESULTS
-    ]
+    results = SearchService.process_search(search_request_object)
+    search_results = []
+    for ps in results:
+        highlighted_text = SearchService.highlight_search_text(ps, search_request_object.search_text)
+        dl = ps.label_product.drug_label
+        search_results.append((dl, highlighted_text))
+
+    context = {"search_results": search_results}
+    return render(request, "search/search_results/search_results.html", context=context)
+
+def view_drug(request: HttpRequest, drug_id: int) -> HttpResponse:
     context = {
-        'search_results': search_results
+        "drug": DrugLabel.objects.get(id=drug_id)
     }
-    return render(request, "search/search_results.html", context=context)
+    return render(request, "search/single_label_view/drug_view.html", context=context)

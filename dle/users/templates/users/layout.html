@@ -1,0 +1,62 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>{% block title %}DrugLabelExlorer{% endblock %}</title>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" 
+              integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+        <link href="{% static 'druglabelexplorer/styles.css' %}" rel="stylesheet">
+        <link rel="icon" href="{% static 'druglabelexplorer/apple-touch-icon.png' %}">
+        <link rel="stylesheet" type="text/css" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+        <script src="{% static 'druglabelexplorer/main.js' %}"></script>
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+        <script src="{% static 'druglabelexplorer/nav.js' %}"></script>
+        <link href="{% static 'druglabelexplorer/register.css' %}" rel="stylesheet">
+        <script src="{% static 'druglabelexplorer/register.js' %}"></script>
+    </head>
+    <body>
+
+     <header class="nav-down">
+            
+            <div class="brand">
+            <a class="brand-logo" href="{% url 'index' %}">Drug Label Explorer</a>
+            </div>
+
+            <div>
+            <ul class="nav">
+            <!--navigation tool for moving to different pages-->
+            {% if user.is_authenticated %}
+
+               
+             
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'logout' %}">Log out</a>
+                    </li>
+                {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'login' %}">Log in</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'register' %}">Register</a>
+                    </li>
+                {% endif %}
+            </ul>
+            </div>
+
+        </header>
+
+            <div class="welcome">
+                {% if user.is_authenticated %}
+                    Welcome, <strong>{{ user.username.capitalize }}</strong>!
+                {% else %}
+                    Sign in to update locations and make requests.
+                {% endif %}
+            </div>
+        
+        <hr>
+
+        {% block body %}
+        {% endblock %}
+    </body>
+</html>

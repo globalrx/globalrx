@@ -1,0 +1,18 @@
+<div>
+  <label for="marketing_category_input">marketing category:</label>
+</div>
+<datalist id="marketing_category_typeahead_list">
+  {% for option in type_ahead_marketing_category %}
+  <option value="{{option}}"></option>
+  {% endfor %}
+</datalist>
+<div>
+  <input
+    type="text"
+    name="marketing_category_input"
+    class="h-10 w-60 px-3 py-1.5 shadow border border-solid border-gray-300 rounded"
+    aria-label="Default marketing_category"
+    list="marketing_category_typeahead_list"
+    placeholder="any marketing category"
+  />
+</div>
