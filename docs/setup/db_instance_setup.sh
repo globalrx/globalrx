@@ -30,14 +30,11 @@ sudo tee /etc/mysql/mariadb.conf.d/z-custom-my.cnf > /dev/null <<EOF
 log_error = mariadbd.err
 character_set_server = utf8
 collation_server = utf8_general_ci
-# columnstore_use_import_for_batchinsert = ALWAYS
-# default_storage_engine = ColumnStore
-# TODO additional setup
 
-# 4GB RAM on box
-innodb_buffer_pool_size = 2G
-innodb_buffer_pool_instances = 4
-innodb_buffer_pool_chunk_size = 128M
+# https://dev.mysql.com/doc/refman/8.0/en/innodb-parameters.html
+innodb_buffer_pool_size = 12G
+innodb_flush_method = O_DIRECT
+innodb_flush_log_at_trx_commit=2
 
 # override settings from /etc/mysql/mariadb.conf.d/50-server.cnf
 [mysqld]
