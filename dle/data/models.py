@@ -48,12 +48,6 @@ class DrugLabel(models.Model):
             f"marketer: {self.marketer}"
         )
 
-class DrugLabelRawText(models.Model):
-    """Storing the raw_text in a separate table as it likely will not be used."""
-
-    drug_label = models.ForeignKey(DrugLabel, on_delete=models.CASCADE)
-    raw_text = models.TextField()
-
 class LabelProduct(models.Model):
     """A `DrugLabel` may have multiple `LabelProduct`s.
     These are typically for different routes of administration for the medication.

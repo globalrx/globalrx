@@ -12,7 +12,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 from django.db.utils import IntegrityError, OperationalError
 
-from data.models import DrugLabel, LabelProduct, ProductSection, DrugLabelRawText
+from data.models import DrugLabel, LabelProduct, ProductSection
 from data.constants import FDA_SECTION_NAMES
 
 logger = logging.getLogger(__name__)
@@ -206,7 +206,7 @@ class Command(BaseCommand):
                         "code")
 
                     texts = [p.text for p in content.find_all("paragraph")]
-                    raw_text = "\n".join(texts)
+                    dl.raw_text = "\n".join(texts)
 
                     lp = LabelProduct(drug_label=dl)
 
@@ -216,8 +216,6 @@ class Command(BaseCommand):
                     try:
                         if insert:
                             dl.save()
-                            rt = DrugLabelRawText(drug_label=dl, raw_text=raw_text)
-                            rt.save()
                             logger.info(f"Saving new drug label: {dl}")
                     except IntegrityError as e:
                         logger.error(str(e))

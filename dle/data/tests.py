@@ -1,6 +1,6 @@
 from django.db import IntegrityError
 from django.test import TestCase
-from .models import DrugLabel, LabelProduct, ProductSection, DrugLabelRawText
+from .models import DrugLabel, LabelProduct, ProductSection
 from django.core import management
 
 
@@ -131,9 +131,8 @@ class DrugLabelModelTests(TestCase):
         """Verify that we can get the correct values from the pdf"""
         management.call_command("load_ema_data", type="test")
         dl_saved = DrugLabel.objects.filter(product_name="Skilarence").all()[:1].get()
-        dl_rt = DrugLabelRawText.objects.filter(drug_label=dl_saved).get()
         self.assertGreater(
-            len(dl_rt.raw_text),
+            len(dl_saved.raw_text),
             100,
             f"len(dl_saved.raw_text) was only: {len(dl_saved.raw_text)}",
         )

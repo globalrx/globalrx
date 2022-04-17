@@ -5,7 +5,6 @@ from data.models import (
     DrugLabel,
     LabelProduct,
     ProductSection,
-    DrugLabelRawText,
 )
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
@@ -170,9 +169,8 @@ class Command(BaseCommand):
                 # for now, assume only one LabelProduct per DrugLabel
                 lp = LabelProduct(drug_label=dl)
                 lp.save()
-                raw_text = self.parse_pdf(dl.link, lp)
-                rt = DrugLabelRawText(drug_label=dl, raw_text=raw_text)
-                rt.save()
+                dl.raw_text = self.parse_pdf(dl.link, lp)
+                dl.save()
                 self.num_drug_labels_parsed += 1
             except IntegrityError as e:
                 logger.warning(self.style.WARNING("Label already in db"))
