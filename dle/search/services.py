@@ -9,10 +9,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# TODO tmp
-root_logger = logging.getLogger("")
-root_logger.setLevel(logging.DEBUG)
-
 def validate_search(request_query_params_dict: QueryDict) -> SearchRequest:
     """Validates search params and returns the search request object if valid.
 

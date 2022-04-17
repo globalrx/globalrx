@@ -12,7 +12,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
 from django.db.utils import IntegrityError, OperationalError
 
-from data.models import DrugLabel, LabelProduct, ProductSection
+from data.models import DrugLabel, LabelProduct, ProductSection, DrugLabelRawText
 from data.constants import FDA_SECTION_NAMES
 
 logger = logging.getLogger(__name__)
@@ -35,7 +35,8 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument('--type', type=str, help="full, monthly, or test", default="monthly")
-        parser.add_argument('--insert', type=bool, help="Set to connect to DB", default=False)
+        parser.add_argument('--insert', type=bool, help="Set to connect to DB", default=True)
+        parser.add_argument('--cleanup', type=bool, help="Set to cleanup files", default=True)
 
     """
     Entry point into class from command line
@@ -44,13 +45,15 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         import_type = options['type']
         insert = options['insert']
+        cleanup = options['cleanup']
         root_zips = self.download_records(import_type)
         record_zips = self.extract_prescription_zips(root_zips)
         xml_files = self.extract_xmls(record_zips)
         # self.count_titles(xml_files)
         self.import_records(xml_files, insert=insert)
-        # self.cleanup(record_zips)
-        # self.cleanup(xml_files)
+        if cleanup:
+            self.cleanup(record_zips)
+            self.cleanup(xml_files)
         logger.info("DONE")
 
     def download_records(self, import_type):
@@ -114,7 +117,7 @@ class Command(BaseCommand):
                     if file_info.filename.startswith("prescription") and file_info.filename.endswith(".zip"):
                         outfile = file_dir / os.path.basename(file_info.filename)
                         file_info.filename = os.path.basename(file_info.filename)
-                        if (os.path.exists(outfile)):
+                        if os.path.exists(outfile):
                             logger.info(f"Record Zip already exists: {outfile}. Skipping.")
                         else:
                             logger.info(f"Creating Record Zip {outfile}")
@@ -133,7 +136,7 @@ class Command(BaseCommand):
                 for file in zip_file_object.namelist():
                     if file.endswith(".xml"):
                         outfile = file_dir / file
-                        if (os.path.exists(outfile)):
+                        if os.path.exists(outfile):
                             logger.info(f"XML already exists: {outfile}. Skipping.")
                         else:
                             logger.info(f"Creating XML {outfile}")
@@ -203,7 +206,7 @@ class Command(BaseCommand):
                         "code")
 
                     texts = [p.text for p in content.find_all("paragraph")]
-                    dl.raw_text = "\n".join(texts)
+                    raw_text = "\n".join(texts)
 
                     lp = LabelProduct(drug_label=dl)
 
@@ -213,6 +216,8 @@ class Command(BaseCommand):
                     try:
                         if insert:
                             dl.save()
+                            rt = DrugLabelRawText(drug_label=dl, raw_text=raw_text)
+                            rt.save()
                             logger.info(f"Saving new drug label: {dl}")
                     except IntegrityError as e:
                         logger.error(str(e))
@@ -257,7 +262,7 @@ class Command(BaseCommand):
                         if section_map.get(section_name) is None:
                             section_map[section_name] = section_texts
                         else:
-                            if section_name is not "OTHER":
+                            if section_name != "OTHER":
                                 logger.debug(f"Found another section: {section_name}\twith title\t{title}")
                             section_map[section_name] = section_map[section_name] + f"<br>{title}<br>" + section_texts
 
@@ -276,10 +281,10 @@ class Command(BaseCommand):
 
             except Exception as e:
                 logger.error(f"Could not parse {xml_file}")
-                logger.error(str(e));
-                continue;
+                logger.error(str(e))
+                continue
 
-        def cleanup(self, files):
-            for file in files:
-                logger.debug(f"remove: {file}")
-                os.remove(file)
+    def cleanup(self, files):
+        for file in files:
+            logger.debug(f"remove: {file}")
+            os.remove(file)

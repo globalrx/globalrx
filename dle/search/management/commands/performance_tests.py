@@ -674,7 +674,7 @@ class Command(BaseCommand):
         # plt.scatter([x[7], x[15], x[23], x[31], x[39]],
         #             [y[7], y[15], y[23], y[31], y[39]], label="single section + 4 inputs")
 
-        plt.scatter(x_avg, y_avg, label="avg query time per query")
+        # plt.scatter(x_avg, y_avg, label="avg query time per query")
         plt.axhline(total_avg, label="avg query time")
         plt.title("Performance testing")
         plt.xlabel("Queries")

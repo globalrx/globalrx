@@ -3,10 +3,9 @@ from django.db import IntegrityError
 from requests.exceptions import ChunkedEncodingError
 from data.models import (
     DrugLabel,
-    DrugLabelDoc,
-    DrugLabelRawText,
     LabelProduct,
     ProductSection,
+    DrugLabelRawText,
 )
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
@@ -165,18 +164,15 @@ class Command(BaseCommand):
         for url in urls:
             try:
                 logger.info(f"processing url: {url}")
-                dld = self.get_drug_label_doc_from_url(url)
-                logger.debug(repr(dld))
+                dl = self.get_drug_label_from_url(url)
+                logger.debug(repr(dl))
                 # dl.link is url of pdf
                 # for now, assume only one LabelProduct per DrugLabel
-                lp = LabelProduct(drug_label=dld)
+                lp = LabelProduct(drug_label=dl)
                 lp.save()
-                raw_text = self.parse_pdf(dld.link, lp)
-
-                rt = DrugLabelRawText(drug_label=dld, raw_text=raw_text)
+                raw_text = self.parse_pdf(dl.link, lp)
+                rt = DrugLabelRawText(drug_label=dl, raw_text=raw_text)
                 rt.save()
-                dl = DrugLabel.from_child(dld)
-                dl.save()
                 self.num_drug_labels_parsed += 1
             except IntegrityError as e:
                 logger.warning(self.style.WARNING("Label already in db"))
@@ -191,9 +187,9 @@ class Command(BaseCommand):
         logger.info(self.style.SUCCESS("process complete"))
         return
 
-    def get_drug_label_doc_from_url(self, url):
-        dld = DrugLabelDoc()  # empty object to populate as we go
-        dld.source = "EMA"
+    def get_drug_label_from_url(self, url):
+        dl = DrugLabel()  # empty object to populate as we go
+        dl.source = "EMA"
 
         # grab the webpage
         response = requests.get(url)
@@ -231,18 +227,18 @@ class Command(BaseCommand):
         str = cell.find_next_sibling().get_text(strip=True)
         # logger.debug(repr(str))
         # set it in our object
-        dld.product_name = str
+        dl.product_name = str
 
         # generic_name
         cell = tag.find_next("td", string=re.compile(r"\sActive substance\s"))
         str = cell.find_next_sibling().get_text(strip=True)
         str = str[0:255]  # limiting to 255 chars
-        dld.generic_name = str
+        dl.generic_name = str
 
         # source_product_number
         cell = tag.find_next("td", string=re.compile(r"\sAgency product number\s"))
         str = cell.find_next_sibling().get_text(strip=True)
-        dld.source_product_number = str
+        dl.source_product_number = str
 
         # marketer -- can be missing / null
         try:
@@ -250,9 +246,9 @@ class Command(BaseCommand):
                 "td", string=re.compile(r"\sMarketing-authorisation holder\s")
             )
             str = cell.find_next_sibling().get_text(strip=True)
-            dld.marketer = str
+            dl.marketer = str
         except AttributeError:
-            dld.marketer = "_"
+            dl.marketer = "_"
 
         tag = soup.find(id="product-information-section")
 
@@ -269,14 +265,14 @@ class Command(BaseCommand):
         # parse sub_str into date, from DD/MM/YYYY to: YYYY-MM-DD
         dt_obj = datetime.datetime.strptime(sub_str, "%d/%m/%Y")
         str = dt_obj.strftime("%Y-%m-%d")
-        dld.version_date = str
+        dl.version_date = str
 
         # url for product-information pdf
         entry = tag.find_next("a", href=True)
-        dld.link = entry["href"]
+        dl.link = entry["href"]
 
-        dld.save()
-        return dld
+        dl.save()
+        return dl
 
     def get_backoff_time(self, tries=5):
         """Get an amount of time to backoff. Starts with no backoff.
