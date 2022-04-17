@@ -28,9 +28,13 @@ def validate_search(request_query_params_dict: QueryDict) -> SearchRequest:
         raise InvalidSearchRequest("Search request is malformed")
 
 def build_match_query(search_query: str) -> str:
-    return """
+    if '"' in search_query:
+        mode = "BOOLEAN MODE"
+    else:
+        mode = "NATURAL LANGUAGE MODE"
+    return f"""
         AND match(ps.section_text) AGAINST (
-                %(search_query)s IN NATURAL LANGUAGE MODE
+                %(search_query)s IN {mode}
             )    
            """
 
@@ -44,7 +48,7 @@ def process_search(search_request: SearchRequest) -> List[DrugLabel]:
         "brand_name_input": "product_name",
     }
     search_request_dict = search_request._asdict()
-    search_query = search_request.search_text.strip('"').lower()
+    search_query = search_request.search_text.lower()
     raw_sql = """
         SELECT
             DISTINCT dl.id,
@@ -64,10 +68,7 @@ def process_search(search_request: SearchRequest) -> List[DrugLabel]:
         """
 
     # exact match query
-    if '"' in search_request.search_text:
-        raw_sql += " AND LOWER(ps.section_text) LIKE CONCAT('%%',%(search_query)s,'%%') "
-    else:
-        raw_sql += build_match_query(search_query)
+    raw_sql += build_match_query(search_query)
 
     sql_params = {"search_query": search_query}
     for k, v in search_request_dict.items():
@@ -79,6 +80,7 @@ def process_search(search_request: SearchRequest) -> List[DrugLabel]:
             additional_filter = f"AND LOWER({param_key}) = %({param_key})s "
             raw_sql += additional_filter
     raw_sql += "LIMIT 30" #can remove this once we're done testing
+    print(raw_sql % sql_params)
     return [d for d in DrugLabel.objects.raw(raw_sql, params=sql_params)]
 
 
@@ -148,11 +150,12 @@ def get_type_ahead_mapping() -> Dict[str, str]:
     marketers = DrugLabel.objects.values_list("marketer", flat=True).distinct()
     generic_names = DrugLabel.objects.values_list("generic_name", flat=True).distinct()
     product_names = DrugLabel.objects.values_list("product_name", flat=True).distinct()
+    section_names = ProductSection.objects.values_list("section_name", flat=True).distinct()
     type_ahead_mapping = {
         "manufacturers": [m.lower() for m in marketers],
         "generic_name": [g.lower() for g in generic_names],
         "brand_name": [p.lower() for p in product_names],
-        "section_name": ["warnings", "pregnancy", "indications", "overdose", "interact", "side effects"], # hardcode this until figure out subsections        
+        "section_name": [s.lower() for s in section_names]
     }
 
     return type_ahead_mapping
