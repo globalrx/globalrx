@@ -22,30 +22,37 @@ logger = logging.getLogger(__name__)
 class Command(BaseCommand):
     help = "Loads data from FDA"
     re_combine_whitespace = re.compile(r"\s+")
-    re_remove_nonalpha_characters = re.compile('[^a-zA-Z ]')
+    re_remove_nonalpha_characters = re.compile("[^a-zA-Z ]")
 
     def __init__(self, stdout=None, stderr=None, no_color=False, force_color=False):
         logging.basicConfig(
-            format='%(asctime)s %(levelname)-8s %(message)s',
+            format="%(asctime)s %(levelname)-8s %(message)s",
             level=logging.INFO,
-            datefmt='%Y-%m-%d %H:%M:%S')
+            datefmt="%Y-%m-%d %H:%M:%S",
+        )
         self.root_dir = settings.MEDIA_ROOT / "fda"
         os.makedirs(self.root_dir, exist_ok=True)
         super().__init__(stdout, stderr, no_color, force_color)
 
     def add_arguments(self, parser):
-        parser.add_argument('--type', type=str, help="full, monthly, or test", default="monthly")
-        parser.add_argument('--insert', type=bool, help="Set to connect to DB", default=True)
-        parser.add_argument('--cleanup', type=bool, help="Set to cleanup files", default=True)
+        parser.add_argument(
+            "--type", type=str, help="full, monthly, or test", default="monthly"
+        )
+        parser.add_argument(
+            "--insert", type=bool, help="Set to connect to DB", default=True
+        )
+        parser.add_argument(
+            "--cleanup", type=bool, help="Set to cleanup files", default=True
+        )
 
     """
     Entry point into class from command line
     """
 
     def handle(self, *args, **options):
-        import_type = options['type']
-        insert = options['insert']
-        cleanup = options['cleanup']
+        import_type = options["type"]
+        insert = options["insert"]
+        cleanup = options["cleanup"]
         root_zips = self.download_records(import_type)
         record_zips = self.extract_prescription_zips(root_zips)
         xml_files = self.extract_xmls(record_zips)
@@ -112,13 +119,17 @@ class Command(BaseCommand):
         record_zips = []
 
         for zip_file in zips:
-            with ZipFile(zip_file, 'r') as zip_file_object:
+            with ZipFile(zip_file, "r") as zip_file_object:
                 for file_info in zip_file_object.infolist():
-                    if file_info.filename.startswith("prescription") and file_info.filename.endswith(".zip"):
+                    if file_info.filename.startswith(
+                        "prescription"
+                    ) and file_info.filename.endswith(".zip"):
                         outfile = file_dir / os.path.basename(file_info.filename)
                         file_info.filename = os.path.basename(file_info.filename)
                         if os.path.exists(outfile):
-                            logger.info(f"Record Zip already exists: {outfile}. Skipping.")
+                            logger.info(
+                                f"Record Zip already exists: {outfile}. Skipping."
+                            )
                         else:
                             logger.info(f"Creating Record Zip {outfile}")
                             zip_file_object.extract(file_info, file_dir)
@@ -132,7 +143,7 @@ class Command(BaseCommand):
         xml_files = []
 
         for zip_file in zips:
-            with ZipFile(zip_file, 'r') as zip_file_object:
+            with ZipFile(zip_file, "r") as zip_file_object:
                 for file in zip_file_object.namelist():
                     if file.endswith(".xml"):
                         outfile = file_dir / file
@@ -150,8 +161,10 @@ class Command(BaseCommand):
         for xml_file in xml_records:
             try:
                 with open(xml_file) as f:
-                    content = BeautifulSoup(f.read(), 'lxml')
-                    codes = content.find_all("code", attrs={"codesystem": "2.16.840.1.113883.6.1"})
+                    content = BeautifulSoup(f.read(), "lxml")
+                    codes = content.find_all(
+                        "code", attrs={"codesystem": "2.16.840.1.113883.6.1"}
+                    )
                     for code in codes:
                         my_str = str(code.get("displayname")).upper()
                         my_str = self.re_combine_whitespace.sub(" ", my_str).strip()
@@ -167,9 +180,11 @@ class Command(BaseCommand):
             if m < 0:
                 break
         import collections
+
         counter = collections.Counter(titles)
         logger.info(counter.most_common(10))
         import csv
+
         with open("top_displaynames.csv", "w") as csvfile:
             csvwriter = csv.writer(csvfile)
             csvwriter.writerow(["displayname", "count"])
@@ -194,7 +209,9 @@ class Command(BaseCommand):
                     dl.generic_name = generic_name[:255]
 
                     try:
-                        dl.version_date = datetime.strptime(content.find("effectivetime").get("value"), "%Y%m%d")
+                        dl.version_date = datetime.strptime(
+                            content.find("effectivetime").get("value"), "%Y%m%d"
+                        )
                     except ValueError:
                         dl.version_date = datetime.now()
 
@@ -202,8 +219,9 @@ class Command(BaseCommand):
                         dl.marketer = content.find("author").find("name").text.upper()
                     except AttributeError:
                         dl.marketer = ""
-                    dl.source_product_number = content.find("code", attrs={"codesystem": "2.16.840.1.113883.6.69"}).get(
-                        "code")
+                    dl.source_product_number = content.find(
+                        "code", attrs={"codesystem": "2.16.840.1.113883.6.69"}
+                    ).get("code")
 
                     texts = [p.text for p in content.find_all("paragraph")]
                     dl.raw_text = "\n".join(texts)
@@ -234,7 +252,9 @@ class Command(BaseCommand):
                     # category
                     section_map = {}
                     for section in content.find_all("component"):
-                        code = section.find("code", attrs={"codesystem": "2.16.840.1.113883.6.1"})
+                        code = section.find(
+                            "code", attrs={"codesystem": "2.16.840.1.113883.6.1"}
+                        )
                         if code is None:
                             continue
                         title = str(code.get("displayname")).upper()
@@ -261,13 +281,22 @@ class Command(BaseCommand):
                             section_map[section_name] = section_texts
                         else:
                             if section_name != "OTHER":
-                                logger.debug(f"Found another section: {section_name}\twith title\t{title}")
-                            section_map[section_name] = section_map[section_name] + f"<br>{title}<br>" + section_texts
+                                logger.debug(
+                                    f"Found another section: {section_name}\twith title\t{title}"
+                                )
+                            section_map[section_name] = (
+                                section_map[section_name]
+                                + f"<br>{title}<br>"
+                                + section_texts
+                            )
 
                     # Now that the sections have been parsed, save them
                     for section_name, section_text in section_map.items():
-                        ps = ProductSection(label_product=lp, section_name=section_name.upper(),
-                                            section_text=section_text)
+                        ps = ProductSection(
+                            label_product=lp,
+                            section_name=section_name.upper(),
+                            section_text=section_text,
+                        )
                         try:
                             if insert:
                                 ps.save()
