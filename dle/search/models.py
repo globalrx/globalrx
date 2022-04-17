@@ -19,7 +19,7 @@ class SearchRequest(NamedTuple):
 
     @classmethod
     def from_search_query_dict(cls, search_query_dict: QueryDict) -> "SearchRequest":
-        cls_params = [search_query_dict.get(field) for field in cls._fields]
+        cls_params = [search_query_dict.get(field, '').lower() for field in cls._fields]
 
         return cls._make(cls_params)
 
