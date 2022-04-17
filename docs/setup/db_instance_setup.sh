@@ -1,7 +1,7 @@
 
 ## Setup MariaDB Server Instance
 
-# Using Ubuntu 18.04 - x86
+# Using Amazon Linux 2 AMI - arm
 
 ##### declaring variables here for now, can parameterize
 
@@ -14,17 +14,24 @@ DB_USER_PW='uDyvfMXHIKCJ'
 
 ##### Install MariaDB
 
-sudo apt-get install software-properties-common dirmngr apt-transport-https -y
-sudo apt-key adv --fetch-keys 'https://mariadb.org/mariadb_release_signing_key.asc'
-sudo add-apt-repository 'deb [arch=amd64,arm64,ppc64el] https://mirrors.xtom.com/mariadb/repo/10.7/ubuntu bionic main'
+sudo yum update -y
 
-sudo apt update
-sudo apt install libjemalloc1 -y
-sudo apt install mariadb-server mariadb-backup libmariadb3 mariadb-client -y
+# using MariaDB 10.6
+sudo tee /etc/yum.repos.d/MariaDB.repo > /dev/null <<EOF
+# MariaDB 10.6 CentOS repository list
+# https://mariadb.org/download/
+[mariadb]
+name = MariaDB
+baseurl = https://mirrors.gigenet.com/mariadb/yum/10.6/centos7-amd64
+gpgkey=https://mirrors.gigenet.com/mariadb/yum/RPM-GPG-KEY-MariaDB
+gpgcheck=1
+EOF
+sudo yum makecache 
+sudo yum install MariaDB-server MariaDB-client MariaDB-devel -y
 
 ##### Setup a custom config file
 
-sudo tee /etc/mysql/mariadb.conf.d/z-custom-my.cnf > /dev/null <<EOF
+sudo tee /etc/my.cnf.d/z-custom-my.cnf > /dev/null <<EOF
 [mariadb]
 log_error = mariadbd.err
 character_set_server = utf8
@@ -46,13 +53,8 @@ EOF
 sudo systemctl start mariadb
 sudo systemctl enable mariadb
 
-##### Set the locale
+##### Create db +  user
 
-sudo localedef -i en_US -f UTF-8 en_US.UTF-8
-
-##### Setup db users
-
-# setup the db user
 sudo mysql <<EOF
 DROP USER IF EXISTS $DB_USER;
 DROP DATABASE IF EXISTS $DB_NAME;

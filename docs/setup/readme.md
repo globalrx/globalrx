@@ -52,10 +52,10 @@ Launch EC2 Instance
 (using these settings for now, may modify)
 
 ```
-Ubuntu 18.04
-x86
-t2.medium
-16GB gp3 disk
+Amazon Linux 2 AMI
+arm
+r6g.large
+50GB gp3 disk
 Tags: 'Name' => 'dle-maria'
 Create Security Group (maria-dev): open 22, 3306 to all incomming traffic
 Create key-pair (dle-dev) # using existing key-pair
