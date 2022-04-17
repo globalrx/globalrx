@@ -21,20 +21,17 @@ def index(request: HttpRequest) -> HttpResponse:
 
 def list_search_results(request: HttpRequest) -> HttpResponse:
     """Search results list view
-
     Args:
         request (HttpRequest): GET request with search text and multiple boolean flags.
-
     Returns:
         HttpResponse: Search results view with highlighted text
     """
     search_request_object = SearchService.validate_search(request.GET)
     results = SearchService.process_search(search_request_object)
-    search_results = []
-    for ps in results:
-        highlighted_text = SearchService.highlight_search_text(ps, search_request_object.search_text)
-        dl = ps.label_product.drug_label
-        search_results.append((dl, highlighted_text))
+    search_results = [
+        SearchService.build_search_result(result, search_request_object.search_text)
+        for result in results
+    ]
 
     context = {"search_results": search_results}
     return render(request, "search/search_results/search_results.html", context=context)
