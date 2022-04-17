@@ -22,7 +22,7 @@ sudo tee /etc/yum.repos.d/MariaDB.repo > /dev/null <<EOF
 # https://mariadb.org/download/
 [mariadb]
 name = MariaDB
-baseurl = https://mirrors.gigenet.com/mariadb/yum/10.6/centos7-amd64
+baseurl = https://mirrors.gigenet.com/mariadb/yum/10.6/centos7-aarch64
 gpgkey=https://mirrors.gigenet.com/mariadb/yum/RPM-GPG-KEY-MariaDB
 gpgcheck=1
 EOF
