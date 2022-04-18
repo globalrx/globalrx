@@ -30,7 +30,11 @@ def list_labels(request: HttpRequest) -> HttpResponse:
 
 
 def compare_labels(request: HttpRequest) -> HttpResponse:
-    """
+    """Compare 2 or 3 different drug labels view
+    Args:
+        request (HttpRequest): GET request with 2 or 3 drug label ids
+    Returns:
+        HttpResponse: Side-by-side view of 2 or 3 drug labels for each section
     """
     drug_label1 = get_object_or_404(DrugLabel, id = request.GET['first-label'])
     drug_label2 = get_object_or_404(DrugLabel, id = request.GET['second-label'])
