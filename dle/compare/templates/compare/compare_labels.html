@@ -1,0 +1,98 @@
+
+{% extends "compare/layout.html" %}
+{% block header %}
+{% endblock header %}
+
+{% block content %}
+    <div class="container-fluid">
+        <div class="row">
+            {% if dl3 %}
+            <h6> Comparing drugs 
+                <b>{{dl1.product_name}}</b>, 
+                <b>{{dl2.product_name}}</b>, and 
+                <b>{{dl3.product_name}}</b>:
+            </h6>
+            {% else %}
+            <h6> Comparing drugs 
+                <b>{{dl1.product_name}}</b>, and 
+                <b>{{dl2.product_name}}</b>:
+            </h6>
+            {% endif %}
+        </div>
+        <br>
+        <div class="row">
+            <table class="section-table">
+            <tr>
+            <td class="section-td">
+                <dl>
+                    <dt>Product Name: {{ dl1.product_name }}</dt>
+                    <dt>Generic Name: {{ dl1.generic_name }}</dt>
+                    <dt>Version Date: {{ dl1.version_date }}</dt>
+                    <dt>Product Number: {{ dl1.source_product_number }}</dt>
+                    <dt>Marketer: {{ dl1.marketer }}</dt>
+                    <dt>Source: {{ dl1.source }}</dt>
+                </dl>
+            </td>
+            <td class="section-td">
+                <dl>
+                    <dt>Product Name: {{ dl2.product_name }}</dt>
+                    <dt>Generic Name: {{ dl2.generic_name }}</dt>
+                    <dt>Version Date: {{ dl2.version_date }}</dt>
+                    <dt>Product Number: {{ dl2.source_product_number }}</dt>
+                    <dt>Marketer: {{ dl2.marketer }}</dt>
+                    <dt>Source: {{ dl2.source }}</dt>
+                </dl>
+            </td>
+            {% if dl3 %}
+                <td class="section-td"> 
+                    <dl>
+                        <dt>Product Name: {{ dl3.product_name }}</dt>
+                        <dt>Generic Name: {{ dl3.generic_name }}</dt>
+                        <dt>Version Date: {{ dl3.version_date }}</dt>
+                        <dt>Product Number: {{ dl3.source_product_number }}</dt>
+                        <dt>Marketer: {{ dl3.marketer }}</dt>
+                        <dt>Source: {{ dl3.source }}</dt>
+                    </dl>
+                </td>
+            {% endif %}
+            </tr>
+            </table>
+        </div>
+        {% if sections %}
+            {% for section in sections %}
+                <button type="button" class="collapsible"> > {{ section.section_name }}</button>
+                <div class="row sec-content" style="display:none">
+                    <table class="section-table">
+                        <tr>
+                          <td class="section-td"><p>{{ section.section_text1|safe }}</p></td>
+                          <td class="section-td"><p>{{ section.section_text2|safe }}</p></td>
+                          {% if section.section_text3 %}
+                            <td class="section-td"><p>{{ section.section_text3|safe }}</p></td>
+                          {% endif %}
+                        </tr>
+                    </table>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>No section texts are found.</p>
+        {% endif %}
+    </div>
+{% endblock content %}
+{% block footer_scripts %}
+    <script>
+        var coll = document.getElementsByClassName("collapsible");
+        var i;
+
+        for (i = 0; i < coll.length; i++) {
+            coll[i].addEventListener("click", function() {
+                this.classList.toggle("active");
+                var content = this.nextElementSibling;
+                if (content.style.display === "block") {
+                    content.style.display = "none";
+                } else {
+                    content.style.display = "block";
+                }
+            });
+        }
+    </script>
+{% endblock footer_scripts %}
