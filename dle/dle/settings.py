@@ -25,7 +25,8 @@ ALLOWED_HOSTS = [
     "druglabelexplorer.org",
     "www.druglabelexplorer.org",
     "127.0.0.1",
-    "localhost",    
+    "localhost",
+    "testserver",
 ]
 
 # Quick-start development settings - unsuitable for production
@@ -41,10 +42,10 @@ DEBUG = True
 # Application definition
 
 INSTALLED_APPS = [
-    'users.apps.UsersConfig',
+    "users.apps.UsersConfig",
     "data.apps.DataConfig",
     "compare.apps.CompareConfig",
-    "django.contrib.admin",
+    # "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -53,7 +54,7 @@ INSTALLED_APPS = [
     "search.apps.SearchConfig",
 ]
 
-AUTH_USER_MODEL = 'users.User'
+AUTH_USER_MODEL = "users.User"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -97,6 +98,7 @@ DATABASES = {
         "PASSWORD": "uDyvfMXHIKCJ",
         # 'HOST': '172.31.12.231', # private IP
         "HOST": "44.238.69.61",  # public IP
+        # "HOST": "54.214.90.69",  # test DB
         "PORT": "3306",
     }
 }
@@ -132,7 +134,7 @@ USE_I18N = True
 
 USE_TZ = True
 
-USE_L10N = True 
+USE_L10N = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/

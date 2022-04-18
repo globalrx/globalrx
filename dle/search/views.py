@@ -21,10 +21,8 @@ def index(request: HttpRequest) -> HttpResponse:
 
 def list_search_results(request: HttpRequest) -> HttpResponse:
     """Search results list view
-
     Args:
         request (HttpRequest): GET request with search text and multiple boolean flags.
-
     Returns:
         HttpResponse: Search results view with highlighted text
     """

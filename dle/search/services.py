@@ -8,13 +8,10 @@ from django.http import QueryDict
 
 def validate_search(request_query_params_dict: QueryDict) -> SearchRequest:
     """Validates search params and returns the seach request object if valid.
-
     Args:
         request_query_params_dict (QueryDict): Request dictionary returned from HttpRequest.GET
-
     Raises:
         InvalidSearchRequest
-
     Returns:
         SearchRequest: Validated search tuple object
     """
@@ -86,11 +83,9 @@ def process_search(search_request: SearchRequest) -> List[DrugLabel]:
 
 def highlight_text_by_term(text: str, search_term: str) -> Tuple[str, bool]:
     """Builds the highlighted texted for a given string.
-
     Args:
         text (str): Original text to highlight
         search_term (str): Term that should be highlighted within the text string.
-
     Returns:
         Tuple[str, bool]: The Highlighted Text and True if highlighting is successful
     """
@@ -123,11 +118,9 @@ def build_search_result(
     search_result: DrugLabel, search_term: str
 ) -> Tuple[DrugLabel, str]:
     """Returns search result objects with highlighted text
-
     Args:
         search_result (MockDrugLabel): A fake label that is used until we have a dataset
         search_term (str): The search text to highlight
-
     Returns:
         Tuple[MockDrugLabel, str]: Tuple object with the full drug label object and a truncated version of its text
     """

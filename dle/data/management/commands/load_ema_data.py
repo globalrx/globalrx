@@ -1,7 +1,11 @@
 from django.core.management.base import BaseCommand, CommandError
 from django.db import IntegrityError
 from requests.exceptions import ChunkedEncodingError
-from data.models import DrugLabel, LabelProduct, ProductSection
+from data.models import (
+    DrugLabel,
+    LabelProduct,
+    ProductSection,
+)
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.conf import settings
@@ -64,39 +68,39 @@ EMA_PDF_PRODUCT_SECTIONS = [
     # stop when we find the closing string
     EmaSectionRe(
         r"(4\.1\s+Therapeutic indications)(.+)(4\.2\s+Posology and method of administration)",
-        "INDICATIONS",
+        "Indications",
     ),
     EmaSectionRe(
         r"(4\.2\s+Posology and method of administration)(.+)(4\.3\s+Contraindications)",
-        "POSE",
+        "Posology",
     ),
     EmaSectionRe(
         r"(4\.3\s+Contraindications)(.+)(4\.4\s+Special warnings and precautions for use)",
-        "CONTRA",
+        "Contraindications",
     ),
     EmaSectionRe(
         r"(4\.4\s+Special warnings and precautions for use)(.+)(4\.5\s+Interaction with other medicinal products and other forms of interaction)",
-        "WARN",
+        "Warnings",
     ),
     EmaSectionRe(
         r"(4\.5\s+Interaction with other medicinal products and other forms of interaction)(.+)(4\.6\s+Fertility, pregnancy and lactation)",
-        "INTERACT",
+        "Interactions",
     ),
     EmaSectionRe(
         r"(4\.6\s+Fertility, pregnancy and lactation)(.+)(4\.7\s+Effects on ability to drive and use machines)",
-        "PREG",
+        "Pregnancy",
     ),
     EmaSectionRe(
         r"(4\.7\s+Effects on ability to drive and use machines)(.+)(4\.8\s+Undesirable effects)",
-        "DRIVE",
+        "Effects on driving",
     ),
     EmaSectionRe(
         r"(4\.8\s+Undesirable effects)(.+)(4\.9\s+Overdose)",
-        "SIDE",
+        "Side effects",
     ),
     EmaSectionRe(
         r"(4\.9\s+Overdose)(.+)(5\.\s+PHARMACOLOGICAL PROPERTIES)",
-        "OVER",
+        "Overdose",
     ),
 ]
 
@@ -165,12 +169,12 @@ class Command(BaseCommand):
                 # for now, assume only one LabelProduct per DrugLabel
                 lp = LabelProduct(drug_label=dl)
                 lp.save()
-                raw_text = self.parse_pdf(dl.link, lp)
-                dl.raw_text = raw_text
+                dl.raw_text = self.parse_pdf(dl.link, lp)
                 dl.save()
                 self.num_drug_labels_parsed += 1
             except IntegrityError as e:
                 logger.warning(self.style.WARNING("Label already in db"))
+                logger.debug(e, exc_info=True)
             logger.info(f"sleep 1s")
             time.sleep(1)
 
@@ -242,7 +246,7 @@ class Command(BaseCommand):
             str = cell.find_next_sibling().get_text(strip=True)
             dl.marketer = str
         except AttributeError:
-            dl.marketer = ""
+            dl.marketer = "_"
 
         tag = soup.find(id="product-information-section")
 

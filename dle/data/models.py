@@ -7,23 +7,7 @@ from django.db import models
 SOURCES = [
     ("FDA", "USA - Federal Drug Administration"),
     ("EMA", "EU - European Medicines Agency"),
-    ("USER-FDA", "User-uploaded in FDA format"),
-    ("USER-EMA", "User-uploaded in EMA format"),
 ]
-
-SECTION_NAMES = [
-    ("INDICATIONS", "Indications"),
-    ("CONTRA", "Contraindications"),
-    ("WARN", "Warnings"),
-    ("PREG", "Pregnancy"),
-    ("POSE", "Posology"),
-    ("INTERACT", "Interactions"),
-    ("DRIVE", "Effects on driving"),
-    ("SIDE", "Side effects"),
-    ("OVER", "Overdose"),
-]
-"This is a WIP"
-
 
 class DrugLabel(models.Model):
     """Version-specific document for a medication from EMA, FDA or other source (e.g. user-uploaded)
@@ -61,10 +45,8 @@ class DrugLabel(models.Model):
             f"generic_name: {self.generic_name}, "
             f"version_date: {self.version_date}, "
             f"source_product_number: {self.source_product_number}, "
-            f"raw_text: {self.raw_text[0:10]}..., "
             f"marketer: {self.marketer}"
         )
-
 
 class LabelProduct(models.Model):
     """A `DrugLabel` may have multiple `LabelProduct`s.
@@ -81,7 +63,5 @@ class ProductSection(models.Model):
     """
 
     label_product = models.ForeignKey(LabelProduct, on_delete=models.CASCADE)
-    section_name = models.CharField(
-        max_length=255, choices=SECTION_NAMES, db_index=True
-    )
+    section_name = models.CharField(max_length=255, db_index=True)
     section_text = models.TextField()
