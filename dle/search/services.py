@@ -2,7 +2,7 @@ from typing import List, Tuple, Dict
 from .models import SearchRequest, InvalidSearchRequest
 from .search_constants import MAX_LENGTH_SEARCH_RESULT_DISPLAY
 from data.models import DrugLabel, ProductSection
-
+from data.constants import LASTEST_DRUG_LABELS_TABLE
 from django.http import QueryDict
 
 
@@ -66,6 +66,10 @@ def process_search(search_request: SearchRequest) -> List[DrugLabel]:
 
     # exact match query
     raw_sql += build_match_query(search_query)
+
+    if not search_request.all_label_versions:
+        # limit to most recent version
+        raw_sql += f" AND dl.id IN (SELECT id FROM {LASTEST_DRUG_LABELS_TABLE})"
 
     sql_params = {"search_query": search_query}
     for k, v in search_request_dict.items():
