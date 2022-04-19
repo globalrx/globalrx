@@ -4,30 +4,6 @@ import gensim
 from gensim.parsing.preprocessing import remove_stopwords
 from .models import *
 
-SECTION_NAMES_DICT = {
-    'INDICATIONS': 'Indications',
-    'CONTRA': 'Contraindications',
-    'WARN': 'Warnings',
-    'PREG': 'Pregnancy',
-    'POSE': 'Posology',
-    'INTERACT': 'Interactions',
-    'DRIVE': 'Effects on driving',
-    'SIDE': 'Side effects',
-    'OVER': 'Overdose',
-    "('INDICATIONS', 'Indications')": 'Indications',
-    "('CONTRA', 'Contraindications')": 'Contraindications',
-    "('WARN', 'Warnings')": 'Warnings',
-    "('PREG', 'Pregnancy')": 'Pregnancy',
-    "('POSE', 'Posology')": 'Posology',
-    "('INTERACT', 'Interactions')": 'Interactions',
-    "('DRIVE', 'Effects on driving')": 'Effects on driving',
-    "('SIDE', 'Side effects')": 'Side effects',
-    "('OVER', 'Overdose')": 'Overdose',
-}
-
-def map_section_names(str):
-    return SECTION_NAMES_DICT[str]
-
 def get_diff_for_diff_versions(text1, text2):
     dmp = dmp_module.diff_match_patch()
     diff = dmp.diff_main(text1, text2)
