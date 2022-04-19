@@ -18,6 +18,8 @@ def single_label_view(request, drug_label_id):
         product_sections = ProductSection.objects.filter(label_product_id=label_product.id).all()
         for section in product_sections:
             print(f"section_name: {section.section_name}")
+            if drug_label.source == "EMA":
+                section.section_text = section.section_text.replace("\n", "<br>")
     except ObjectDoesNotExist:
         product_sections = []
 
