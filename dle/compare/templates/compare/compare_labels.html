@@ -80,9 +80,17 @@
 {% endblock content %}
 {% block footer_scripts %}
     <script>
+        /**
+         * Get all section heading button elements
+         */
         var coll = document.getElementsByClassName("collapsible");
         var i;
 
+        /**
+         * Add event listener to all buttons to make section content 
+         * collapsible. When a section button is clicked, the section 
+         * content will show or hide.
+         */
         for (i = 0; i < coll.length; i++) {
             coll[i].addEventListener("click", function() {
                 this.classList.toggle("active");
