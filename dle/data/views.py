@@ -20,8 +20,13 @@ def single_label_view(request, drug_label_id):
             print(f"section_name: {section.section_name}")
     except ObjectDoesNotExist:
         product_sections = []
+
+    # get all drug labels with the same product_name
+    drug_label_versions = DrugLabel.objects.filter(product_name=drug_label.product_name).order_by('-version_date')
+
     context = {
         "drug_label": drug_label,
         "product_sections": product_sections,
+        "drug_label_versions": drug_label_versions,
     }
     return render(request, "data/single_label.html", context)
