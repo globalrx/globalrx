@@ -9,36 +9,71 @@
 }
 
 .row {
-    margin: 10px;
-    /* padding-left: 10px;  */
+    margin: 1px;
+    padding-left: 10px; 
 }
 
 .sec-header > div {
+    margin-left: 5px;
+    margin-right: 5px;
     text-align: center;
-}
-
-.sec-content > div {
-    margin-left: 10px;
-    padding-left: 1px;
     border-radius: 8px;
+    border:3px solid black;
 }
 
-.sec-match > div {
+/* highlight green if the sections are exact matches */
+.matching-section {
     border:3px solid green;
+    vertical-align: top;
 }
 
-.sec-diff > div {
+/* highlight red if the sections have diffs */
+.diff-section {
     border:3px solid red;
+    vertical-align: top;
 }
 
 .diff-text-highlight {
     background-color:rgba(240, 14, 14, 0.575);
 }
 
-.matching-text-highlight {
-    background-color:rgba(14, 240, 74, 0.575);
-}
-
 .error-msg-display {
     background-color:rgba(240, 14, 14, 0.575);
+}
+
+/* Style the button that is used to open and close the collapsible content */
+.collapsible {
+    background-color:rgb(149, 210, 238);
+    color: #444;
+    cursor: pointer;
+    margin-left: 10px;
+    padding: 18px;
+    width: 100%;
+    text-align: left;
+    outline: auto;
+    font-size: 15px;
+}
+  
+/* Add a background color to the button if it is clicked on and when moving the mouse over it (hover) */
+.active, .collapsible:hover {
+    background-color: #ccc;
+}
+  
+/* Style the collapsible content. Note: hidden by default */
+.sec-content {
+    display: none;
+    overflow: hidden;
+    background-color: #f1f1f1;
+}
+  
+.section-table {
+    table-layout: fixed;
+    border: 1px solid black;
+    border-collapse: collapse;
+    width: 100%;
+}
+  
+.section-td {
+    border: 3px solid black;
+    vertical-align: top;
 }
