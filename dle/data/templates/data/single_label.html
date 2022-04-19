@@ -11,7 +11,8 @@
 <p>Source: {{ drug_label.source }}</p>
 <p>Product Number: {{ drug_label.source_product_number }}</p>
 <p>Marketing Authorization Holder: {{ drug_label.marketer }}</p>
-<a href="{{ drug_label.link }}">Link</a>
+<a href="{{ drug_label.link }}">Link</a><br>
+<a href="/compare/list_labels?first-label={{drug_label.product_name}}&second-label=">Compare</a>
 <p>Label Product Sections:</p>
 {% for section in product_sections %}
   <h4>{{ section.section_name }}</h4>
