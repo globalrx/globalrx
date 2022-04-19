@@ -54,6 +54,7 @@ def run_dl_query(search_request: SearchRequest):
             sql += additional_filter
 
     with connection.cursor() as cursor:
+        cursor.execute(f"DROP TABLE IF EXISTS {DRUG_LABEL_QUERY_TEMP_TABLE_NAME}")
         cursor.execute(sql, sql_params)
 
 def build_match_sql(search_text: str) -> str:
@@ -88,6 +89,7 @@ def run_ps_query(search_request: SearchRequest):
         sql += """ AND LOWER(section_name) = %(section_name)s"""
 
     with connection.cursor() as cursor:
+        cursor.execute(f"DROP TABLE IF EXISTS {SECTION_QUERY_TEMP_TABLE_NAME}")
         cursor.execute(sql, sql_params)
 
 def process_search(search_request: SearchRequest) -> List[DrugLabel]:
