@@ -36,8 +36,7 @@ def list_search_results(request: HttpRequest) -> HttpResponse:
     context = {"search_results": search_results}
     return render(request, "search/search_results/search_results.html", context=context)
 
+
 def view_drug(request: HttpRequest, drug_id: int) -> HttpResponse:
-    context = {
-        "drug": DrugLabel.objects.get(id=drug_id)
-    }
+    context = {"drug": DrugLabel.objects.get(id=drug_id)}
     return render(request, "search/single_label_view/drug_view.html", context=context)

@@ -1,0 +1,104 @@
+
+{% extends "compare/layout.html" %}
+{% block header %}
+{% endblock header %}
+
+{% block content %}
+    <div class="container-fluid">
+        <div class="row">
+            <h6> Comparing drugs {{dl1.product_name}}, 
+                <b>version ({{dl1.version_date }})</b>, and 
+                <b>version ({{dl2.version_date }})</b>:
+            </h6>
+        </div>
+        <br>
+        <div class="row">
+            <table class="section-table">
+            <tr>
+                <td class="section-td">
+                    <dl>
+                        <dt>Product Name: {{ dl1.product_name }}</dt>
+                        <dt>Generic Name: {{ dl1.generic_name }}</dt>
+                        <dt>Version Date: {{ dl1.version_date }}</dt>
+                        <dt>Product Number: {{ dl1.source_product_number }}</dt>
+                        <dt>Marketer: {{ dl1.marketer }}</dt>
+                        <dt>Source: {{ dl1.source }}</dt>
+                    </dl>
+                </td>
+                <td class="section-td">
+                    <dl>
+                        <dt>Product Name: {{ dl2.product_name }}</dt>
+                        <dt>Generic Name: {{ dl2.generic_name }}</dt>
+                        <dt>Version Date: {{ dl2.version_date }}</dt>
+                        <dt>Product Number: {{ dl2.source_product_number }}</dt>
+                        <dt>Marketer: {{ dl2.marketer }}</dt>
+                        <dt>Source: {{ dl2.source }}</dt>
+                    </dl>
+                </td>
+            </tr>
+            </table>
+        </div>
+        {% if sections %}
+            {% for section in sections %}
+                <button type="button" class="collapsible"> > {{ section.section_name }}</button>
+                <div class="row sec-content" style="display:none">
+                    <table class="section-table">
+                        <tr>
+                          <td class="{{ section.textMatches }}">
+                              <p>
+                                {% for tuple in section.section_text1 %}
+                                    {% if tuple.0 == 0 %}
+                                        {{ tuple.1|safe }}
+                                    {% elif tuple.0 == -1 %}
+                                        <span class="diff-text-highlight">{{ tuple.1 }}</span>
+                                    {% endif %}
+                                {% endfor %}
+                              </p>
+                            </td>
+                          <td class="{{ section.textMatches }}">
+                              <p>
+                                {% for tuple in section.section_text2 %}
+                                    {% if tuple.0 == 0 %}
+                                        {{ tuple.1|safe }}
+                                    {% elif tuple.0 == 1 %}
+                                        <span class="diff-text-highlight">{{ tuple.1 }}</span>
+                                    {% endif %}
+                                {% endfor %}
+
+                              </p>
+                            </td>
+                        </tr>
+                    </table>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>No section texts are found.</p>
+        {% endif %}
+    </div>
+{% endblock content %}
+{% block footer_scripts %}
+    <script>
+        /**
+         * Get all section heading button elements
+         */
+        var coll = document.getElementsByClassName("collapsible");
+        var i;
+
+        /**
+         * Add event listener to all buttons to make section content 
+         * collapsible. When a section button is clicked, the section 
+         * content will show or hide.
+         */
+        for (i = 0; i < coll.length; i++) {
+            coll[i].addEventListener("click", function() {
+                this.classList.toggle("active");
+                var content = this.nextElementSibling;
+                if (content.style.display === "block") {
+                    content.style.display = "none";
+                } else {
+                    content.style.display = "block";
+                }
+            });
+        }
+    </script>
+{% endblock footer_scripts %}
