@@ -1,12 +1,15 @@
 from typing import List, Tuple, Dict
+import logging
 
 import bleach
 
 from .models import SearchRequest, InvalidSearchRequest
-from .search_constants import MAX_LENGTH_SEARCH_RESULT_DISPLAY
+from .search_constants import MAX_LENGTH_SEARCH_RESULT_DISPLAY, SECTION_QUERY_TEMP_TABLE_NAME, DRUG_LABEL_QUERY_TEMP_TABLE_NAME
 from data.models import DrugLabel, ProductSection
 from django.http import QueryDict
+from django.db import connection
 
+logger = logging.getLogger(__name__)
 
 def validate_search(request_query_params_dict: QueryDict) -> SearchRequest:
     """Validates search params and returns the seach request object if valid.
@@ -26,37 +29,7 @@ def validate_search(request_query_params_dict: QueryDict) -> SearchRequest:
     else:
         raise InvalidSearchRequest("Search request is malformed")
 
-
-def build_match_query(search_query: str) -> str:
-    if '"' in search_query:
-        mode = "BOOLEAN MODE"
-    else:
-        mode = "NATURAL LANGUAGE MODE"
-    return f"""
-            match(section_text) AGAINST (
-                %(search_query)s IN {mode}
-            )    
-           """
-
-
-def build_with_clause(search_request: SearchRequest) -> str:
-    select_clause = f"""
-        SELECT
-            label_product_id,
-            id,
-            {build_match_query(search_request.search_text)} AS score
-        FROM
-            data_productsection
-        WHERE
-            {build_match_query(search_request.search_text)}
-    """
-    if search_request.select_section:
-        select_clause += """ AND LOWER(section_name) = %(section_name)s"""
-
-    return "WITH cte AS (" + select_clause + ")"
-
-
-def process_search(search_request: SearchRequest) -> List[DrugLabel]:
+def run_dl_query(search_request: SearchRequest):
     search_filter_mapping = {
         "select_agency": "source",
         "manufacturer_input": "marketer",
@@ -64,8 +37,68 @@ def process_search(search_request: SearchRequest) -> List[DrugLabel]:
         "brand_name_input": "product_name",
     }
     search_request_dict = search_request._asdict()
-    with_clause = build_with_clause(search_request=search_request)
-    select_sql = """
+    sql_params = {}
+
+    sql = f"""
+    CREATE TEMPORARY TABLE {DRUG_LABEL_QUERY_TEMP_TABLE_NAME} AS
+    SELECT id
+    FROM data_druglabel
+    WHERE 1=1 
+    """
+
+    for k, v in search_request_dict.items():
+        if v and (k in search_filter_mapping):
+            param_key = search_filter_mapping[k]
+            sql_params[param_key] = v
+            additional_filter = f" AND LOWER({param_key}) = %({param_key})s "
+            sql += additional_filter
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql, sql_params)
+
+def build_match_sql(search_text: str) -> str:
+    if '"' in search_text:
+        mode = "BOOLEAN MODE"
+    else:
+        mode = "NATURAL LANGUAGE MODE"
+    return f"match(section_text) AGAINST ( %(search_text)s IN {mode})"
+
+def run_ps_query(search_request: SearchRequest):
+    match_sql = build_match_sql(search_request.search_text)
+    sql_params = {
+        "search_text": search_request.search_text,
+        "section_name": search_request.select_section,
+    }
+    sql = f"""
+    CREATE TEMPORARY TABLE {SECTION_QUERY_TEMP_TABLE_NAME} AS
+    SELECT 
+        ps.id, 
+        label_product_id,
+        {match_sql} AS score
+    FROM data_productsection as ps
+    JOIN data_labelproduct as lp ON lp.id = ps.label_product_id
+    JOIN data_druglabel as dl ON lp.drug_label_id = dl.id
+    WHERE {match_sql}
+    AND dl.id IN (
+        SELECT id FROM {DRUG_LABEL_QUERY_TEMP_TABLE_NAME}
+    )
+    """
+
+    if search_request.select_section:
+        sql += """ AND LOWER(section_name) = %(section_name)s"""
+
+    with connection.cursor() as cursor:
+        cursor.execute(sql, sql_params)
+
+def process_search(search_request: SearchRequest) -> List[DrugLabel]:
+    # first we get the list of drug_labels we want to look at
+    run_dl_query(search_request)
+
+    # then we score the section_text against the search query
+    run_ps_query(search_request)
+
+    # then we rank the scores and find the most relevant sections
+    sql = f"""
         SELECT
         dl.id,
         dl.source,
@@ -88,7 +121,7 @@ def process_search(search_request: SearchRequest) -> List[DrugLabel]:
                 score DESC
             ) as score_rank
             FROM
-            cte
+            {SECTION_QUERY_TEMP_TABLE_NAME}
             GROUP BY
             1,
             2
@@ -98,29 +131,12 @@ def process_search(search_request: SearchRequest) -> List[DrugLabel]:
         JOIN data_druglabel AS dl ON lp.drug_label_id = dl.id
         WHERE
         cte2.score_rank = 1
-        """
-
-    sql_params = {"search_query": search_request.search_text}
-    if search_request.select_section:
-        sql_params["section_name"] = search_request.select_section
-
-    for k, v in search_request_dict.items():
-        if v and k in search_filter_mapping:
-            param_key = search_filter_mapping[k]
-            if k == "select_section" and not v:
-                continue
-            sql_params[param_key] = v
-            additional_filter = f"AND LOWER({param_key}) = %({param_key})s "
-            select_sql += additional_filter
-
-    order_limit_clause = """
         ORDER BY cte2.score DESC
         LIMIT 30
         """
 
-    full_sql = with_clause + select_sql + order_limit_clause
-    # print(full_sql % sql_params)
-    return [d for d in DrugLabel.objects.raw(full_sql, params=sql_params)]
+    logger.info(f"sql: {sql}")
+    return [d for d in DrugLabel.objects.raw(sql)]
 
 
 def highlight_text_by_term(text: str, search_term: str) -> Tuple[str, bool]:
