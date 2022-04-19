@@ -49,7 +49,7 @@ def run_dl_query(search_request: SearchRequest):
 
     if not search_request.all_label_versions:
         # limit to most recent version
-        raw_sql += f" AND dl.id IN (SELECT id FROM {LASTEST_DRUG_LABELS_TABLE})"
+        sql += f" AND id IN (SELECT id FROM {LASTEST_DRUG_LABELS_TABLE})"
 
     for k, v in search_request_dict.items():
         if v and (k in search_filter_mapping):
