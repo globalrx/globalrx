@@ -21,20 +21,20 @@
     border:3px solid black;
 }
 
-.sec-match > div {
+/* highlight green if the sections are exact matches */
+.matching-section {
     border:3px solid green;
+    vertical-align: top;
 }
 
-/* .sec-diff > div {
+/* highlight red if the sections have diffs */
+.diff-section {
     border:3px solid red;
-} */
+    vertical-align: top;
+}
 
 .diff-text-highlight {
     background-color:rgba(240, 14, 14, 0.575);
-}
-
-.matching-text-highlight {
-    background-color:rgba(14, 240, 74, 0.575);
 }
 
 .error-msg-display {
