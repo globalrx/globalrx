@@ -26,6 +26,7 @@ def validate_search(request_query_params_dict: QueryDict) -> SearchRequest:
     else:
         raise InvalidSearchRequest("Search request is malformed")
 
+
 def build_match_query(search_query: str) -> str:
     if '"' in search_query:
         mode = "BOOLEAN MODE"
@@ -50,10 +51,10 @@ def build_with_clause(search_request: SearchRequest) -> str:
             {build_match_query(search_request.search_text)}
     """
     if search_request.select_section:
-      select_clause += """ AND LOWER(section_name) = %(section_name)s"""
-  
+        select_clause += """ AND LOWER(section_name) = %(section_name)s"""
 
     return "WITH cte AS (" + select_clause + ")"
+
 
 def process_search(search_request: SearchRequest) -> List[DrugLabel]:
     search_filter_mapping = {
@@ -101,7 +102,7 @@ def process_search(search_request: SearchRequest) -> List[DrugLabel]:
 
     sql_params = {"search_query": search_request.search_text}
     if search_request.select_section:
-        sql_params["section_name"] =  search_request.select_section
+        sql_params["section_name"] = search_request.select_section
 
     for k, v in search_request_dict.items():
         if v and k in search_filter_mapping:
@@ -111,7 +112,7 @@ def process_search(search_request: SearchRequest) -> List[DrugLabel]:
             sql_params[param_key] = v
             additional_filter = f"AND LOWER({param_key}) = %({param_key})s "
             select_sql += additional_filter
-    
+
     order_limit_clause = """
         ORDER BY cte2.score DESC
         LIMIT 30
@@ -178,12 +179,14 @@ def get_type_ahead_mapping() -> Dict[str, str]:
     marketers = DrugLabel.objects.values_list("marketer", flat=True).distinct()
     generic_names = DrugLabel.objects.values_list("generic_name", flat=True).distinct()
     product_names = DrugLabel.objects.values_list("product_name", flat=True).distinct()
-    section_names = ProductSection.objects.values_list("section_name", flat=True).distinct()
+    section_names = ProductSection.objects.values_list(
+        "section_name", flat=True
+    ).distinct()
     type_ahead_mapping = {
         "manufacturers": [m.lower() for m in marketers],
         "generic_name": [g.lower() for g in generic_names],
         "brand_name": [p.lower() for p in product_names],
-        "section_name": [s.lower() for s in section_names]
+        "section_name": [s.lower() for s in section_names],
     }
 
     return type_ahead_mapping
