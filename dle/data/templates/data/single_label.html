@@ -1,24 +1,119 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <title>Drug Label</title>
-  </head>
-  <body>
-<h1>{{ drug_label.product_name }}</h1>
-<h3>{{ drug_label.generic_name }}</h3>
-<p>Label date: {{ drug_label.version_date }}</p>
-<p>Source: {{ drug_label.source }}</p>
-<p>Product Number: {{ drug_label.source_product_number }}</p>
-<p>Marketing Authorization Holder: {{ drug_label.marketer }}</p>
-<a href="{{ drug_label.link }}">Link</a>
-<p>Label Product Sections:</p>
-{% for section in product_sections %}
-  <h4>{{ section.section_name }}</h4>
-  <p>{{ section.section_text|safe }}</p>
-{% endfor %}
-  </body>
-</html>
+{% extends "compare/layout.html" %}
+{% block content %}
+  <div class="container-fluid">
+    <h1> {{ drug_label.product_name }}</h1>
+    <div class="row">
+      <dl>
+        <dt>Generic Name: <b>{{ drug_label.generic_name }}</b></dt>
+        <dt>Version Date: <b>{{ drug_label.version_date }}</b></dt>
+        <dt>Product Number: <b>{{ drug_label.source_product_number }}</b></dt>
+        <dt>Marketing Authorization Holder: <b>{{ drug_label.marketer }}</b></dt>
+        <dt>Source: <b>{{ drug_label.source }}</b></dt>
+        <dt>Go to this <a href="{{ drug_label.link }}">Link</a> for the original source document.</dt>
+        <dt></dt>
+      </dl>
+    </div>
+    <hr>
+    <h5>List of all versions of <b>{{drug_label.product_name}}:</b></h5>
+    <div class="row">
+      <form name="result_to_compare_form" method="get" action="/compare/compare_versions" target="_blank">
+        {% for label in drug_label_versions %}
+        <div class="form-check">
+          <label class="form-check-label" for="{{label.id}}">
+            <input type="checkbox" class="form-check-input compare-checkbox" onclick="_versions_handleSelectClick()" value={{label.id}} />
+            <a href=/data/{{label.id}} class="text-sml text-stone-900" target="_blank">
+              <h6 class="text-xl text-blue-700 group-hover:underline">
+                {{label.product_name}} ({{label.version_date}})
+              </h6>
+            </a>
+          </label>
+        </div>
+        {% endfor %}
+        <button type="button" onclick="_versions_handleCompareSubmit()" class="btn btn-primary">
+          Compare Two Versions
+        </button>
+      </form>
+    </div>
+    <hr>
+    {% for section in product_sections %}
+      <p><h5>{{ section.section_name }}</h5></p>
+      <p>{{ section.section_text|safe }}</p>
+    {% endfor %}
+  </div>
+{% endblock content %}
 
+{% block footer_scripts %}
+  <script>
+    const _versions_COMPARE_CHECKBOX = "compare-checkbox";
+    /**
+     * Checks if the selected results is at the max limit
+     * @param {NodeListOf<Element>} selectedNodes - List of checkboxes that are selected
+     * @param {Optional<number>} limit - The number of allowed "selected" checkboxes
+     * @return {bool} True if number of selected checkboxes is at the limit
+     */
+    function _versions_isAtLimit(selectedNodes) {
+      return selectedNodes.length === 2;
+    }
+
+    /**
+     * Disables all unselected search result checkboxes
+     */
+    function _versions_disableRemainingCheckboxes() {
+      document
+        .querySelectorAll(`input.${_versions_COMPARE_CHECKBOX}:not(:checked)`)
+        .forEach((node) => (node.disabled = true));
+    }
+
+    /**
+     * Enables all disabled checkboxes
+     */
+    function _versions_enableRemainingCheckboxes() {
+      document
+        .querySelectorAll(`input.${_versions_COMPARE_CHECKBOX}:disabled`)
+        .forEach((node) => (node.disabled = false));
+    }
+
+    /**
+     * Fired every time the user clicks on the checkbox
+     * Limits the user to just 2 drug labels to compare.
+     */
+    function _versions_handleSelectClick() {
+      const selectedResults = document.querySelectorAll(
+        `input.${_versions_COMPARE_CHECKBOX}:checked`
+      );
+      _versions_isAtLimit(selectedResults)
+        ? _versions_disableRemainingCheckboxes()
+        : _versions_enableRemainingCheckboxes();
+    }
+
+    /**
+     * Fired when the user clicks the "compare" button
+     * Only redirect's the user if the selected labels is at the "limit"
+     *    i.e. comparing 2 selected labels requires 2 selected labels
+     */
+    function _versions_handleCompareSubmit() {
+      const selectedResults = document.querySelectorAll(
+        `input.${_versions_COMPARE_CHECKBOX}:checked`
+      );
+
+      const selectedResults_length = selectedResults.length;
+
+      if (selectedResults.length >= 2) {
+        const [firstDrug, secondDrug] = selectedResults;
+        firstDrug.name = 'first-label';
+        secondDrug.name = 'second-label';
+
+        // open the compare page in new tab
+        document.result_to_compare_form.submit();
+
+        return;
+      }
+      else {
+        window.alert("Please select 2 versions to compare.");
+        return;
+      }
+    }
+  </script>
+{% endblock %}
 
 
