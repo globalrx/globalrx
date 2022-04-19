@@ -12,21 +12,21 @@
         <ul class="nav justify-content-center">
             <!-- TODO: all links route back to compare/index for now-->
             <li class="nav-item">
-                <a class="nav-link" href="{% url 'compare:index' %}">Main search</a>
+                <a class="nav-link" href=/search/ >Home</a>
             </li>
             <!-- {% if user.is_authenticated %}
                 <li class="nav-item">
                     Signed in as <strong>{{ user.username }}</strong>
                 </li> -->
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'compare:index' %}">Log Out</a>
+                    <a class="nav-link" href=/users/logout >Log Out</a>
                 </li>
             <!-- {% else %} -->
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'compare:index' %}">Log In</a>
+                    <a class="nav-link" href=/users/login >Log In</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{% url 'compare:index' %}">Register</a>
+                    <a class="nav-link" href=/users/register >Register</a>
                 </li>
             <!-- {% endif %} -->
         </ul>
