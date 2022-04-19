@@ -1,8 +1,10 @@
 from typing import List, Tuple, Dict
+
+import bleach
+
 from .models import SearchRequest, InvalidSearchRequest
 from .search_constants import MAX_LENGTH_SEARCH_RESULT_DISPLAY
 from data.models import DrugLabel, ProductSection
-
 from django.http import QueryDict
 
 
@@ -30,44 +32,77 @@ def build_match_query(search_query: str) -> str:
     else:
         mode = "NATURAL LANGUAGE MODE"
     return f"""
-        AND match(ps.section_text) AGAINST (
+            match(section_text) AGAINST (
                 %(search_query)s IN {mode}
             )    
            """
 
 
+def build_with_clause(search_request: SearchRequest) -> str:
+    select_clause = f"""
+        SELECT
+            label_product_id,
+            id,
+            {build_match_query(search_request.search_text)} AS score
+        FROM
+            data_productsection
+        WHERE
+            {build_match_query(search_request.search_text)}
+    """
+    if search_request.select_section:
+      select_clause += """ AND LOWER(section_name) = %(section_name)s"""
+  
+
+    return "WITH cte AS (" + select_clause + ")"
+
 def process_search(search_request: SearchRequest) -> List[DrugLabel]:
     search_filter_mapping = {
-        "select_section": "section_name",
         "select_agency": "source",
         "manufacturer_input": "marketer",
         "generic_name_input": "generic_name",
         "brand_name_input": "product_name",
     }
     search_request_dict = search_request._asdict()
-    search_query = search_request.search_text.lower()
-    raw_sql = """
+    with_clause = build_with_clause(search_request=search_request)
+    select_sql = """
         SELECT
-            DISTINCT dl.id,
-            dl.source,
-            dl.product_name,
-            dl.generic_name,
-            dl.version_date,
-            dl.source_product_number,
-            dl.marketer,
-            dl.link
+        dl.id,
+        dl.source,
+        dl.product_name,
+        dl.generic_name,
+        dl.version_date,
+        dl.source_product_number,
+        pcte.section_text as raw_text,
+        dl.marketer,
+        dl.link
         FROM
-            data_druglabel as dl
-        JOIN data_labelproduct as lp ON dl.id = lp.drug_label_id
-        JOIN data_productsection as ps ON lp.id = ps.label_product_id
+        (
+            SELECT
+            label_product_id,
+            id as section_id,
+            score,
+            ROW_NUMBER() OVER(
+                PARTITION BY label_product_id
+                ORDER BY
+                score DESC
+            ) as score_rank
+            FROM
+            cte
+            GROUP BY
+            1,
+            2
+        ) as cte2
+        JOIN data_labelproduct AS lp ON cte2.label_product_id = lp.id
+        JOIN data_productsection AS pcte ON cte2.section_id = pcte.id
+        JOIN data_druglabel AS dl ON lp.drug_label_id = dl.id
         WHERE
-            1=1
+        cte2.score_rank = 1
         """
 
-    # exact match query
-    raw_sql += build_match_query(search_query)
+    sql_params = {"search_query": search_request.search_text}
+    if search_request.select_section:
+        sql_params["section_name"] =  search_request.select_section
 
-    sql_params = {"search_query": search_query}
     for k, v in search_request_dict.items():
         if v and k in search_filter_mapping:
             param_key = search_filter_mapping[k]
@@ -75,10 +110,16 @@ def process_search(search_request: SearchRequest) -> List[DrugLabel]:
                 continue
             sql_params[param_key] = v
             additional_filter = f"AND LOWER({param_key}) = %({param_key})s "
-            raw_sql += additional_filter
-    raw_sql += "LIMIT 30" #can remove this once we're done testing
-    print(raw_sql % sql_params)
-    return [d for d in DrugLabel.objects.raw(raw_sql, params=sql_params)]
+            select_sql += additional_filter
+    
+    order_limit_clause = """
+        ORDER BY cte2.score DESC
+        LIMIT 30
+        """
+
+    full_sql = with_clause + select_sql + order_limit_clause
+    # print(full_sql % sql_params)
+    return [d for d in DrugLabel.objects.raw(full_sql, params=sql_params)]
 
 
 def highlight_text_by_term(text: str, search_term: str) -> Tuple[str, bool]:
@@ -91,15 +132,6 @@ def highlight_text_by_term(text: str, search_term: str) -> Tuple[str, bool]:
     """
     if not text:
         return "", False
-    ignorable = {
-        "a",
-        "as",
-        "and",
-        "or",
-        "with",
-        "the",
-        "be",
-    }
     tokens = text.split()
     comparison_token = set(search_term.lower().split())
     highlighted = False
@@ -107,7 +139,7 @@ def highlight_text_by_term(text: str, search_term: str) -> Tuple[str, bool]:
     for index, token in enumerate(tokens):
         lower_token = token.lower()
         for comp in comparison_token:
-            if lower_token == comp and lower_token not in ignorable:
+            if lower_token == comp:
                 tokens[index] = "<b>" + tokens[index] + "</b>"
                 highlighted = True
 
@@ -126,17 +158,20 @@ def build_search_result(
     """
     start, end, step = (
         0,
-        len(search_result.generic_name), #TODO CHANGE THIS WHEN FIXING HIGHLIGHTING
+        len(search_result.raw_text),
         MAX_LENGTH_SEARCH_RESULT_DISPLAY,
     )
+    # remove any html that might ruin styling
+    naked_text = bleach.clean(search_result.raw_text, strip=True)
+
     # sliding window approach to mimic google's truncation
     for i in range(start, end, step):
-        text = search_result.generic_name[i : i + step]
+        text = naked_text[i : i + step]
         highlighted_text, did_highlight = highlight_text_by_term(text, search_term)
         if did_highlight:
             return search_result, highlighted_text
 
-    return search_result, search_result.generic_name[start:step]
+    return search_result, naked_text[start:step]
 
 
 def get_type_ahead_mapping() -> Dict[str, str]:
