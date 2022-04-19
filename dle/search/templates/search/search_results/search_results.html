@@ -1,7 +1,7 @@
 {% extends "search/base.html" %} {% block content %}
 
 {% if search_results %}
-<form name="result_to_compare_form" method="get" action="/compare/compare_result" target="_blank">
+<form name="result_to_compare_form" method="get" action="/compare/compare_labels" target="_blank">
 
     <div class="width-max h-16 bg-white sticky top-0 shadow-lg">
       <div class="flex justify-end py-2">
@@ -67,7 +67,7 @@
      * @return {bool} True if number of selected checkboxes is at the limit
      */
     function _searchresult_isAtLimit(selectedNodes) {
-      return selectedNodes.length === 2;
+      return selectedNodes.length === 3;
     }
 
     /**
@@ -111,19 +111,26 @@
         `input.${_searchresult_COMPARE_CHECKBOX}:checked`
       );
 
-      switch(_searchresult_isAtLimit(selectedResults)) {
-        case true:
-          const [firstDrug, secondDrug] = selectedResults;
-          firstDrug.name = 'first-label';
-          secondDrug.name = 'second-label';
+      const selectedResults_length = selectedResults.length;
 
-          // open the compare page in new tab
-          document.result_to_compare_form.submit();
+      if (selectedResults.length >= 2) {
+        const [firstDrug, secondDrug] = selectedResults;
+        firstDrug.name = 'first-label';
+        secondDrug.name = 'second-label';
 
-          return;
-        case false:
-          window.alert("Please select at least 2 labels");
-          return;
+        if (selectedResults.length === 3) {
+          const thirdDrug = selectedResults[2];
+          thirdDrug.name = 'third-label';
+        }
+
+        // open the compare page in new tab
+        document.result_to_compare_form.submit();
+
+        return;
+      }
+      else {
+        window.alert("Please select 2 or 3 labels to compare.");
+        return;
       }
     }
 

@@ -1,15 +1,16 @@
 from django.shortcuts import render, get_object_or_404
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpRequest
 from django.core.exceptions import ObjectDoesNotExist
 from .models import *
 from .util import *
 
 
-def index(request):
+def index(request: HttpRequest) -> HttpResponse:
+    """ Compare view's landing page. Might not be needed later."""
     return render(request, 'compare/index.html')
 
 
-def list_labels(request):
+def list_labels(request: HttpRequest) -> HttpResponse:
     context = { 'labelsFound': False}
     drug_labels1 = DrugLabel.objects.filter(product_name = request.GET['first-label'])
     if drug_labels1:
@@ -27,6 +28,144 @@ def list_labels(request):
 
     return render(request, 'compare/index.html', context)
 
+
+def compare_labels(request: HttpRequest) -> HttpResponse:
+    """Compare 2 or 3 different drug labels view
+    Args:
+        request (HttpRequest): GET request with 2 or 3 drug label ids
+    Returns:
+        HttpResponse: Side-by-side view of 2 or 3 drug labels for each section
+    """
+    drug_label1 = get_object_or_404(DrugLabel, id = request.GET['first-label'])
+    drug_label2 = get_object_or_404(DrugLabel, id = request.GET['second-label'])
+
+    try:
+        label_product1 = LabelProduct.objects.filter(drug_label = drug_label1).first()
+        dl1_sections = ProductSection.objects.filter(label_product = label_product1)
+    except ObjectDoesNotExist:
+        dl1_sections = []
+
+    try:
+        label_product2 = LabelProduct.objects.filter(drug_label = drug_label2).first()
+        dl2_sections = ProductSection.objects.filter(label_product = label_product2)
+    except ObjectDoesNotExist:
+        dl2_sections = []
+
+    context = { 'dl1': drug_label1, 'dl2': drug_label2}
+
+    # for each section, make a dict of {section_name, text1, text2, text3}
+    sections_dict = {}
+
+    for section in dl1_sections:
+        sections_dict[section.section_name] = { 
+            "section_name": section.section_name, 
+            "section_text1": section.section_text,
+            "section_text2": "Section/subsection doesn't exist for this drug label.",
+            }
+    
+    for section in dl2_sections:
+        if section.section_name in sections_dict.keys():
+            sections_dict[section.section_name]["section_text2"] = section.section_text
+        else:
+            sections_dict[section.section_name] = { 
+                "section_name": section.section_name,
+                "section_text1": "Section/subsection doesn't exist for this drug label.",
+                "section_text2": section.section_text,
+            }
+
+    if 'third-label' in request.GET:
+        print("third-label requested")
+        drug_label3 = get_object_or_404(DrugLabel, id = request.GET['third-label'])
+        try:
+            label_product3 = LabelProduct.objects.filter(drug_label = drug_label3).first()
+            dl3_sections = ProductSection.objects.filter(label_product = label_product3)
+            context['dl3'] = drug_label3
+
+            for section_name in sections_dict.keys():
+                sections_dict[section_name]["section_text3"] = "Section/subsection doesn't exist for this drug label."
+
+            for section in dl3_sections:
+                if section.section_name in sections_dict.keys():
+                    sections_dict[section.section_name]["section_text3"] = section.section_text
+                else:
+                    sections_dict[section.section_name] = { 
+                        "section_name": section.section_name,
+                        "section_text1": "Section/subsection doesn't exist for this drug label.",
+                        "section_text2": "Section/subsection doesn't exist for this drug label.",
+                        "section_text3": section.section_text,
+                    }
+
+        except ObjectDoesNotExist:
+            dl3_sections = []
+
+    context["sections"] = [v for k, v in sections_dict.items()]
+    # context['text_highlight'] = "matching-text-highlight"
+
+    return render(request, 'compare/compare_labels.html', context)
+
+
+def compare_versions(request):
+    """Compare 2 versions of the same drug label
+    Args:
+        request (HttpRequest): GET request with 2 drug label ids
+    Returns:
+        HttpResponse: Side-by-side view diff view of 2 labels
+    """
+    # get DrugLabel matching product_name and version_date
+    drug_label1 = get_object_or_404(DrugLabel, id = request.GET['first-label'])
+    drug_label2 = get_object_or_404(DrugLabel, id = request.GET['second-label'])
+
+    try:
+        label_product1 = LabelProduct.objects.filter(drug_label = drug_label1).first()
+        dl1_sections = ProductSection.objects.filter(label_product = label_product1)
+    except ObjectDoesNotExist:
+        dl1_sections = []
+
+    try:
+        label_product2 = LabelProduct.objects.filter(drug_label = drug_label2).first()
+        dl2_sections = ProductSection.objects.filter(label_product = label_product2)
+    except ObjectDoesNotExist:
+        dl2_sections = []
+
+    context = { 'dl1': drug_label1, 'dl2': drug_label2}
+
+     # for each section, make a dict of {section_name, text1, text2, text3}
+    sections_dict = {}
+
+    for section in dl1_sections:
+        sections_dict[section.section_name] = { 
+            "section_name": section.section_name, 
+            "section_text1": section.section_text,
+            "section_text2": "Section/subsection doesn't exist for this drug label.",
+            }
+    
+    for section in dl2_sections:
+        if section.section_name in sections_dict.keys():
+            sections_dict[section.section_name]["section_text2"] = section.section_text
+        else:
+            sections_dict[section.section_name] = { 
+                "section_name": section.section_name,
+                "section_text1": "Section/subsection doesn't exist for this drug label.",
+                "section_text2": section.section_text,
+            }
+
+    # compare each section and insert data in context.sections
+    for sec_name in sections_dict.keys():
+        text1 = sections_dict[sec_name]["section_text1"]
+        text2 = sections_dict[sec_name]["section_text2"]
+
+        diff1, diff2 = get_diff_for_diff_versions(text1, text2)
+        sections_dict[sec_name]["section_text1"] = diff1
+        sections_dict[sec_name]["section_text2"] = diff2
+
+        # compare if sections are exact match (maybe not necessary to highlight all sections)
+        if text1 == text2:
+            sections_dict[sec_name]["textMatches"] = "matching-section"
+        else:
+            sections_dict[sec_name]["textMatches"] = "diff-section"
+
+    context["sections"] = [v for k, v in sections_dict.items()]
+    return render(request, 'compare/compare_versions.html', context)
 
 def compare_result(request):
     # get DrugLabel matching product_name and version_date
