@@ -16,6 +16,7 @@ class SearchRequest(NamedTuple):
     generic_name_input: Optional[str] = None
     brand_name_input: Optional[str] = None
     ndc_input: Optional[str] = None
+    all_label_versions: Optional[bool] = False
 
     @classmethod
     def from_search_query_dict(cls, search_query_dict: QueryDict) -> "SearchRequest":

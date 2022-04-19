@@ -6,6 +6,7 @@ import bleach
 from .models import SearchRequest, InvalidSearchRequest
 from .search_constants import MAX_LENGTH_SEARCH_RESULT_DISPLAY, SECTION_QUERY_TEMP_TABLE_NAME, DRUG_LABEL_QUERY_TEMP_TABLE_NAME
 from data.models import DrugLabel, ProductSection
+from data.constants import LASTEST_DRUG_LABELS_TABLE
 from django.http import QueryDict
 from django.db import connection
 
@@ -45,6 +46,10 @@ def run_dl_query(search_request: SearchRequest):
     FROM data_druglabel
     WHERE 1=1 
     """
+
+    if not search_request.all_label_versions:
+        # limit to most recent version
+        sql += f" AND id IN (SELECT id FROM {LASTEST_DRUG_LABELS_TABLE})"
 
     for k, v in search_request_dict.items():
         if v and (k in search_filter_mapping):
