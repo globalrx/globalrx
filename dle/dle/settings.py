@@ -106,6 +106,8 @@ DATABASES = {
 # override host for CI process
 if os.environ.get('GITHUB_WORKFLOW'):
     DATABASES["default"]["HOST"] = "127.0.0.1"
+    DATABASES["default"]["USER"] = ""
+    DATABASES["default"]["PASSWORD"] = ""
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
