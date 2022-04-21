@@ -22,6 +22,7 @@ jobs:
       - uses: getong/mariadb-action@v1.1
         with:
           mariadb version: '10.7.3'
+          mysql database: 'test_dle'
           mysql user: 'dle_user'
           mysql password: 'uDyvfMXHIKCJ'
       - name: Set up Python ${{ matrix.python-version }}
