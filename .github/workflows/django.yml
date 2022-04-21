@@ -33,4 +33,4 @@ jobs:
           pip install -r dle/requirements.txt
       - name: Run Tests
         run: |
-          python dle/manage.py test
+          cd dle && python manage.py test
