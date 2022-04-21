@@ -154,18 +154,27 @@ sudo systemctl restart httpd
 
 #####
 
-# - Setup cron entries
-
-python /var/www/django/dle/dle/manage.py makemigrations
+# create tables in db (if necessary)
+# assumes this was already ran and the output checked into git:
+#   python /var/www/django/dle/dle/manage.py makemigrations
 python /var/www/django/dle/dle/manage.py migrate
-sudo certbot renew
 
-# TODO make a file with the commands to run
-# run once a month
-line="1 1 1 * * /path/to/command"
-# append to crontab
-(crontab -u $(whoami) -l; echo "$line" ) | crontab -u $(whoami) -
-# ref: https://askubuntu.com/a/58582
+# initial db data loading
+python /var/www/django/dle/dle/manage.py load_ema_data --type full
+python /var/www/django/dle/dle/manage.py load_fda_data --type full
+python /var/www/django/dle/dle/manage.py update_latest_drug_labels
+
+# - Setup cron entries
+CRONLOG="/home/ec2-user/cron.log"
+cat > /home/ec2-user/dle.cron <<EOF
+1 1 1 * * python /var/www/django/dle/dle/manage.py load_ema_data --type full >> $CRONLOG 2>&1
+1 2 1 * * python /var/www/django/dle/dle/manage.py load_fda_data --type monthly >> $CRONLOG 2>&1
+1 10 1 * * python /var/www/django/dle/dle/manage.py update_latest_drug_labels >> $CRONLOG 2>&1
+1 1 1 * * sudo certbot renew
+EOF
+
+# append to crontab for ec2-user
+(sudo crontab -u ec2-user -l; cat /home/ec2-user/dle.cron ) | sudo crontab -u ec2-user -
 
 #####
 
