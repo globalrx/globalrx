@@ -35,4 +35,4 @@ jobs:
           pip install -r dle/requirements.txt
       - name: Run Tests
         run: |
-          cd dle && python manage.py test
+          cd dle && python manage.py test --noinput
