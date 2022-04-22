@@ -77,3 +77,8 @@ def register(request):
         return render(request, "users/index.html")
     else:
         return render(request, "users/register.html")
+
+@login_required
+def my_labels(request):
+    request.user
+    return render(request, "users/my_labels.html")

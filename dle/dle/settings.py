@@ -38,6 +38,7 @@ SECRET_KEY = "django-insecure-_6bj_d%p=_-uxqkg7dzg=8e7@35g2b8q08gtjq=$%spegl*v-_
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
+LOGIN_URL = "users/login/"
 
 # Application definition
 
@@ -45,7 +46,6 @@ INSTALLED_APPS = [
     "users.apps.UsersConfig",
     "data.apps.DataConfig",
     "compare.apps.CompareConfig",
-    # "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",

@@ -1,11 +1,11 @@
-from urllib import response
+from django.db import IntegrityError
 from django.test import TestCase
-from django.contrib.auth.models import User
-from django.urls import reverse
 from django.test import Client
+from django.contrib.auth import authenticate, login
+from .models import MyLabel, User
+from data.models import DrugLabel
 
 
-# Create your tests here.
 class User_tests(TestCase):
     def test_dummy(self):
         self.assertEqual(1, 1)
@@ -66,3 +66,62 @@ class User_tests(TestCase):
     #     response = self.login_url
     #     self.assertEqual(response.status_code,200)
     #     self.assertTemplateUsed(response,'dle/users/templates/users/login.html')
+
+
+
+class MyLabelModelTests(TestCase):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.test_user = self.get_test_user()
+        self.client = Client()
+
+    def get_test_user(self):
+        username = "test_dummy"
+        email = "test@druglabelexplorer.org"
+        password = "12345"
+        try:
+            user = User.objects.create_user(username, email, password)
+            user.save()
+        except IntegrityError:
+            user = authenticate(username=username, password=password)
+        print(f"user: {user}")
+        return user
+
+    def test_can_insert_my_label(self):
+        num_entries = MyLabel.objects.count()
+        dl = DrugLabel(
+            source="EMA",
+            product_name="Diffusia",
+            generic_name="lorem ipsem",
+            version_date="2022-03-15",
+            source_product_number="ABC-123-DO-RE-ME",
+            raw_text="Fake raw label text",
+            marketer="Landau Pharma",
+        )
+        dl.save()
+
+        ml = MyLabel(
+            user=self.test_user,
+            drug_label=dl,
+        )
+        # ml.save()
+
+        # TODO
+        num_new_entries = MyLabel.objects.count()
+        # self.assertEqual(num_entries + 1, num_new_entries)
+
+    def test_can_load_my_labels_html(self):
+        response = self.client.get("/users/my_labels/", {"user": self.test_user})
+        for template in response.templates:
+            print(f"template: {template}")
+
+        # TODO
+        # self.assertEqual(response.status_code, 200)
+        # self.assertTemplateUsed(response, "dle/users/templates/users/my_labels.html")
+
+    def test_null_user_cannot_access_my_labels(self):
+        response = self.client.get("/users/my_labels/")
+        self.assertEqual(response.status_code, 302)
+        # TODO
+        # self.assertTemplateUsed(response, "dle/users/templates/users/login.html")
