@@ -80,7 +80,7 @@ def run_ps_query(search_request: SearchRequest):
     SELECT 
         ps.id, 
         label_product_id,
-        {match_sql} AS score
+        ROUND({match_sql}) AS score
     FROM data_productsection as ps
     JOIN data_labelproduct as lp ON lp.id = ps.label_product_id
     JOIN data_druglabel as dl ON lp.drug_label_id = dl.id
@@ -138,12 +138,12 @@ def process_search(search_request: SearchRequest) -> List[DrugLabel]:
         JOIN data_druglabel AS dl ON lp.drug_label_id = dl.id
         WHERE
         cte2.score_rank = 1
-        ORDER BY cte2.score DESC
+        AND {build_match_sql(search_request.search_text)}
         LIMIT 30
         """
 
     logger.info(f"sql: {sql}")
-    return [d for d in DrugLabel.objects.raw(sql)]
+    return [d for d in DrugLabel.objects.raw(sql, params={"search_text":search_request.search_text})]
 
 
 def highlight_text_by_term(text: str, search_term: str) -> Tuple[str, bool]:

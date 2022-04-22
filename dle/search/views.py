@@ -1,10 +1,8 @@
-from functools import reduce
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from .services import get_type_ahead_mapping
 from . import services as SearchService
 from data.models import DrugLabel
-
 
 def index(request: HttpRequest) -> HttpResponse:
     """Landing page search view."""
@@ -17,7 +15,6 @@ def index(request: HttpRequest) -> HttpResponse:
     }
 
     return render(request, "search/search_landing/search_landing.html", context)
-
 
 def list_search_results(request: HttpRequest) -> HttpResponse:
     """Search results list view
