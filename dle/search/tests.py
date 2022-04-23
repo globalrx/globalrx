@@ -1,7 +1,8 @@
 from django.test import TestCase
 import logging
-from .services import dl_query
+from .services import process_search
 from .models import SearchRequest
+from django.core import management
 
 logger = logging.getLogger(__name__)
 
@@ -21,13 +22,15 @@ class SearchTests(TestCase):
         self.assertTrue(True)
 
     def test_dl_query_0(self):
+        management.call_command("update_latest_drug_labels")
+
         request = SearchRequest(
             search_text="kidney",
             select_section="Indications",
             manufacturer_input="Pfizer"
         )
 
-        results = dl_query(request)
+        results = process_search(request)
         logger.debug(f"search results: {results}")
         self.assertTrue(True)
         pass

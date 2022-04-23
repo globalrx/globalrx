@@ -96,8 +96,8 @@ DATABASES = {
         "NAME": "dle",
         "USER": "dle_user",
         "PASSWORD": "uDyvfMXHIKCJ",
-        # 'HOST': '172.31.12.231', # private IP
-        "HOST": "44.238.69.61",  # public IP
+        "HOST": "drug-label-db.org",  # private HOST / IP
+        # "HOST": "44.238.69.61",  # public IP
         # "HOST": "54.214.90.69",  # test DB
         "PORT": "3306",
     }
