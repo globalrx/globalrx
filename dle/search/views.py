@@ -1,3 +1,4 @@
+from typing import List, Set
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from .services import get_type_ahead_mapping
@@ -25,12 +26,16 @@ def list_search_results(request: HttpRequest) -> HttpResponse:
     """
     search_request_object = SearchService.validate_search(request.GET)
     results = SearchService.process_search(search_request_object)
-    search_results = [
-        SearchService.build_search_result(result, search_request_object.search_text)
-        for result in results
-    ]
+    processed_labels: Set[int] = set()
+    search_results_to_display: List[DrugLabel] = []
+    for result in results:
+        if result.id not in processed_labels:
+            search_results_to_display.append(
+                SearchService.build_search_result(result, search_request_object.search_text)                
+            )
+            processed_labels.add(result.id)
 
-    context = {"search_results": search_results}
+    context = {"search_results": search_results_to_display}
     return render(request, "search/search_results/search_results.html", context=context)
 
 
