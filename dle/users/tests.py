@@ -1,18 +1,27 @@
 from django.db import IntegrityError
 from django.test import TestCase
 from django.test import Client
-from django.contrib.auth import authenticate, login
 from .models import MyLabel, User
 from data.models import DrugLabel
 
 
-class User_tests(TestCase):
+class UserTests(TestCase):
+
+    def setUp(self):
+        username = "test"
+        email = "test@druglabelexplorer.org"
+        password = "12345"
+        self.user = User.objects.create_user(username, email, password)
+        self.client = Client()
+        self.logged_in = self.client.login(username=username, password=password)
+
     def test_dummy(self):
         self.assertEqual(1, 1)
 
     def test_register_users(self):
-        client = Client()
-        response = client.post(
+        self.client.logout()
+
+        response = self.client.post(
             "/users/register/",
             {
                 "username": "testuser",
@@ -21,49 +30,29 @@ class User_tests(TestCase):
                 "confirmation": "testuser",
             },
         )
-        self.assertEqual(response.status_code, 200)
-
-    #    def test_register_page(self):
-    #        self.assertEqual(response.status_code,200)
-    #        self.assertTemplateUsed(response,'dle/users/templates/users/register.html')
-
-    def test_login_users(self):
-        client = Client()
-        response = client.post(
-            "/users/login/",
-            {
-                "username": "testuser",
-                #  "email": 'testuser@gmail.com',
-                "password": "testuser"
-                #   "confirmation": 'testuser'
-            },
-        )
-        self.assertEqual(response.status_code, 200)
-
-    def test_logout_users(self):
-        client = Client()
-        response = client.post(
-            "/users/login/",
-            {
-                "username": "testuser",
-                #  "email": 'testuser@gmail.com',
-                "password": "testuser"
-                #   "confirmation": 'testuser'
-            },
-        )
-        response = client.get("/users/logout/")
         self.assertEqual(response.status_code, 302)
 
-        #  user= User.objects.filter(email=self.user['email']).first()
-        #  user.is_active=True
-        #  user.save()
-        #  self.assertEqual(response.status_code,302)
+    def test_login_users(self):
+        username = "testuser"
+        email = "testuser@gmail.com"
+        password = "testuser"
+        try:
+            User.objects.create_user(username, email, password)
+        except IntegrityError:
+            pass
 
-    # def test_login_page(self):
-    #     response = self.login_url
-    #     self.assertEqual(response.status_code,200)
-    #     self.assertTemplateUsed(response,'dle/users/templates/users/login.html')
+        response = self.client.post(
+            "/users/login/",
+            {
+                "username": "testuser",
+                "password": "testuser"
+            },
+        )
+        self.assertEqual(response.status_code, 302)
 
+    def test_logout_users(self):
+        response = self.client.get("/users/logout/")
+        self.assertEqual(response.status_code, 302)
 
 class MyLabelModelTests(TestCase):
 
