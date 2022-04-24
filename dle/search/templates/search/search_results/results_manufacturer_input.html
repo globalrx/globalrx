@@ -1,0 +1,31 @@
+<div>
+    <label class="text-sm" for="country_input">manufacturer</label>
+  </div>
+  <datalist id="manufacturer_typeahead_list">
+    {% for option in type_ahead_manufacturer %}
+    <option value="{{option}}"></option>
+    {% endfor %}
+  </datalist>
+  <div>
+      {% if search_request_object.manufacturer_input != '' %}
+      <input
+      type="text"
+      name="manufacturer_input"
+      class="h-10 w-52 px-3 py-1.5 shadow border border-solid border-gray-300 rounded"
+      aria-label="Default manufacturer"
+      list="manufacturer_typeahead_list"
+      placeholder="any manufacturer"
+      value={{search_request_object.manufacturer_input}}
+    />
+    {% else %}
+    <input
+      type="text"
+      name="manufacturer_input"
+      class="h-10 w-52 px-3 py-1.5 shadow border border-solid border-gray-300 rounded"
+      aria-label="Default manufacturer"
+      list="manufacturer_typeahead_list"
+      placeholder="any manufacturer"
+    />
+    {% endif %}
+  </div>
+  

@@ -122,6 +122,12 @@ def build_search_result(
     # remove any html that might ruin styling
     naked_text = bleach.clean(search_result.raw_text, strip=True)
 
+    # title-casing
+    title_cased_product_name = ' '.join(w.lower().capitalize() for w in search_result.product_name.split())
+    title_cased_generic_name = ' '.join(w.lower().capitalize() for w in search_result.generic_name.split())
+    search_result.product_name = title_cased_product_name
+    search_result.generic_name = title_cased_generic_name
+
     # sliding window approach to mimic google's truncation
     for i in range(start, end, step):
         text = naked_text[i : i + step]
