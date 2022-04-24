@@ -13,6 +13,13 @@
     </table>
     <input type="submit" value="Submit">
 </form>
+
+{% if message %}
+<div>
+   {{ message }}
+</div>
+{% endif %}
+
 <h4>My Labels</h4>
     {% for my_label in my_labels %}
         <p><h5>{{ my_label.name }}</h5></p>

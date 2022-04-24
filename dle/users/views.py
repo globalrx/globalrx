@@ -68,7 +68,7 @@ def register(request):
         return render(request, "users/register.html")
 
 @login_required
-def my_labels_view(request):
+def my_labels_view(request, msg):
     # create a blank form for the user to create a new my_label
     form = MyLabelForm()
     # get a list of the user's MyLabels
@@ -77,6 +77,7 @@ def my_labels_view(request):
     context = {
         "form": form,
         "my_labels": my_labels,
+        "message": msg,
     }
     return render(request, "users/my_labels.html", context)
 
@@ -91,15 +92,15 @@ def create_my_label(request):
             supported_filetypes = ["pdf", "xml"]
             if file_name_suffix not in supported_filetypes:
                 msg = "File must be one of: " + str(supported_filetypes)
-                return create_my_label_error(request, msg)
+                return my_labels_view(request, msg)
 
-            if form.cleaned_data["source"] == "EMA" and file_name_suffix == "pdf":
+            if form.cleaned_data["source"] == "EMA" and file_name_suffix != "pdf":
                 msg = "Only pdf files are supported for EMA drug labels"
-                return create_my_label_error(request, msg)
+                return my_labels_view(request, msg)
 
-            if form.cleaned_data["source"] == "FDA" and file_name_suffix == "xml":
+            if form.cleaned_data["source"] == "FDA" and file_name_suffix != "xml":
                 msg = "Only xml files are supported for FDA drug labels"
-                return create_my_label_error(request, msg)
+                return my_labels_view(request, msg)
 
             # create a DrugLabel object for the uploaded label
             dl = DrugLabel(
@@ -110,7 +111,12 @@ def create_my_label(request):
                 source_product_number=form.cleaned_data["product_number"],
                 marketer=form.cleaned_data["marketer"],
             )
-            dl.save()
+            try:
+                dl.save()
+            except IntegrityError:
+                msg = "Unable to add the drug label. Try changing the product number."
+                return my_labels_view(request, msg)
+
             # create the MyLabel object referencing the DrugLabel
             ml = MyLabel(
                 user=request.user,
@@ -128,8 +134,4 @@ def create_my_label(request):
 
     return redirect(reverse("my_labels"))
 
-def create_my_label_error(request, msg):
-    if not msg:
-        msg = "We're sorry, there was an error in your request"
-    return HttpResponse(msg)
 
