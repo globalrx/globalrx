@@ -41,21 +41,22 @@ def run_dl_query(search_request: SearchRequest, user: Optional[User]):
     search_request_dict = search_request._asdict()
     sql_params = {}
 
-    logged_in_user_id = -1
-    if user:
+    if not user or not user.username or user.is_anonymous or not user.is_authenticated:
+        logged_in_user_id = -1
+    else:
         logged_in_user_id = user.id
 
     sql = f"""
     CREATE TEMPORARY TABLE {DRUG_LABEL_QUERY_TEMP_TABLE_NAME} AS
-    SELECT id
+    SELECT dl.id
     FROM data_druglabel AS dl
-    LEFT JOIN on data_mylabels AS ml ON ml.drug_label_id = dl.id
+    LEFT JOIN users_mylabel AS ml ON ml.drug_label_id = dl.id
     WHERE (ml.id IS NULL OR ml.user_id = {logged_in_user_id})
     """
 
     if not search_request.all_label_versions:
         # limit to most recent version
-        sql += f" AND id IN (SELECT id FROM {LASTEST_DRUG_LABELS_TABLE})"
+        sql += f" AND dl.id IN (SELECT id FROM {LASTEST_DRUG_LABELS_TABLE})"
 
     for k, v in search_request_dict.items():
         if v and (k in search_filter_mapping):
@@ -63,6 +64,8 @@ def run_dl_query(search_request: SearchRequest, user: Optional[User]):
             sql_params[param_key] = v
             additional_filter = f" AND LOWER({param_key}) = %({param_key})s "
             sql += additional_filter
+
+    print(sql)
 
     with connection.cursor() as cursor:
         cursor.execute(f"DROP TABLE IF EXISTS {DRUG_LABEL_QUERY_TEMP_TABLE_NAME}")
