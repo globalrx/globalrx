@@ -10,9 +10,9 @@ from .forms import MyLabelForm
 import datetime as dt
 from django.core import management
 
+@login_required
 def index(request):
     return render(request, "users/index.html")
-
 
 def login_view(request):
     if request.method == "POST":
@@ -25,8 +25,7 @@ def login_view(request):
         # Check if authentication successful
         if user is not None:
             login(request, user)
-            #    return HttpResponseRedirect(reverse("index"))
-            return render(request, "users/index.html") # TODO should redirect
+            return redirect(reverse("users:index"))
 
         else:
             return render(
@@ -37,12 +36,10 @@ def login_view(request):
     else:
         return render(request, "users/login.html")
 
-
+@login_required
 def logout_view(request):
-    # returns user to login page
     logout(request)
-    return HttpResponseRedirect(reverse("login"))
-
+    return redirect(reverse("users:login"))
 
 def register(request):
     if request.method == "POST":
@@ -66,14 +63,12 @@ def register(request):
                 request, "users/register.html", {"message": "Username already taken."}
             )
         login(request, user)
-        #    return HttpResponseRedirect(reverse("index"))
-        return render(request, "users/index.html")
+        return redirect(reverse("users:index"))
     else:
         return render(request, "users/register.html")
 
 @login_required
 def my_labels_view(request):
-    print(f"request.user: {request.user}")
     # create a blank form for the user to create a new my_label
     form = MyLabelForm()
     # get a list of the user's MyLabels

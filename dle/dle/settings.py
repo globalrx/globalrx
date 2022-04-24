@@ -38,7 +38,7 @@ SECRET_KEY = "django-insecure-_6bj_d%p=_-uxqkg7dzg=8e7@35g2b8q08gtjq=$%spegl*v-_
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-LOGIN_URL = "users/login/"
+LOGIN_URL = "/users/login/"
 
 # Application definition
 

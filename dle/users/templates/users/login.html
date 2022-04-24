@@ -2,9 +2,7 @@
 
 {% block body %}
     <div class="login">
-       <h2>Log in</h2>
-       <!--login page, from previous project templates -->
-        <br>
+       <h2>Log in</h2><br>
 
       {% if message %}
         <div>
@@ -12,7 +10,7 @@
         </div>
       {% endif %}
 
-      <form action="{% url 'login' %}" method="post">
+      <form action="{% url 'users:login' %}" method="post">
            {% csrf_token %}
 
             <div class="form-group">
@@ -26,7 +24,7 @@
             <input class="btn btn-dark" type="submit" value="Login">
         </form><br>
 
-        Don't have an account? <a href="{% url 'register' %}">Register here.</a>
+        Don't have an account? <a href="{% url 'users:register' %}">Register here.</a>
     </div>
 
 {% endblock %}
