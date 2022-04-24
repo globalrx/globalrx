@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Optional
 import logging
 
 import bleach
@@ -9,11 +9,12 @@ from data.models import DrugLabel, ProductSection
 from data.constants import LASTEST_DRUG_LABELS_TABLE
 from django.http import QueryDict
 from django.db import connection
+from users.models import User
 
 logger = logging.getLogger(__name__)
 
 def validate_search(request_query_params_dict: QueryDict) -> SearchRequest:
-    """Validates search params and returns the seach request object if valid.
+    """Validates search params and returns the search request object if valid.
     Args:
         request_query_params_dict (QueryDict): Request dictionary returned from HttpRequest.GET
     Raises:
@@ -30,7 +31,7 @@ def validate_search(request_query_params_dict: QueryDict) -> SearchRequest:
     else:
         raise InvalidSearchRequest("Search request is malformed")
 
-def run_dl_query(search_request: SearchRequest):
+def run_dl_query(search_request: SearchRequest, user: Optional[User]):
     search_filter_mapping = {
         "select_agency": "source",
         "manufacturer_input": "marketer",
@@ -40,11 +41,16 @@ def run_dl_query(search_request: SearchRequest):
     search_request_dict = search_request._asdict()
     sql_params = {}
 
+    logged_in_user_id = -1
+    if user:
+        logged_in_user_id = user.id
+
     sql = f"""
     CREATE TEMPORARY TABLE {DRUG_LABEL_QUERY_TEMP_TABLE_NAME} AS
     SELECT id
-    FROM data_druglabel
-    WHERE 1=1 
+    FROM data_druglabel AS dl
+    LEFT JOIN on data_mylabels AS ml ON ml.drug_label_id = dl.id
+    WHERE (ml.id IS NULL OR ml.user_id = {logged_in_user_id})
     """
 
     if not search_request.all_label_versions:
@@ -97,9 +103,9 @@ def run_ps_query(search_request: SearchRequest):
         cursor.execute(f"DROP TABLE IF EXISTS {SECTION_QUERY_TEMP_TABLE_NAME}")
         cursor.execute(sql, sql_params)
 
-def process_search(search_request: SearchRequest) -> List[DrugLabel]:
+def process_search(search_request: SearchRequest, user: Optional[User] = None) -> List[DrugLabel]:
     # first we get the list of drug_labels we want to look at
-    run_dl_query(search_request)
+    run_dl_query(search_request, user)
 
     # then we score the section_text against the search query
     run_ps_query(search_request)

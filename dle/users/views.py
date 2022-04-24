@@ -8,6 +8,7 @@ from .models import User, MyLabel
 from data.models import DrugLabel
 from .forms import MyLabelForm
 import datetime as dt
+from django.core import management
 
 def index(request):
     return render(request, "users/index.html")
@@ -124,11 +125,11 @@ def create_my_label(request):
             )
             ml.save()
 
+            # process the file
             # send to load_fda_data or load_ema_data
             # --type my_label --my_label_id ml.id
-
-
-        # TODO process the file
+            command = "load_fda_data" if form.cleaned_data["source"] == "FDA" else "load_ema_data"
+            management.call_command(command, type="my_label", my_label_id=ml.id)
 
     return redirect(reverse("my_labels"))
 

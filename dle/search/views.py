@@ -27,7 +27,7 @@ def list_search_results(request: HttpRequest) -> HttpResponse:
         HttpResponse: Search results view with highlighted text
     """
     search_request_object = SearchService.validate_search(request.GET)
-    results = SearchService.process_search(search_request_object)
+    results = SearchService.process_search(search_request_object, request.user)
     search_results = [
         SearchService.build_search_result(result, search_request_object.search_text)
         for result in results
