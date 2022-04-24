@@ -126,7 +126,7 @@ def create_my_label(request):
 
             # send to load_fda_data or load_ema_data
             # --type my_label --my_label_id ml.id
-            
+
 
         # TODO process the file
 
