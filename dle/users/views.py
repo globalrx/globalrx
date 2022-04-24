@@ -88,38 +88,52 @@ def my_labels_view(request):
 def create_my_label(request):
     """Accepts a request for a user to create a new MyLabel"""
     if request.method == "POST":
-        form = MyLabelForm(request.POST)
+        form = MyLabelForm(request.POST, request.FILES)
 
-        # test user: leo_landau, 12345
+        if form.is_valid():
+            file_name_suffix = form.cleaned_data["file"].name.split(".")[-1]
+            supported_filetypes = ["pdf", "xml"]
+            if file_name_suffix not in supported_filetypes:
+                msg = "File must be one of: " + str(supported_filetypes)
+                return create_my_label_error(request, msg)
 
-        # not sure why this is always false for me, but run it to clean the data
-        is_valid = form.is_valid()
-        print(f"form.is_valid: {is_valid}")
-        print(f"form.data: {form.data}")
-        print(f"form.cleaned_data: {form.cleaned_data}")
+            if form.cleaned_data["source"] == "EMA" and file_name_suffix == "pdf":
+                msg = "Only pdf files are supported for EMA drug labels"
+                return create_my_label_error(request, msg)
 
-        dl = DrugLabel(
-            source=form.cleaned_data["source"],
-            product_name=form.cleaned_data["product_name"],
-            generic_name=form.cleaned_data["generic_name"],
-            version_date=dt.datetime.now(),
-            source_product_number=form.cleaned_data["product_number"],
-            marketer=form.cleaned_data["marketer"],
-        )
-        dl.save()
+            if form.cleaned_data["source"] == "FDA" and file_name_suffix == "xml":
+                msg = "Only xml files are supported for FDA drug labels"
+                return create_my_label_error(request, msg)
 
-        ml = MyLabel(
-            user=request.user,
-            drug_label=dl,
-            name=form.cleaned_data["name"],
-            file=request.FILES["file"],
-        )
-        ml.save()
+            # create a DrugLabel object for the uploaded label
+            dl = DrugLabel(
+                source=form.cleaned_data["source"],
+                product_name=form.cleaned_data["product_name"],
+                generic_name=form.cleaned_data["generic_name"],
+                version_date=dt.datetime.now(),
+                source_product_number=form.cleaned_data["product_number"],
+                marketer=form.cleaned_data["marketer"],
+            )
+            dl.save()
+            # create the MyLabel object referencing the DrugLabel
+            ml = MyLabel(
+                user=request.user,
+                drug_label=dl,
+                name=form.cleaned_data["name"],
+                file=request.FILES["file"],
+            )
+            ml.save()
+
+            # send to load_fda_data or load_ema_data
+            # --type my_label --my_label_id ml.id
+            
 
         # TODO process the file
 
     return redirect(reverse("my_labels"))
 
-def create_my_label_error(request):
-    return HttpResponse("We're sorry, there was an error in your request")
+def create_my_label_error(request, msg):
+    if not msg:
+        msg = "We're sorry, there was an error in your request"
+    return HttpResponse(msg)
 
