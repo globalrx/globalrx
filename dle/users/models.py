@@ -6,6 +6,7 @@ from data.models import DrugLabel
 class User(AbstractUser):
     pass
 
+
 class MyLabel(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     drug_label = models.ForeignKey(DrugLabel, on_delete=models.CASCADE)
@@ -22,4 +23,3 @@ class MyLabel(models.Model):
             f"file.name: {self.file.name}, "
             f"is_successfully_parsed: {self.is_successfully_parsed}"
         )
-

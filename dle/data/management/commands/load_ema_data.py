@@ -123,16 +123,24 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "--type", type=str, help="'full', 'test', 'rand_test' or 'my_label'", default="test"
+            "--type",
+            type=str,
+            help="'full', 'test', 'rand_test' or 'my_label'",
+            default="test",
         )
         parser.add_argument(
-            "--my_label_id", type=int, help="set my_label_id for --type my_label", default=None
+            "--my_label_id",
+            type=int,
+            help="set my_label_id for --type my_label",
+            default=None,
         )
 
     def handle(self, *args, **options):
         import_type = options["type"]
-        if import_type not in ["full", "test", "rand_test", 'my_label']:
-            raise CommandError("'type' parameter must be 'full', 'test', 'rand_test' or 'my_label'")
+        if import_type not in ["full", "test", "rand_test", "my_label"]:
+            raise CommandError(
+                "'type' parameter must be 'full', 'test', 'rand_test' or 'my_label'"
+            )
 
         # basic logging config is in settings.py
         # verbosity is 1 by default, gives critical, error and warning output

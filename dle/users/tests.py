@@ -6,7 +6,6 @@ from data.models import DrugLabel
 
 
 class UserTests(TestCase):
-
     def setUp(self):
         username = "test"
         email = "test@druglabelexplorer.org"
@@ -43,10 +42,7 @@ class UserTests(TestCase):
 
         response = self.client.post(
             "/users/login/",
-            {
-                "username": "testuser",
-                "password": "testuser"
-            },
+            {"username": "testuser", "password": "testuser"},
         )
         self.assertEqual(response.status_code, 302)
 
@@ -54,8 +50,8 @@ class UserTests(TestCase):
         response = self.client.get("/users/logout/")
         self.assertEqual(response.status_code, 302)
 
-class MyLabelModelTests(TestCase):
 
+class MyLabelModelTests(TestCase):
     def setUp(self):
         username = "test"
         email = "test@druglabelexplorer.org"
@@ -79,7 +75,7 @@ class MyLabelModelTests(TestCase):
             marketer="Landau Pharma",
         )
         dl.save()
-        
+
         ml = MyLabel(
             user=self.user,
             drug_label=dl,

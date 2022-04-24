@@ -10,9 +10,11 @@ import datetime as dt
 from django.core import management
 from django.db import connection
 
+
 @login_required
 def index(request):
     return render(request, "users/index.html")
+
 
 def login_view(request):
     if request.method == "POST":
@@ -36,10 +38,12 @@ def login_view(request):
     else:
         return render(request, "users/login.html")
 
+
 @login_required
 def logout_view(request):
     logout(request)
     return redirect(reverse("users:login"))
+
 
 def register(request):
     if request.method == "POST":
@@ -67,6 +71,7 @@ def register(request):
     else:
         return render(request, "users/register.html")
 
+
 @login_required
 def my_labels_view(request, msg=None):
     # create a blank form for the user to create a new my_label
@@ -80,6 +85,7 @@ def my_labels_view(request, msg=None):
         "message": msg,
     }
     return render(request, "users/my_labels.html", context)
+
 
 @login_required
 def create_my_label(request):
@@ -129,13 +135,16 @@ def create_my_label(request):
             # process the file
             # send to load_fda_data or load_ema_data
             # --type my_label --my_label_id ml.id
-            command = "load_fda_data" if form.cleaned_data["source"] == "FDA" else "load_ema_data"
+            command = (
+                "load_fda_data"
+                if form.cleaned_data["source"] == "FDA"
+                else "load_ema_data"
+            )
             management.call_command(command, type="my_label", my_label_id=ml.id)
 
             # add to latest_drug_labels
             sql = f"INSERT INTO latest_drug_labels VALUES ({dl.id})"
             with connection.cursor() as cursor:
                 cursor.execute(sql)
-
 
     return redirect(reverse("users:my_labels"))
