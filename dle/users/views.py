@@ -1,14 +1,14 @@
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.db import IntegrityError
-from django.http import HttpResponse, HttpResponseRedirect, Http404
-from django.shortcuts import get_object_or_404, render, redirect
+from django.shortcuts import render, redirect
 from django.urls import reverse
 from .models import User, MyLabel
 from data.models import DrugLabel
 from .forms import MyLabelForm
 import datetime as dt
 from django.core import management
+from django.db import connection
 
 @login_required
 def index(request):
@@ -68,7 +68,7 @@ def register(request):
         return render(request, "users/register.html")
 
 @login_required
-def my_labels_view(request, msg):
+def my_labels_view(request, msg=None):
     # create a blank form for the user to create a new my_label
     form = MyLabelForm()
     # get a list of the user's MyLabels
@@ -132,6 +132,10 @@ def create_my_label(request):
             command = "load_fda_data" if form.cleaned_data["source"] == "FDA" else "load_ema_data"
             management.call_command(command, type="my_label", my_label_id=ml.id)
 
-    return redirect(reverse("my_labels"))
+            # add to latest_drug_labels
+            sql = f"INSERT INTO latest_drug_labels VALUES ({dl.id})"
+            with connection.cursor() as cursor:
+                cursor.execute(sql)
 
 
+    return redirect(reverse("users:my_labels"))

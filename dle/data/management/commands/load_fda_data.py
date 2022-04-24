@@ -26,11 +26,9 @@ class Command(BaseCommand):
     re_remove_nonalpha_characters = re.compile("[^a-zA-Z ]")
 
     def __init__(self, stdout=None, stderr=None, no_color=False, force_color=False):
-        logging.basicConfig(
-            format="%(asctime)s %(levelname)-8s %(message)s",
-            level=logging.INFO,
-            datefmt="%Y-%m-%d %H:%M:%S",
-        )
+        root_logger = logging.getLogger("")
+        root_logger.setLevel(logging.INFO)
+
         self.root_dir = settings.MEDIA_ROOT / "fda"
         os.makedirs(self.root_dir, exist_ok=True)
         super().__init__(stdout, stderr, no_color, force_color)
@@ -60,7 +58,10 @@ class Command(BaseCommand):
         my_label_id = options["my_label_id"]
 
         # my_label type already has the xml uploaded/downloaded
-        if import_type != "my_label":
+        if import_type == "my_label":
+            record_zips = []
+            xml_files = []
+        else:
             root_zips = self.download_records(import_type)
             record_zips = self.extract_prescription_zips(root_zips)
             xml_files = self.extract_xmls(record_zips)
@@ -203,9 +204,10 @@ class Command(BaseCommand):
     def import_records(self, xml_records, my_label_id=None, insert=False):
         logger.info("Building Drug Label DB records from XMLs")
 
-        if xml_records is None and my_label_id is not None:
+        if len(xml_records) == 0 and my_label_id is not None:
+            logger.info(f"processing my_label_id: {my_label_id}")
             ml = MyLabel.objects.filter(pk=my_label_id).get()
-            xml_file = ml.file
+            xml_file = ml.file.path
             dl = ml.drug_label
             self.process_xml_file(xml_file, insert, dl)
             # TODO would be nice to know if the process_xml_file was successful

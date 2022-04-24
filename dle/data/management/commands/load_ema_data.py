@@ -157,7 +157,8 @@ class Command(BaseCommand):
         elif import_type == "my_label":
             my_label_id = options["my_label_id"]
             ml = MyLabel.objects.filter(pk=my_label_id).get()
-            ema_file = ml.file
+
+            ema_file = ml.file.path
             dl = ml.drug_label
 
             lp = LabelProduct(drug_label=dl)
@@ -341,6 +342,7 @@ class Command(BaseCommand):
         # https://github.com/pymupdf/PyMuPDF/blob/master/fitz/fitz.i
 
         # populate raw_text with the contents of the pdf
+
         raw_text = ""
         with fitz.open(ema_file) as pdf_doc:
             for page in pdf_doc:
