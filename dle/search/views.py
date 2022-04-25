@@ -27,7 +27,7 @@ def list_search_results(request: HttpRequest) -> HttpResponse:
         HttpResponse: Search results view with highlighted text
     """
     search_request_object = SearchService.validate_search(request.GET)
-    results = SearchService.process_search(search_request_object)
+    results = SearchService.process_search(search_request_object, request.user)
     processed_labels: Set[int] = set()
     search_results_to_display: List[DrugLabel] = []
     for result in results:

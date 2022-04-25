@@ -6,6 +6,7 @@ from data.models import (
     LabelProduct,
     ProductSection,
 )
+from users.models import MyLabel
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
 from django.conf import settings
@@ -109,6 +110,7 @@ EMA_PDF_PRODUCT_SECTIONS = [
 # add `--type rand_test` to import 3 random records
 # add `--verbosity 2` for info output
 # add `--verbosity 3` for debug output
+# support for my_labels with: --type my_label --my_label_id ml.id
 class Command(BaseCommand):
     help = "Loads data from EMA"
 
@@ -121,14 +123,24 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "--type", type=str, help="'full', 'test' or 'rand_test'", default="test"
+            "--type",
+            type=str,
+            help="'full', 'test', 'rand_test' or 'my_label'",
+            default="test",
+        )
+        parser.add_argument(
+            "--my_label_id",
+            type=int,
+            help="set my_label_id for --type my_label",
+            default=None,
         )
 
     def handle(self, *args, **options):
-        # import_type is 'full', 'test' or 'rand_test'
         import_type = options["type"]
-        if import_type not in ["full", "test", "rand_test"]:
-            raise CommandError("'type' parameter must be 'full', 'test' or 'rand_test'")
+        if import_type not in ["full", "test", "rand_test", "my_label"]:
+            raise CommandError(
+                "'type' parameter must be 'full', 'test', 'rand_test' or 'my_label'"
+            )
 
         # basic logging config is in settings.py
         # verbosity is 1 by default, gives critical, error and warning output
@@ -150,6 +162,24 @@ class Command(BaseCommand):
                 "https://www.ema.europa.eu/en/medicines/human/EPAR/lyrica",
                 "https://www.ema.europa.eu/en/medicines/human/EPAR/ontilyv",
             ]
+        elif import_type == "my_label":
+            my_label_id = options["my_label_id"]
+            ml = MyLabel.objects.filter(pk=my_label_id).get()
+
+            ema_file = ml.file.path
+            dl = ml.drug_label
+
+            lp = LabelProduct(drug_label=dl)
+            lp.save()
+
+            dl.raw_text = self.process_ema_file(ema_file, lp)
+            dl.save()
+
+            # TODO would be nice to know if the file was successfully parsed
+            ml.is_successfully_parsed = True
+            ml.save()
+            logger.info(self.style.SUCCESS("process complete"))
+            return
         else:
             urls = self.get_ema_epar_urls()
 
@@ -308,14 +338,23 @@ class Command(BaseCommand):
         )
         logger.info(f"saved file to: {filename}")
 
+        ema_file = settings.MEDIA_ROOT / "ema.pdf"
+        raw_text = self.process_ema_file(ema_file, lp, pdf_url)
+        # delete the file when done
+        default_storage.delete(filename)
+        return raw_text
+
+    def process_ema_file(self, ema_file, lp, pdf_url=""):
+
         # PyMuPDF references
         # ty: https://stackoverflow.com/a/63486976/1807627
         # https://github.com/pymupdf/PyMuPDF-Utilities/blob/master/text-extraction/PDF2Text.py
         # https://github.com/pymupdf/PyMuPDF/blob/master/fitz/fitz.i
 
         # populate raw_text with the contents of the pdf
+
         raw_text = ""
-        with fitz.open(settings.MEDIA_ROOT / "ema.pdf") as pdf_doc:
+        with fitz.open(ema_file) as pdf_doc:
             for page in pdf_doc:
                 raw_text += page.get_text()
 
@@ -345,9 +384,6 @@ class Command(BaseCommand):
             start_idx = end_idx
 
         # logger.debug(f"raw_text: {repr(raw_text)}")
-
-        # delete the file when done
-        default_storage.delete(filename)
 
         logger.info("Success")
         return raw_text

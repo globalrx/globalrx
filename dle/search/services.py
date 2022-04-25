@@ -1,4 +1,4 @@
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Optional
 import logging
 
 import bleach
@@ -12,12 +12,13 @@ from data.models import DrugLabel, ProductSection
 from django.http import QueryDict
 from data.constants import LASTEST_DRUG_LABELS_TABLE
 from django.db import connection
+from users.models import User
 
 logger = logging.getLogger(__name__)
 
 
 def validate_search(request_query_params_dict: QueryDict) -> SearchRequest:
-    """Validates search params and returns the seach request object if valid.
+    """Validates search params and returns the search request object if valid.
     Args:
         request_query_params_dict (QueryDict): Request dictionary returned from HttpRequest.GET
     Raises:
@@ -34,8 +35,7 @@ def validate_search(request_query_params_dict: QueryDict) -> SearchRequest:
     else:
         raise InvalidSearchRequest("Search request is malformed")
 
-
-def run_dl_query(search_request: SearchRequest):
+def run_dl_query(search_request: SearchRequest, user: Optional[User]):
     search_filter_mapping = {
         "select_agency": "source",
         "manufacturer_input": "marketer",
@@ -45,16 +45,22 @@ def run_dl_query(search_request: SearchRequest):
     search_request_dict = search_request._asdict()
     sql_params = {}
 
+    if not user or not user.username or user.is_anonymous or not user.is_authenticated:
+        logged_in_user_id = -1
+    else:
+        logged_in_user_id = user.id
+
     sql = f"""
     CREATE TEMPORARY TABLE {DRUG_LABEL_QUERY_TEMP_TABLE_NAME} AS
-    SELECT id
-    FROM data_druglabel
-    WHERE 1=1 
+    SELECT dl.id
+    FROM data_druglabel AS dl
+    LEFT JOIN users_mylabel AS ml ON ml.drug_label_id = dl.id
+    WHERE (ml.id IS NULL OR ml.user_id = {logged_in_user_id})
     """
 
     if not search_request.all_label_versions:
         # limit to most recent version
-        sql += f" AND id IN (SELECT id FROM {LASTEST_DRUG_LABELS_TABLE})"
+        sql += f" AND dl.id IN (SELECT id FROM {LASTEST_DRUG_LABELS_TABLE})"
 
     for k, v in search_request_dict.items():
         if v and (k in search_filter_mapping):
@@ -77,9 +83,9 @@ def build_match_sql(search_text: str) -> str:
     return f"match(section_text) AGAINST ( %(search_text)s IN {mode})"
 
 
-def process_search(search_request: SearchRequest) -> List[DrugLabel]:
+def process_search(search_request: SearchRequest, user: Optional[User] = None) -> List[DrugLabel]:
     # first we get the list of drug_labels we want to look at
-    run_dl_query(search_request)
+    run_dl_query(search_request, user)
 
     match_sql = build_match_sql(search_request.search_text)
     sql_params = {

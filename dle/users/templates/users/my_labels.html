@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>MyLabels</title>
+</head>
+<body>
+<h4>Upload Label</h4>
+<form method="post" action="/users/my_labels/create/" enctype="multipart/form-data">
+    {% csrf_token %}
+    <table>
+        {{ form.as_table }}
+    </table>
+    <input type="submit" value="Submit">
+</form>
+
+{% if message %}
+<div>
+   {{ message }}
+</div>
+{% endif %}
+
+<h4>My Labels</h4>
+    {% for my_label in my_labels %}
+        <p><h5>{{ my_label.name }}</h5></p>
+        <a href="/data/{{ my_label.drug_label.id }}">Link</a><br>
+        <p>Successfully parsed: {{ my_label.is_successfully_parsed }}</p>
+    {% endfor %}
+</body>
+</html>
