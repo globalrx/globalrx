@@ -4,10 +4,14 @@ import logging
 import bleach
 
 from .models import SearchRequest, InvalidSearchRequest
-from .search_constants import MAX_LENGTH_SEARCH_RESULT_DISPLAY
+from .search_constants import (
+    MAX_LENGTH_SEARCH_RESULT_DISPLAY,
+    DRUG_LABEL_QUERY_TEMP_TABLE_NAME,
+)
 from data.models import DrugLabel, ProductSection
 from django.http import QueryDict
 from data.constants import LASTEST_DRUG_LABELS_TABLE
+from django.db import connection
 
 logger = logging.getLogger(__name__)
 
@@ -31,6 +35,40 @@ def validate_search(request_query_params_dict: QueryDict) -> SearchRequest:
         raise InvalidSearchRequest("Search request is malformed")
 
 
+def run_dl_query(search_request: SearchRequest):
+    search_filter_mapping = {
+        "select_agency": "source",
+        "manufacturer_input": "marketer",
+        "generic_name_input": "generic_name",
+        "brand_name_input": "product_name",
+    }
+    search_request_dict = search_request._asdict()
+    sql_params = {}
+
+    sql = f"""
+    CREATE TEMPORARY TABLE {DRUG_LABEL_QUERY_TEMP_TABLE_NAME} AS
+    SELECT id
+    FROM data_druglabel
+    WHERE 1=1 
+    """
+
+    if not search_request.all_label_versions:
+        # limit to most recent version
+        sql += f" AND id IN (SELECT id FROM {LASTEST_DRUG_LABELS_TABLE})"
+
+    for k, v in search_request_dict.items():
+        if v and (k in search_filter_mapping):
+            param_key = search_filter_mapping[k]
+            sql_params[param_key] = v
+            additional_filter = f" AND LOWER({param_key}) = %({param_key})s "
+            sql += additional_filter
+
+    with connection.cursor() as cursor:
+        cursor.execute(f"DROP TABLE IF EXISTS {DRUG_LABEL_QUERY_TEMP_TABLE_NAME}")
+        cursor.execute(sql, sql_params)
+        cursor.execute(f"ALTER TABLE {DRUG_LABEL_QUERY_TEMP_TABLE_NAME} ADD INDEX id (id)")
+
+
 def build_match_sql(search_text: str) -> str:
     if '"' in search_text:
         mode = "BOOLEAN MODE"
@@ -40,43 +78,37 @@ def build_match_sql(search_text: str) -> str:
 
 
 def process_search(search_request: SearchRequest) -> List[DrugLabel]:
-    sql = f"""
-        SELECT
-            dl.id,
-            dl.source,
-            dl.product_name,
-            dl.generic_name,
-            dl.version_date,
-            dl.source_product_number,
-            ps.section_text as raw_text,
-            dl.marketer,
-            dl.link
-        FROM
-            data_druglabel as dl
-        JOIN data_labelproduct as lp ON dl.id = lp.drug_label_id
-        JOIN data_productsection AS ps ON lp.id = ps.label_product_id
-        WHERE
-            MATCH(section_text) AGAINST ( %(search_text)s IN NATURAL LANGUAGE MODE )
-        AND dl.id IN (SELECT id FROM {LASTEST_DRUG_LABELS_TABLE})            
-        """
-    search_filter_mapping = {
-        "select_agency": "source",
-        "manufacturer_input": "marketer",
-        "generic_name_input": "generic_name",
-        "brand_name_input": "product_name",
+    # first we get the list of drug_labels we want to look at
+    run_dl_query(search_request)
+
+    match_sql = build_match_sql(search_request.search_text)
+    sql_params = {
+        "search_text": search_request.search_text,
+        "section_name": search_request.select_section,
     }
-    search_request_dict = search_request._asdict()
-    sql_params = {"search_text": search_request.search_text}
-    for k, v in search_request_dict.items():
-        if v and (k in search_filter_mapping):
-            param_key = search_filter_mapping[k]
-            sql_params[param_key] = v
-            additional_filter = f" AND LOWER({param_key}) = %({param_key})s "
-            sql += additional_filter
+    sql = f"""
+    SELECT 
+        dl.id,
+        dl.source,
+        dl.product_name,
+        dl.generic_name,
+        dl.version_date,
+        dl.source_product_number,
+        ps.section_text as raw_text,
+        dl.marketer,
+        dl.link
+    FROM data_productsection as ps
+    JOIN data_labelproduct as lp ON lp.id = ps.label_product_id
+    JOIN data_druglabel as dl ON lp.drug_label_id = dl.id
+    WHERE {match_sql}
+    AND dl.id IN (SELECT id FROM {DRUG_LABEL_QUERY_TEMP_TABLE_NAME})
+    """
+
+    if search_request.select_section:
+        sql += """ AND LOWER(section_name) = %(section_name)s"""
 
     sql += " LIMIT 40"
-    logger.info(f"sql: {sql}")
-    print(sql % sql_params)
+    logger.debug(f"sql: {sql}")
     return [d for d in DrugLabel.objects.raw(sql, params=sql_params)]
 
 
@@ -123,8 +155,12 @@ def build_search_result(
     naked_text = bleach.clean(search_result.raw_text, strip=True)
 
     # title-casing
-    title_cased_product_name = ' '.join(w.lower().capitalize() for w in search_result.product_name.split())
-    title_cased_generic_name = ' '.join(w.lower().capitalize() for w in search_result.generic_name.split())
+    title_cased_product_name = " ".join(
+        w.lower().capitalize() for w in search_result.product_name.split()
+    )
+    title_cased_generic_name = " ".join(
+        w.lower().capitalize() for w in search_result.generic_name.split()
+    )
     search_result.product_name = title_cased_product_name
     search_result.generic_name = title_cased_generic_name
 
