@@ -205,6 +205,8 @@ class Command(BaseCommand):
             except IntegrityError as e:
                 logger.warning(self.style.WARNING("Label already in db"))
                 logger.debug(e, exc_info=True)
+            except AttributeError as e:
+                logger.warning(self.style.ERROR(repr(e)))
             logger.info(f"sleep 1s")
             time.sleep(1)
 

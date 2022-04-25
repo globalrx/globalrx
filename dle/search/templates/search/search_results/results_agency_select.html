@@ -1,0 +1,18 @@
+<div>
+    <label class="text-sm" for="select_agency">agency</label>
+  </div>
+  <div>
+    <select
+      name="select_agency"
+      class="h-10 w-52 px-3 py-1.5 shadow border border-solid border-gray-300 rounded"
+      aria-label="Default select agency"
+    >
+    {% if search_request_object.select_agency != '' %}
+        <option value={{search_request_object.select_agency}}>{{search_request_object.select_agency}}</option>
+    {% else %}
+        <option selected value="">any agency</option>
+    {% endif %}
+      <option value="fda">fda</option>
+      <option value="ema">ema</option>
+    </select>
+  </div>

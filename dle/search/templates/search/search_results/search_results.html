@@ -1,138 +1,147 @@
 {% extends "search/base.html" %} {% block content %}
 
-{% if search_results %}
-<form name="result_to_compare_form" method="get" action="/compare/compare_labels" target="_blank">
-
-    <div class="width-max h-16 bg-white sticky top-0 shadow-lg">
-      <div class="flex justify-end py-2">
-        <button type="button" onclick="_searchresult_handleCompareSubmit()" class="flex mr-8 items-center px-2 py-2 font-medium tracking-wide text-white capitalize transition-colors duration-200 transform bg-blue-600 rounded-md hover:bg-blue-500  shadow-lg">
-              <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
-                <path d="M24.5 5.25H15.75V3.5a1.75 1.75 0 0 0 -1.75 -1.75H3.5A1.75 1.75 0 0 0 1.75 3.5V21a1.75 1.75 0 0 0 1.75 1.75H12.25v1.75a1.75 1.75 0 0 0 1.75 1.75H24.5a1.75 1.75 0 0 0 1.75 -1.75V7A1.75 1.75 0 0 0 24.5 5.25ZM3.5 13.125h5.399L6.641 15.391 7.875 16.625l4.375 -4.375L7.875 7.875 6.641 9.109 8.899 11.375H3.5V3.5H14V21H3.5ZM14 24.5V22.75a1.75 1.75 0 0 0 1.75 -1.75V7H24.5v7.875H19.101l2.258 -2.266L20.125 11.375l-4.375 4.375 4.375 4.375 1.234 -1.234L19.101 16.625H24.5v7.875Z" fill="#ffffff" class="color000 svgShape"/>
-                <path fill="none" d="M0 0H28V28H0V0z" data-name="&amp;amp;lt;Transparent Rectangle&amp;amp;gt;"/>
-              </svg>
+<!-- START SEARCH NAV BAR -->
+<div class="width-max h-30 bg-white sticky top-0 shadow-lg">
+  <div class="flex justify-between">
+    <div class="ml-8 my-4">
+      {% include "search/search_results/results_search_form.html" %}
+    </div>
+    <div class="my-2 py-2">
+      <form id="id_compare_form" name="result_to_compare_form" method="get" action="/compare/compare_labels"
+        target="_blank">
+        <button type="button" onclick="_searchresult_handleCompareSubmit()"
+          class="flex mr-8 items-center px-2 py-2 font-medium tracking-wide text-white capitalize transition-colors duration-200 transform bg-blue-600 rounded-md hover:bg-blue-500  shadow-lg">
+          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+            <path
+              d="M24.5 5.25H15.75V3.5a1.75 1.75 0 0 0 -1.75 -1.75H3.5A1.75 1.75 0 0 0 1.75 3.5V21a1.75 1.75 0 0 0 1.75 1.75H12.25v1.75a1.75 1.75 0 0 0 1.75 1.75H24.5a1.75 1.75 0 0 0 1.75 -1.75V7A1.75 1.75 0 0 0 24.5 5.25ZM3.5 13.125h5.399L6.641 15.391 7.875 16.625l4.375 -4.375L7.875 7.875 6.641 9.109 8.899 11.375H3.5V3.5H14V21H3.5ZM14 24.5V22.75a1.75 1.75 0 0 0 1.75 -1.75V7H24.5v7.875H19.101l2.258 -2.266L20.125 11.375l-4.375 4.375 4.375 4.375 1.234 -1.234L19.101 16.625H24.5v7.875Z"
+              fill="#ffffff" class="color000 svgShape" />
+            <path fill="none" d="M0 0H28V28H0V0z" data-name="&amp;amp;lt;Transparent Rectangle&amp;amp;gt;" />
+          </svg>
           <span class="mx-1">Compare Selected Labels</span>
         </button>
-      </div>
-    </div>
-
-  {% for result, highlighted_text in search_results %}
-  <div>
-    <div class="ml-3 my-8 grid grid-cols-2 gap-y-2 items-center">
-      <div class="max-w-xl md:ml-48">
-        <a href=/data/{{result.id}} class="text-sml text-stone-900" target="_blank" >
-          {{result.generic_name}} 
-        </a>
-          <a href=/data/{{result.id}} target="_blank" > 
-          <h2 class="text-xl text-blue-700 group-hover:underline">
-            {{result.product_name}}
-          </h2>
-          <p class="text-gray-800">...{{highlighted_text|safe}}...</p>
-        </a>
-      </div>
-      <div>
-        <div>
-          <input type="checkbox" class="form-checkbox h-5 w-5 text-gray-600 cursor-pointer compare-checkbox" onclick="_searchresult_handleSelectClick()" value={{result.id}} />
-        </div>
-      </div>
+      </form>
     </div>
   </div>
-  {% endfor %}
+</div>
+<!-- END SEARCH NAV BAR -->
+
+{% if search_results %}
+{% for result, highlighted_text in search_results %}
+<div class="flex my-8 items-center">
+  <div class="md:ml-48 w-1/2">
+    <p class="text-sm"><i>{{result.source}} - {{result.version_date}}</i></p>
+    <a href=/data/{{result.id}} class="text-base text-stone-900" target="_blank">
+      {{result.generic_name}} // {{result.marketer}}
+    </a>
+    <a href=/data/{{result.id}} target="_blank">
+      <h2 class="text-xl text-blue-700 group-hover:underline">
+        {{result.product_name}}
+      </h2>
+      <p class="text-gray-800">...{{highlighted_text|safe}}...</p>
+    </a>
+  </div>
+  <div>
+    <div>
+      <input form="id_compare_form" type="checkbox"
+        class="ml-3 form-checkbox h-5 w-5 text-gray-600 cursor-pointer compare-checkbox"
+        onclick="_searchresult_handleSelectClick()" value={{result.id}} />
+    </div>
+  </div>
+</div>
+{% endfor %}
 
 </div>
-</form>
+<!-- </form> -->
 
-  {% else %}
-  <div class="max-w-xl mb-8 md:ml-48">
-    <div class="group">
-      <h2 class="text-lg mt-14">
-        <b>No results found</b>
-      </h2>
-      <a
-        class="text-xl text-blue-700 group-hover:underline cursor-pointer"
-        onClick="javascript:history.go(-1);"
-        >Refine your search...</a
-      >
-    </div>
+{% else %}
+<div class="max-w-xl mb-8 md:ml-48">
+  <div class="group">
+    <h2 class="text-lg mt-14">
+      <b>No results found</b>
+    </h2>
+    <a class="text-xl text-blue-700 group-hover:underline cursor-pointer" onClick="javascript:history.go(-1);">Refine
+      your search...</a>
   </div>
-  {% endif %}
+</div>
+{% endif %}
 {% endblock content %}
 
 {% block footer_scripts %}
 <script>
-    const _searchresult_COMPARE_CHECKBOX = "compare-checkbox";
-    /**
-     * Checks if the selected results is at the max limit
-     * @param {NodeListOf<Element>} selectedNodes - List of checkboxes that are selected
-     * @param {Optional<number>} limit - The number of allowed "selected" checkboxes
-     * @return {bool} True if number of selected checkboxes is at the limit
-     */
-    function _searchresult_isAtLimit(selectedNodes) {
-      return selectedNodes.length === 3;
-    }
+  const _searchresult_COMPARE_CHECKBOX = "compare-checkbox";
+  /**
+   * Checks if the selected results is at the max limit
+   * @param {NodeListOf<Element>} selectedNodes - List of checkboxes that are selected
+   * @param {Optional<number>} limit - The number of allowed "selected" checkboxes
+   * @return {bool} True if number of selected checkboxes is at the limit
+   */
+  function _searchresult_isAtLimit(selectedNodes) {
+    return selectedNodes.length === 3;
+  }
 
-    /**
-     * Disables all unselected search result checkboxes
-     */
-    function _searchresult_disableRemainingCheckboxes() {
-      document
-        .querySelectorAll(`input.${_searchresult_COMPARE_CHECKBOX}:not(:checked)`)
-        .forEach((node) => (node.disabled = true));
-    }
+  /**
+   * Disables all unselected search result checkboxes
+   */
+  function _searchresult_disableRemainingCheckboxes() {
+    document
+      .querySelectorAll(`input.${_searchresult_COMPARE_CHECKBOX}:not(:checked)`)
+      .forEach((node) => (node.disabled = true));
+  }
 
-    /**
-     * Enables all disabled checkboxes
-     */
-    function _searchresult_enableRemainingCheckboxes() {
-      document
-        .querySelectorAll(`input.${_searchresult_COMPARE_CHECKBOX}:disabled`)
-        .forEach((node) => (node.disabled = false));
-    }
+  /**
+   * Enables all disabled checkboxes
+   */
+  function _searchresult_enableRemainingCheckboxes() {
+    document
+      .querySelectorAll(`input.${_searchresult_COMPARE_CHECKBOX}:disabled`)
+      .forEach((node) => (node.disabled = false));
+  }
 
-    /**
-     * Fired every time the user clicks on the checkbox
-     * Essentially limits the user to just 2 drug labels to compare.
-     */
-    function _searchresult_handleSelectClick() {
-      const selectedResults = document.querySelectorAll(
-        `input.${_searchresult_COMPARE_CHECKBOX}:checked`
-      );
-      _searchresult_isAtLimit(selectedResults)
-        ? _searchresult_disableRemainingCheckboxes()
-        : _searchresult_enableRemainingCheckboxes();
-    }
+  /**
+   * Fired every time the user clicks on the checkbox
+   * Essentially limits the user to just 2 drug labels to compare.
+   */
+  function _searchresult_handleSelectClick() {
+    const selectedResults = document.querySelectorAll(
+      `input.${_searchresult_COMPARE_CHECKBOX}:checked`
+    );
+    _searchresult_isAtLimit(selectedResults)
+      ? _searchresult_disableRemainingCheckboxes()
+      : _searchresult_enableRemainingCheckboxes();
+  }
 
-    /**
-     * Fired when the user clicks the "compare" button
-     * Only redirect's the user if the selected labels is at the "limit"
-     *    i.e. comparing 2 selected labels requires 2 selected labels
-     */
-    function _searchresult_handleCompareSubmit() {
-      const selectedResults = document.querySelectorAll(
-        `input.${_searchresult_COMPARE_CHECKBOX}:checked`
-      );
+  /**
+   * Fired when the user clicks the "compare" button
+   * Only redirect's the user if the selected labels is at the "limit"
+   *    i.e. comparing 2 selected labels requires 2 selected labels
+   */
+  function _searchresult_handleCompareSubmit() {
+    const selectedResults = document.querySelectorAll(
+      `input.${_searchresult_COMPARE_CHECKBOX}:checked`
+    );
 
-      const selectedResults_length = selectedResults.length;
+    const selectedResults_length = selectedResults.length;
 
-      if (selectedResults.length >= 2) {
-        const [firstDrug, secondDrug] = selectedResults;
-        firstDrug.name = 'first-label';
-        secondDrug.name = 'second-label';
+    if (selectedResults.length >= 2) {
+      const [firstDrug, secondDrug] = selectedResults;
+      firstDrug.name = 'first-label';
+      secondDrug.name = 'second-label';
 
-        if (selectedResults.length === 3) {
-          const thirdDrug = selectedResults[2];
-          thirdDrug.name = 'third-label';
-        }
-
-        // open the compare page in new tab
-        document.result_to_compare_form.submit();
-
-        return;
+      if (selectedResults.length === 3) {
+        const thirdDrug = selectedResults[2];
+        thirdDrug.name = 'third-label';
       }
-      else {
-        window.alert("Please select 2 or 3 labels to compare.");
-        return;
-      }
+
+      // open the compare page in new tab
+      document.result_to_compare_form.submit();
+
+      return;
     }
+    else {
+      window.alert("Please select 2 or 3 labels to compare.");
+      return;
+    }
+  }
 
 </script>
 {% endblock %}

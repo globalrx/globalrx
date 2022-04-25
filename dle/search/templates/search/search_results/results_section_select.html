@@ -1,0 +1,17 @@
+<div>
+    <label class="text-sm" for="select_section">label section</label>
+</div>
+<div>
+    <select name="select_section" class="h-10 w-52 px-3 py-1.5 shadow border border-solid border-gray-300 rounded"
+        aria-label="Default select section">
+        {% if search_request_object.select_section != '' %}
+        <option selected value={{search_request_object.select_section}}>{{search_request_object.select_section}}
+        </option>
+        {% else %}
+        <option selected value="">any section</option>
+        {% endif %}
+        {% for name in type_ahead_section_name %}
+        <option value={{name}}>{{name}}</option>
+        {% endfor %}
+    </select>
+</div>

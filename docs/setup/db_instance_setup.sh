@@ -38,7 +38,8 @@ character_set_server = utf8
 collation_server = utf8_general_ci
 
 # https://dev.mysql.com/doc/refman/8.0/en/innodb-parameters.html
-innodb_buffer_pool_size = 12G
+# 32GB RAM on the server
+innodb_buffer_pool_size = 24G
 innodb_flush_method = O_DIRECT
 innodb_flush_log_at_trx_commit=2
 

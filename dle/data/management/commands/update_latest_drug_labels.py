@@ -52,17 +52,13 @@ class Command(BaseCommand):
             AND dl.version_date = t.version_date
         """
 
+        sql_4 = f"ALTER TABLE {LASTEST_DRUG_LABELS_TABLE} ADD INDEX id (id)"
+
         with connection.cursor() as cursor:
             cursor.execute(sql_1)
-            result = cursor.fetchone()
-            logger.debug(f"result: {result}")
             cursor.execute(sql_2)
-            result = cursor.fetchone()
-            logger.debug(f"result: {result}")
             cursor.execute(sql_3)
-            result = cursor.fetchone()
-            logger.debug(f"result: {result}")
-            # result = cursor.fetchall()
+            cursor.execute(sql_4)
 
         logger.info(self.style.SUCCESS("process complete"))
         return

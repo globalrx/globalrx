@@ -54,7 +54,7 @@ Launch EC2 Instance
 ```
 Amazon Linux 2 AMI
 arm
-r6g.large
+r6g.xlarge
 50GB gp3 disk
 Tags: 'Name' => 'dle-maria'
 Create Security Group (maria-dev): open 22, 3306 to all incomming traffic
@@ -88,7 +88,7 @@ Launch EC2 Instance
 Amazon Linux 2 AMI
 X86
 t2.micro
-16GB gp3 disk
+42GB gp3 disk
 Tags: 'Name' => 'dle-django'
 Create Security Group (dev): open 22, 80, 443 to all incomming traffic
 Create key-pair (dle-dev)

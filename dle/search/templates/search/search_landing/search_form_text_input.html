@@ -1,22 +1,12 @@
 <div class="relative">
-  <select
-    name="select_section"
-    class="h-14 w-26 px-3 py-1.5 shadow border border-solid border-gray-300 rounded"
-    aria-label="Default select section"
-  >
-    <option selected value="">any section</option>
-    {% for name in type_ahead_section_name %}
-    <option value="{{name}}">{{name}}</option>
-    {% endfor %}
-  </select>
   <input
     autofocus
     type="search"
     name="search_text"
     id="search_text"
     class="h-14 pr-8 pl-5 rounded z-0 focus:shadow focus:outline-none border"
-    placeholder="Search labels..."
-    size="50"
+    placeholder="Search for text within drug labels (e.g. rash)"
+    size="70"
     list="search_typeahead_list"
     required
   />
