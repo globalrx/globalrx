@@ -179,28 +179,33 @@ class Command(BaseCommand):
 
     def count_titles(self, xml_records):
         titles = []
-        m = 4000
         for xml_file in xml_records:
             try:
                 with open(xml_file) as f:
                     content = BeautifulSoup(f.read(), "lxml")
-                    codes = content.find_all(
-                        "code", attrs={"codesystem": "2.16.840.1.113883.6.1"}
-                    )
-                    for code in codes:
-                        my_str = str(code.get("displayname")).upper()
-                        my_str = self.re_combine_whitespace.sub(" ", my_str).strip()
-                        my_str = self.re_remove_nonalpha_characters.sub("", my_str)
-                        my_str = self.re_combine_whitespace.sub(" ", my_str).strip()
-                        titles.append(my_str)
+
+                    for section in content.find_all("component"):
+                        code = section.find(
+                            "code", attrs={"codesystem": "2.16.840.1.113883.6.1"}
+                        )
+                        if code is None:
+                            continue
+                        title = str(code.get("displayname")).upper()
+                        if title == "SPL UNCLASSIFIED SECTION":
+                            try:
+                                title = code.find_next_sibling().get_text(strip=True)
+                                logger.debug(f"UNCLASSIFIED title: {title}")
+                            except AttributeError:
+                                pass
+                        title = self.re_combine_whitespace.sub(" ", title).strip()
+                        title = self.re_remove_nonalpha_characters.sub("", title)
+                        title = self.re_combine_whitespace.sub(" ", title).strip()
+
+                        titles.append(title)
             except Exception as e:
                 logger.error("Error")
                 raise e
-            m = m - 1
-            if m % 250 == 0:
-                logger.info(m)
-            if m < 0:
-                break
+
         import collections
 
         counter = collections.Counter(titles)
@@ -210,7 +215,7 @@ class Command(BaseCommand):
         with open("top_displaynames.csv", "w") as csvfile:
             csvwriter = csv.writer(csvfile)
             csvwriter.writerow(["displayname", "count"])
-            csvwriter.writerows(counter.most_common(1000))
+            csvwriter.writerows(counter.most_common(3000))
 
     def import_records(self, xml_records, insert, my_label_id):
         logger.info("Building Drug Label DB records from XMLs")
