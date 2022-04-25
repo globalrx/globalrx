@@ -66,6 +66,7 @@ def run_dl_query(search_request: SearchRequest):
     with connection.cursor() as cursor:
         cursor.execute(f"DROP TABLE IF EXISTS {DRUG_LABEL_QUERY_TEMP_TABLE_NAME}")
         cursor.execute(sql, sql_params)
+        cursor.execute(f"ALTER TABLE {DRUG_LABEL_QUERY_TEMP_TABLE_NAME} ADD INDEX id (id)")
 
 
 def build_match_sql(search_text: str) -> str:
