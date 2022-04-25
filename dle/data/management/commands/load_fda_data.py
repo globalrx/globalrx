@@ -7,6 +7,7 @@ import shutil
 import urllib.request as request
 import os
 from zipfile import ZipFile
+from distutils.util import strtobool
 
 from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
@@ -18,7 +19,8 @@ from users.models import MyLabel
 
 logger = logging.getLogger(__name__)
 
-
+# python manage.py load_fda_data --type test --cleanup False --insert False --count_titles True
+# python manage.py load_fda_data --type my_label --my_label_id 9 --cleanup False --insert False
 # runs with `python manage.py load_fda_data --type {type}`
 class Command(BaseCommand):
     help = "Loads data from FDA"
@@ -28,6 +30,7 @@ class Command(BaseCommand):
     def __init__(self, stdout=None, stderr=None, no_color=False, force_color=False):
         root_logger = logging.getLogger("")
         root_logger.setLevel(logging.INFO)
+        root_logger.setLevel(logging.DEBUG)
 
         self.root_dir = settings.MEDIA_ROOT / "fda"
         os.makedirs(self.root_dir, exist_ok=True)
@@ -38,13 +41,16 @@ class Command(BaseCommand):
             "--type", type=str, help="full, monthly, test or my_label", default="monthly"
         )
         parser.add_argument(
-            "--insert", type=bool, help="Set to connect to DB", default=True
+            "--insert", type=strtobool, help="Set to connect to DB", default=True
         )
         parser.add_argument(
-            "--cleanup", type=bool, help="Set to cleanup files", default=True
+            "--cleanup", type=strtobool, help="Set to cleanup files", default=True
         )
         parser.add_argument(
             "--my_label_id", type=int, help="set my_label_id for --type my_label", default=None
+        )
+        parser.add_argument(
+            "--count_titles", type=strtobool, help="output counts of the section_names", default=False
         )
 
     """
@@ -56,6 +62,8 @@ class Command(BaseCommand):
         insert = options["insert"]
         cleanup = options["cleanup"]
         my_label_id = options["my_label_id"]
+        count_titles = options["count_titles"]
+        logger.debug(f"options: {options}")
 
         # my_label type already has the xml uploaded/downloaded
         if import_type == "my_label":
@@ -65,13 +73,16 @@ class Command(BaseCommand):
             root_zips = self.download_records(import_type)
             record_zips = self.extract_prescription_zips(root_zips)
             xml_files = self.extract_xmls(record_zips)
-            # self.count_titles(xml_files)
 
-        self.import_records(xml_files, my_label_id=my_label_id, insert=insert)
+        if count_titles:
+            self.count_titles(xml_files)
+
+        self.import_records(xml_files, insert, my_label_id)
 
         if cleanup:
             self.cleanup(record_zips)
             self.cleanup(xml_files)
+
         logger.info("DONE")
 
     def download_records(self, import_type):
@@ -201,7 +212,7 @@ class Command(BaseCommand):
             csvwriter.writerow(["displayname", "count"])
             csvwriter.writerows(counter.most_common(1000))
 
-    def import_records(self, xml_records, my_label_id=None, insert=False):
+    def import_records(self, xml_records, insert, my_label_id):
         logger.info("Building Drug Label DB records from XMLs")
 
         if len(xml_records) == 0 and my_label_id is not None:
@@ -224,6 +235,7 @@ class Command(BaseCommand):
                     continue
 
     def process_xml_file(self, xml_file, insert, dl):
+        logger.debug(f"insert: {insert}")
         with open(xml_file) as f:
             content = BeautifulSoup(f.read(), "lxml")
             dl.source = "FDA"
@@ -286,6 +298,15 @@ class Command(BaseCommand):
                 if code is None:
                     continue
                 title = str(code.get("displayname")).upper()
+                logger.debug(f"title: {title}")
+
+                if title == "SPL UNCLASSIFIED SECTION":
+                    try:
+                        title = code.find_next_sibling().get_text(strip=True)
+                        logger.debug(f"UNCLASSIFIED title: {title}")
+                    except AttributeError:
+                        pass
+
                 title = self.re_combine_whitespace.sub(" ", title).strip()
                 title = self.re_remove_nonalpha_characters.sub("", title)
                 title = self.re_combine_whitespace.sub(" ", title).strip()
