@@ -98,7 +98,7 @@ DATABASES = {
         "ENGINE": "django.db.backends.mysql",
         "NAME": "dle",
         "USER": "dle_user",
-        "PASSWORD": "uDyvfMXHIKCJ",
+        "PASSWORD": os.environ.get("DATABASE_PASSWORD", "uDyvfMXHIKCJ"),
         "HOST": os.environ.get("DATABASE_HOST", "drug-label-db.org"),
         "PORT": "3306",
     }
