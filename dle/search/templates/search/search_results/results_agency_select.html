@@ -8,7 +8,7 @@
       aria-label="Default select agency"
     >
     {% if search_request_object.select_agency != '' %}
-        <option value={{search_request_object.select_agency}}>{{search_request_object.select_agency}}</option>
+        <option value="{{search_request_object.select_agency}}">{{search_request_object.select_agency}}</option>
     {% else %}
         <option selected value="">any agency</option>
     {% endif %}

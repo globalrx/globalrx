@@ -29,15 +29,14 @@
 {% for result, highlighted_text in search_results %}
 <div class="flex my-8 items-center">
   <div class="md:ml-48 w-1/2">
-    <p class="text-sm"><i>{{result.source}} - {{result.version_date}}</i></p>
     <a href=/data/{{result.id}} class="text-base text-stone-900" target="_blank">
-      {{result.generic_name}} // {{result.marketer}}
+      {{result.generic_name}} — {{result.marketer}}
     </a>
     <a href=/data/{{result.id}} target="_blank">
       <h2 class="text-xl text-blue-700 group-hover:underline">
         {{result.product_name}}
       </h2>
-      <p class="text-gray-800">...{{highlighted_text|safe}}...</p>
+      <div class="text-gray-800"> <div class="text-sm italic">{{result.source}} {{result.version_date}}</div>...{{highlighted_text|safe}}...</div>
     </a>
   </div>
   <div>
@@ -59,7 +58,7 @@
     <h2 class="text-lg mt-14">
       <b>No results found</b>
     </h2>
-    <a class="text-xl text-blue-700 group-hover:underline cursor-pointer" onClick="javascript:history.go(-1);">Refine
+    <a class="text-xl text-blue-700 group-hover:underline cursor-pointer" href=/search >Refine
       your search...</a>
   </div>
 </div>

@@ -101,7 +101,8 @@ DATABASES = {
         "NAME": "dle",
         "USER": "dle_user",
         "PASSWORD": os.environ.get("DATABASE_PASSWORD", "uDyvfMXHIKCJ"),
-        "HOST": os.environ.get("DATABASE_HOST", "drug-label-db.org"),
+        "HOST": "44.238.69.61",
+        # os.environ.get("DATABASE_HOST", "drug-label-db.org"),
         "PORT": "3306",
     }
 }
