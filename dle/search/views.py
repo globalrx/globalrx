@@ -49,7 +49,7 @@ def list_search_results(request: HttpRequest) -> HttpResponse:
         "type_ahead_brand_name": TYPE_AHEAD_MAPPING["brand_name"],
         "type_ahead_section_name": TYPE_AHEAD_MAPPING["section_name"],
     }
-    print(search_request_object)
+
     return render(request, "search/search_results/search_results.html", context=context)
 
 
