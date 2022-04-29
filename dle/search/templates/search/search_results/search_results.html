@@ -25,8 +25,8 @@
 </div>
 <!-- END SEARCH NAV BAR -->
 
-{% if search_results %}
-{% for result, highlighted_text in search_results %}
+{% if page_obj %}
+{% for result, highlighted_text in page_obj %}
 <div class="flex my-8 items-center">
   <div class="md:ml-48 w-1/2">
     <a href=/data/{{result.id}} class="text-base text-stone-900" target="_blank">
@@ -49,8 +49,27 @@
 </div>
 {% endfor %}
 
+{% if page_obj %}
+<div class="pagination text-lg my-8 flex justify-center">
+  <span class="step-links">
+      {% if page_obj.has_previous %}
+          <a href="?page=1&{{search_query_url}}">&laquo; first</a>
+          <a href="?page={{ page_obj.previous_page_number }}&{{search_query_url}}">previous</a>
+      {% endif %}
+
+      <span class="current">
+          Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+      </span>
+
+      {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}&{{search_query_url}}">next</a>
+          <a href="?page={{ page_obj.paginator.num_pages }}&{{search_query_url}}">last &raquo;</a>
+      {% endif %}
+  </span>
 </div>
-<!-- </form> -->
+{% endif %}
+
+
 
 {% else %}
 <div class="max-w-xl mb-8 md:ml-48">
