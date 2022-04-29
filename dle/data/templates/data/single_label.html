@@ -1,15 +1,15 @@
 {% extends "compare/layout.html" %}
 {% block content %}
   <div class="container-fluid">
-    <h1> {{ drug_label.product_name }}</h1>
+    <h1> {{ drug_label.product_name|title }}</h1>
     <div class="row">
       <dl>
-        <dt>Generic Name: <b>{{ drug_label.generic_name }}</b></dt>
+        <dt>Generic Name: <b>{{ drug_label.generic_name|title }}</b></dt>
         <dt>Version Date: <b>{{ drug_label.version_date }}</b></dt>
         <dt>Product Number: <b>{{ drug_label.source_product_number }}</b></dt>
-        <dt>Marketing Authorization Holder: <b>{{ drug_label.marketer }}</b></dt>
+        <dt>Marketing Authorization Holder: <b>{{ drug_label.marketer|title }}</b></dt>
         <dt>Source: <b>{{ drug_label.source }}</b></dt>
-        <dt>Go to this <a href="{{ drug_label.link }}">Link</a> for the original source document.</dt>
+        <dt>Go to this <a href="{{ drug_label.link }}">link</a> for the original (FDA/EMA) source document.</dt>
         <dt></dt>
       </dl>
     </div>
