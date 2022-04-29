@@ -53,14 +53,11 @@ def compare_labels(request: HttpRequest) -> HttpResponse:
         dl2_sections = []
 
     context = { 'dl1': drug_label1, 'dl2': drug_label2}
-
-    # for each section, make a dict of {section_name, text1, text2, text3}
     sections_dict = {}
 
     for section in dl1_sections:
         sections_dict[section.section_name] = { 
             "section_name": section.section_name, 
-            # "section_text1": section.section_text,
             "section_text1": bleach.clean(section.section_text, strip=True),
             "section_text2": "Section/subsection doesn't exist for this drug label.",
             "isCommon": "not-common-section",
@@ -68,14 +65,12 @@ def compare_labels(request: HttpRequest) -> HttpResponse:
     
     for section in dl2_sections:
         if section.section_name in sections_dict.keys():
-            # sections_dict[section.section_name]["section_text2"] = section.section_text
             sections_dict[section.section_name]["section_text2"] = bleach.clean(section.section_text, strip=True)
             sections_dict[section.section_name]["isCommon"] = "common-section"
         else:
             sections_dict[section.section_name] = { 
                 "section_name": section.section_name,
                 "section_text1": "Section/subsection doesn't exist for this drug label.",
-                # "section_text2": section.section_text,
                 "section_text2": bleach.clean(section.section_text, strip=True),
                 "isCommon": "not-common-section",
             }
@@ -93,7 +88,6 @@ def compare_labels(request: HttpRequest) -> HttpResponse:
 
             for section in dl3_sections:
                 if section.section_name in sections_dict.keys():
-                    # sections_dict[section.section_name]["section_text3"] = section.section_text
                     sections_dict[section.section_name]["section_text3"] = bleach.clean(section.section_text, strip=True)
                     sections_dict[section.section_name]["isCommon"] = "common-section"
                 else:
@@ -101,7 +95,6 @@ def compare_labels(request: HttpRequest) -> HttpResponse:
                         "section_name": section.section_name,
                         "section_text1": "Section/subsection doesn't exist for this drug label.",
                         "section_text2": "Section/subsection doesn't exist for this drug label.",
-                        # "section_text3": section.section_text,
                         "section_text3": bleach.clean(section.section_text, strip=True),
                         "isCommon": "not-common-section",
                     }
@@ -141,8 +134,6 @@ def compare_versions(request):
         dl2_sections = []
 
     context = { 'dl1': drug_label1, 'dl2': drug_label2}
-
-     # for each section, make a dict of {section_name, text1, text2, text3}
     sections_dict = {}
 
     for section in dl1_sections:
@@ -164,8 +155,6 @@ def compare_versions(request):
 
     # compare each section and insert data in context.sections
     for sec_name in sections_dict.keys():
-        # text1 = sections_dict[sec_name]["section_text1"]
-        # text2 = sections_dict[sec_name]["section_text2"]
         text1 = bleach.clean(sections_dict[sec_name]["section_text1"], strip=True)
         text2 = bleach.clean(sections_dict[sec_name]["section_text2"], strip=True)
 

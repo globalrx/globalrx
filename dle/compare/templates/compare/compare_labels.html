@@ -127,6 +127,10 @@
             });
         }
 
+        /**
+         * Show/hide the section expansion buttons based on users
+         * selection from the drop down filter.
+         */
         function showSection() {
             var selected_sec = document.getElementById("sectionFilter").value;
             console.log("selected option is: " + selected_sec)
@@ -142,7 +146,6 @@
                 for (const div of sec_divs) {
                     div.style.display = 'none';
                 }
-
                 const common_sec = document.getElementsByClassName('common-section');
 
                 for (const div of common_sec) {
@@ -154,7 +157,6 @@
                 for (const div of sec_divs) {
                     div.style.display = 'none';
                 }
-
                 sec_div = document.getElementById(selected_sec);
                 sec_div.style.display = "block";              
             }

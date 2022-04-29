@@ -50,7 +50,6 @@
         </div>
         {% if sections %}
             {% for section in sections %}
-                <!-- <button type="button" class="collapsible"> > {{ section.section_name }}</button> -->
                 <div class="row sec-content" id="{{section.section_name|cut:' '}}" style="display:block">
                     <button type="button" class="collapsible"> > {{ section.section_name|title }}</button>
                     <table class="section-table" style="display:none">
@@ -112,6 +111,10 @@
             });
         }
 
+        /**
+         * Show/hide the section expansion buttons based on users
+         * selection from the drop down filter.
+         */
         function showSection() {
             var selected_sec = document.getElementById("sectionFilter").value;
             console.log("selected option is: " + selected_sec)
@@ -127,7 +130,6 @@
                 for (const div of sec_divs) {
                     div.style.display = 'none';
                 }
-
                 sec_div = document.getElementById(selected_sec);
                 sec_div.style.display = "block";              
             }
