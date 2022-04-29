@@ -21,7 +21,7 @@
         </div>
         <br>
         <div class="row">
-            <table class="section-table">
+            <table id="headerTable">
             <tr>
                 <td class="section-td">
                     <dl>
@@ -59,15 +59,20 @@
             </table>
         </div>
         <hr>
-        <div class="row" id="sectionFilterContainer">   
-            <label for="section-filter">Select Section: </label>
-            <select name="section-filter" id="sectionFilter" onchange="showSection()">
-                <option value="all">All Sections </option>
-                <option value="common-sections">All Common Sections </option>
-                {% for sec_name in section_names %}
-                <option value="{{sec_name|cut:' '}}">{{ sec_name|title }}</option>
-                {% endfor %}
-            </select>
+        <div class="row" id="sectionFilterContainer"> 
+            <div class="col-lg">
+                <label for="section-filter">Select Section: </label>
+                <select name="section-filter" id="sectionFilter" onchange="showSection()">
+                    <option value="all">All Sections </option>
+                    <option value="common-sections">All Common Sections </option>
+                    {% for sec_name in section_names %}
+                    <option value="{{sec_name|cut:' '}}">{{ sec_name|title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-sm">
+                <button type="button" class="btn btn-info btn-lg" id="expandSections" onclick="expandSections()">Expand All Sections</button>
+            </div>
         </div>
         {% if sections %}
             {% for section in sections %}
@@ -117,12 +122,14 @@
          */
         for (i = 0; i < coll.length; i++) {
             coll[i].addEventListener("click", function() {
-                this.classList.toggle("active");
+                // this.classList.toggle("active");
                 var content = this.nextElementSibling;
                 if (content.style.display === "block") {
                     content.style.display = "none";
+                    this.classList.remove("active");
                 } else {
                     content.style.display = "block";
+                    this.classList.toggle("active");
                 }
             });
         }
@@ -168,6 +175,39 @@
                 sec_div = document.getElementById(selected_sec);
                 sec_div.style.display = "block";              
             }
+        }
+
+        /**
+         * Onclick of the Expand All Sections button, it expands to show the
+         * text of all sections and changes the button innerHTML to "Hide All Sections".
+         * Onclick of the Hide All Sections button, it hides the text of all sections
+         * leaving the collapsible blue buttons.
+         */
+        function expandSections() {
+            var btn = document.getElementById("expandSections");
+            if (btn.innerHTML=="Expand All Sections") {
+                btn.innerHTML = "Hide All Sections";
+                const section_tbls = document.getElementsByClassName('section-table');
+                for (const tbl of section_tbls) {
+                    tbl.style.display = 'block';
+                }
+                const section_btns = document.getElementsByClassName('collapsible');
+                for (const btn of section_btns) {
+                    btn.classList.toggle("active");
+                }
+            }
+            else {
+                btn.innerHTML = "Expand All Sections";
+                const section_tbls = document.getElementsByClassName('section-table');
+                for (const tbl of section_tbls) {
+                    tbl.style.display = 'none';
+                }
+                const section_btns = document.getElementsByClassName('collapsible');
+                for (const btn of section_btns) {
+                    btn.classList.remove("active");
+                }
+            }
+            console.log(btn.innerHTML);
         }
     </script>
 {% endblock footer_scripts %}
