@@ -299,11 +299,19 @@ class Command(BaseCommand):
             # category
             section_map = {}
             for section in content.find_all("component"):
+                # the structuredbody component is the parent that contains everything, skip it
+                structured_body = section.find_next("structuredbody")
+                if structured_body is not None:
+                    logger.debug(f"SKIPPING: structuredbody")
+                    continue
+                logger.debug(f"section: {repr(section)}")
+
                 code = section.find(
                     "code", attrs={"codesystem": "2.16.840.1.113883.6.1"}
                 )
                 if code is None:
                     continue
+
                 title = str(code.get("displayname")).upper()
                 logger.debug(f"title: {title}")
 
@@ -327,6 +335,7 @@ class Command(BaseCommand):
                 # value to a corresponding hashmap. If a value already exists, add it to the end
                 raw_section_texts = [str(p) for p in section.find_all("text")]
                 section_texts = "<br>".join(raw_section_texts)
+                logger.debug(f"section_texts: {section_texts}")
 
                 # Save other titles in section text
                 if section_name == "OTHER":
