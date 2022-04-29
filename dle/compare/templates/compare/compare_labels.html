@@ -139,12 +139,20 @@
 
                 for (const div of sec_divs) {
                     div.style.display = 'block';
+                    var tbl = div.getElementsByTagName('table')[0];
+                    tbl.style.display = "none";
+                    var btn = div.getElementsByTagName('button')[0];
+                    btn.classList.remove('active');
                 }
             } else if (selected_sec == 'common-sections') { 
                 const sec_divs = document.getElementsByClassName('sec-content');
 
                 for (const div of sec_divs) {
                     div.style.display = 'none';
+                    var tbl = div.getElementsByTagName('table')[0];
+                    tbl.style.display = "none";
+                    var btn = div.getElementsByTagName('button')[0];
+                    btn.classList.remove('active');
                 }
                 const common_sec = document.getElementsByClassName('common-section');
 

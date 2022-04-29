@@ -117,12 +117,15 @@
          */
         function showSection() {
             var selected_sec = document.getElementById("sectionFilter").value;
-            console.log("selected option is: " + selected_sec)
             if (selected_sec == 'all') {
                 const sec_divs = document.getElementsByClassName('sec-content');
 
                 for (const div of sec_divs) {
                     div.style.display = 'block';
+                    var tbl = div.getElementsByTagName('table')[0];
+                    tbl.style.display = "none";
+                    var btn = div.getElementsByTagName('button')[0];
+                    btn.classList.remove('active');
                 }
             } else {
                 const sec_divs = document.getElementsByClassName('sec-content');
