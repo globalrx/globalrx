@@ -265,10 +265,9 @@ class Command(BaseCommand):
             except AttributeError:
                 dl.marketer = ""
 
-            product_number = content.find(
+            dl.source_product_number = content.find(
                 "code", attrs={"codesystem": "2.16.840.1.113883.6.69"}
             ).get("code")
-            dl.source_product_number = product_number.split("-")[0]
 
             texts = [p.text for p in content.find_all("paragraph")]
             dl.raw_text = "\n".join(texts)
