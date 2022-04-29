@@ -64,8 +64,8 @@
             <select name="section-filter" id="sectionFilter" onchange="showSection()">
                 <option value="all">All Sections </option>
                 <option value="common-sections">All Common Sections </option>
-                {% for section in sections %}
-                <option value="{{section.section_name|cut:' '}}">{{ section.section_name|title }}</option>
+                {% for sec_name in section_names %}
+                <option value="{{sec_name|cut:' '}}">{{ sec_name|title }}</option>
                 {% endfor %}
             </select>
         </div>

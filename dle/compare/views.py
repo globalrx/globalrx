@@ -109,10 +109,10 @@ def compare_labels(request: HttpRequest) -> HttpResponse:
         except ObjectDoesNotExist:
             dl3_sections = []
 
+    section_names_list = list(sections_dict.keys())
+    section_names_list.sort()
+    context["section_names"] = section_names_list
     context["sections"] = [v for k, v in sections_dict.items()]
-    # context['text_highlight'] = "matching-text-highlight"
-    for sec in context["sections"]:
-        print(f'{sec["section_name"]} : {sec["isCommon"]}')
 
     return render(request, 'compare/compare_labels.html', context)
 
@@ -179,6 +179,9 @@ def compare_versions(request):
         else:
             sections_dict[sec_name]["textMatches"] = "diff-section"
 
+    section_names_list = list(sections_dict.keys())
+    section_names_list.sort()
+    context["section_names"] = section_names_list
     context["sections"] = [v for k, v in sections_dict.items()]
     return render(request, 'compare/compare_versions.html', context)
 

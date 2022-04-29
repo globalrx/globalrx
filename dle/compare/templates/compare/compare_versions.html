@@ -43,8 +43,8 @@
             <label for="section-filter">Select Section: </label>
             <select name="section-filter" id="sectionFilter" onchange="showSection()">
                 <option value="all">All Sections </option>
-                {% for section in sections %}
-                <option value="{{section.section_name|cut:' '}}">{{ section.section_name|title }}</option>
+                {% for sec_name in section_names %}
+                <option value="{{sec_name|cut:' '}}">{{ sec_name|title }}</option>
                 {% endfor %}
             </select>
         </div>
