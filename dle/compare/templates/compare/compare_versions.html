@@ -6,9 +6,9 @@
 {% block content %}
     <div class="container-fluid">
         <div class="row">
-            <h6> Comparing drugs {{dl1.product_name}}, 
-                <b>version ({{dl1.version_date }})</b>, and 
-                <b>version ({{dl2.version_date }})</b>:
+            <h6> Comparing versions dated 
+                <b> {{dl1.version_date }}</b> and 
+                <b>{{dl2.version_date }}</b>:
             </h6>
         </div>
         <br>
@@ -17,34 +17,44 @@
             <tr>
                 <td class="section-td">
                     <dl>
-                        <dt>Product Name: {{ dl1.product_name }}</dt>
-                        <dt>Generic Name: {{ dl1.generic_name }}</dt>
+                        <dt>Product Name: <a href=/data/{{dl1.id}}>{{ dl1.product_name|title }}</a></dt>
+                        <dt>Generic Name: {{ dl1.generic_name|title }}</dt>
                         <dt>Version Date: {{ dl1.version_date }}</dt>
                         <dt>Product Number: {{ dl1.source_product_number }}</dt>
-                        <dt>Marketer: {{ dl1.marketer }}</dt>
+                        <dt>Marketer: {{ dl1.marketer|title }}</dt>
                         <dt>Source: {{ dl1.source }}</dt>
                     </dl>
                 </td>
                 <td class="section-td">
                     <dl>
-                        <dt>Product Name: {{ dl2.product_name }}</dt>
-                        <dt>Generic Name: {{ dl2.generic_name }}</dt>
+                        <dt>Product Name: <a href=/data/{{dl1.id}}>{{ dl2.product_name|title }}</a></dt>
+                        <dt>Generic Name: {{ dl2.generic_name|title }}</dt>
                         <dt>Version Date: {{ dl2.version_date }}</dt>
                         <dt>Product Number: {{ dl2.source_product_number }}</dt>
-                        <dt>Marketer: {{ dl2.marketer }}</dt>
+                        <dt>Marketer: {{ dl2.marketer|title }}</dt>
                         <dt>Source: {{ dl2.source }}</dt>
                     </dl>
                 </td>
             </tr>
             </table>
         </div>
+        <hr>
+        <div class="row" id="sectionFilterContainer">   
+            <label for="section-filter">Select Section: </label>
+            <select name="section-filter" id="sectionFilter" onchange="showSection()">
+                <option value="all">All Sections </option>
+                {% for sec_name in section_names %}
+                <option value="{{sec_name|cut:' '}}">{{ sec_name|title }}</option>
+                {% endfor %}
+            </select>
+        </div>
         {% if sections %}
             {% for section in sections %}
-                <button type="button" class="collapsible"> > {{ section.section_name }}</button>
-                <div class="row sec-content" style="display:none">
-                    <table class="section-table">
+                <div class="row sec-content" id="{{section.section_name|cut:' '}}" style="display:block">
+                    <button type="button" class="collapsible"> > {{ section.section_name|title }}</button>
+                    <table class="section-table" style="display:none">
                         <tr>
-                          <td class="{{ section.textMatches }}">
+                          <td class="{{ section.textMatches }} section-td" style="width:50%">
                               <p>
                                 {% for tuple in section.section_text1 %}
                                     {% if tuple.0 == 0 %}
@@ -54,8 +64,8 @@
                                     {% endif %}
                                 {% endfor %}
                               </p>
-                            </td>
-                          <td class="{{ section.textMatches }}">
+                          </td>
+                          <td class="{{ section.textMatches }} section-td" style="width:50%">
                               <p>
                                 {% for tuple in section.section_text2 %}
                                     {% if tuple.0 == 0 %}
@@ -66,7 +76,7 @@
                                 {% endfor %}
 
                               </p>
-                            </td>
+                          </td>
                         </tr>
                     </table>
                 </div>
@@ -99,6 +109,33 @@
                     content.style.display = "block";
                 }
             });
+        }
+
+        /**
+         * Show/hide the section expansion buttons based on users
+         * selection from the drop down filter.
+         */
+        function showSection() {
+            var selected_sec = document.getElementById("sectionFilter").value;
+            if (selected_sec == 'all') {
+                const sec_divs = document.getElementsByClassName('sec-content');
+
+                for (const div of sec_divs) {
+                    div.style.display = 'block';
+                    var tbl = div.getElementsByTagName('table')[0];
+                    tbl.style.display = "none";
+                    var btn = div.getElementsByTagName('button')[0];
+                    btn.classList.remove('active');
+                }
+            } else {
+                const sec_divs = document.getElementsByClassName('sec-content');
+
+                for (const div of sec_divs) {
+                    div.style.display = 'none';
+                }
+                sec_div = document.getElementById(selected_sec);
+                sec_div.style.display = "block";              
+            }
         }
     </script>
 {% endblock footer_scripts %}
