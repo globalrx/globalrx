@@ -21,11 +21,11 @@
         <div class="form-check">
           <label class="form-check-label" for="{{label.id}}">
             <input type="checkbox" class="form-check-input compare-checkbox" onclick="_versions_handleSelectClick()" value={{label.id}} />
-            <a href=/data/{{label.id}} class="text-sml text-stone-900" target="_blank">
-              <h6 class="text-xl text-blue-700 group-hover:underline">
-                {{label.product_name}} ({{label.version_date}})
-              </h6>
-            </a>
+              <a href=/data/{{label.id}} class="text-sml text-stone-900" target="_blank">
+                <h6 class="text-xl text-blue-700 group-hover:underline">
+                  <b>{{label.product_name}} ({{label.version_date}})</b> | {{label.source}} | {{label.marketer}}
+                </h6>
+              </a>
           </label>
         </div>
         {% endfor %}
