@@ -3,6 +3,7 @@ from django.http import HttpResponse, HttpRequest
 from django.core.exceptions import ObjectDoesNotExist
 from .models import *
 from .util import *
+import bleach
 
 
 def index(request: HttpRequest) -> HttpResponse:
@@ -59,18 +60,24 @@ def compare_labels(request: HttpRequest) -> HttpResponse:
     for section in dl1_sections:
         sections_dict[section.section_name] = { 
             "section_name": section.section_name, 
-            "section_text1": section.section_text,
+            # "section_text1": section.section_text,
+            "section_text1": bleach.clean(section.section_text, strip=True),
             "section_text2": "Section/subsection doesn't exist for this drug label.",
-            }
+            "isCommon": "not-common-section",
+        }
     
     for section in dl2_sections:
         if section.section_name in sections_dict.keys():
-            sections_dict[section.section_name]["section_text2"] = section.section_text
+            # sections_dict[section.section_name]["section_text2"] = section.section_text
+            sections_dict[section.section_name]["section_text2"] = bleach.clean(section.section_text, strip=True)
+            sections_dict[section.section_name]["isCommon"] = "common-section"
         else:
             sections_dict[section.section_name] = { 
                 "section_name": section.section_name,
                 "section_text1": "Section/subsection doesn't exist for this drug label.",
-                "section_text2": section.section_text,
+                # "section_text2": section.section_text,
+                "section_text2": bleach.clean(section.section_text, strip=True),
+                "isCommon": "not-common-section",
             }
 
     if 'third-label' in request.GET:
@@ -86,13 +93,17 @@ def compare_labels(request: HttpRequest) -> HttpResponse:
 
             for section in dl3_sections:
                 if section.section_name in sections_dict.keys():
-                    sections_dict[section.section_name]["section_text3"] = section.section_text
+                    # sections_dict[section.section_name]["section_text3"] = section.section_text
+                    sections_dict[section.section_name]["section_text3"] = bleach.clean(section.section_text, strip=True)
+                    sections_dict[section.section_name]["isCommon"] = "common-section"
                 else:
                     sections_dict[section.section_name] = { 
                         "section_name": section.section_name,
                         "section_text1": "Section/subsection doesn't exist for this drug label.",
                         "section_text2": "Section/subsection doesn't exist for this drug label.",
-                        "section_text3": section.section_text,
+                        # "section_text3": section.section_text,
+                        "section_text3": bleach.clean(section.section_text, strip=True),
+                        "isCommon": "not-common-section",
                     }
 
         except ObjectDoesNotExist:
@@ -100,6 +111,8 @@ def compare_labels(request: HttpRequest) -> HttpResponse:
 
     context["sections"] = [v for k, v in sections_dict.items()]
     # context['text_highlight'] = "matching-text-highlight"
+    for sec in context["sections"]:
+        print(f'{sec["section_name"]} : {sec["isCommon"]}')
 
     return render(request, 'compare/compare_labels.html', context)
 
@@ -151,8 +164,10 @@ def compare_versions(request):
 
     # compare each section and insert data in context.sections
     for sec_name in sections_dict.keys():
-        text1 = sections_dict[sec_name]["section_text1"]
-        text2 = sections_dict[sec_name]["section_text2"]
+        # text1 = sections_dict[sec_name]["section_text1"]
+        # text2 = sections_dict[sec_name]["section_text2"]
+        text1 = bleach.clean(sections_dict[sec_name]["section_text1"], strip=True)
+        text2 = bleach.clean(sections_dict[sec_name]["section_text2"], strip=True)
 
         diff1, diff2 = get_diff_for_diff_versions(text1, text2)
         sections_dict[sec_name]["section_text1"] = diff1

@@ -22,7 +22,7 @@
 }
 
 /* highlight green if the sections are exact matches */
-.matching-section {
+.matching-section > div {
     border:3px solid green;
     vertical-align: top;
 }
@@ -37,6 +37,10 @@
     background-color:rgba(240, 14, 14, 0.575);
 }
 
+/* .matching-text-highlight {
+    background-color:rgba(14, 240, 74, 0.575);
+} */
+
 .error-msg-display {
     background-color:rgba(240, 14, 14, 0.575);
 }
@@ -44,9 +48,10 @@
 /* Style the button that is used to open and close the collapsible content */
 .collapsible {
     background-color:rgb(149, 210, 238);
-    color: #444;
+    color: black;
     cursor: pointer;
-    margin-left: 10px;
+    /* margin-left: 10px;
+    margin-right: 10px; */
     padding: 18px;
     width: 100%;
     text-align: left;
@@ -56,14 +61,12 @@
   
 /* Add a background color to the button if it is clicked on and when moving the mouse over it (hover) */
 .active, .collapsible:hover {
-    background-color: #ccc;
+    background-color: rgb(88, 191, 239);
 }
   
 /* Style the collapsible content. Note: hidden by default */
 .sec-content {
-    display: none;
-    overflow: hidden;
-    background-color: #f1f1f1;
+    padding-left: 10px;
 }
   
 .section-table {
@@ -77,3 +80,13 @@
     border: 3px solid black;
     vertical-align: top;
 }
+
+#sectionFilterContainer {
+    margin: 10px;
+}
+
+#sectionFilter {
+    margin: 5px;
+}
+
+
