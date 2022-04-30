@@ -29,6 +29,11 @@
 {% for result, highlighted_text in page_obj %}
 <div class="flex my-8 items-center">
   <div class="md:ml-48 w-1/2">
+    <div>
+      <a href=/data/{{result.id}} class="text-sm text-stone-900" target="_blank">
+        {{result.source_product_number}}
+      </a>
+    </div>   
     <a href=/data/{{result.id}} class="text-base text-stone-900" target="_blank">
       {{result.generic_name}} — {{result.marketer}}
     </a>
