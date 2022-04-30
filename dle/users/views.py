@@ -114,7 +114,7 @@ def create_my_label(request):
                 product_name=form.cleaned_data["product_name"],
                 generic_name=form.cleaned_data["generic_name"],
                 version_date=dt.datetime.now(),
-                source_product_number=form.cleaned_data["product_number"],
+                source_product_number="my_label_" + form.cleaned_data["product_number"],
                 marketer=form.cleaned_data["marketer"],
             )
             try:

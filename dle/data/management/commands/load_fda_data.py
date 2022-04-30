@@ -231,21 +231,22 @@ class Command(BaseCommand):
             ml = MyLabel.objects.filter(pk=my_label_id).get()
             xml_file = ml.file.path
             dl = ml.drug_label
-            self.process_xml_file(xml_file, insert, dl)
-            # TODO would be nice to know if the process_xml_file was successful
+            self.process_xml_file(xml_file, insert, dl, my_label_id)
+            # TODO better way to know if the process_xml_file was successful
             ml.is_successfully_parsed = True
             ml.save()
         else:
             for xml_file in xml_records:
                 try:
                     dl = DrugLabel()
-                    self.process_xml_file(xml_file, insert, dl)
+                    self.process_xml_file(xml_file, insert, dl, my_label_id)
                 except Exception as e:
                     logger.error(f"Could not parse {xml_file}")
                     logger.error(str(e))
                     continue
 
-    def process_xml_file(self, xml_file, insert, dl):
+
+    def process_xml_file(self, xml_file, insert, dl, my_label_id=None):
         logger.debug(f"insert: {insert}")
         with open(xml_file) as f:
             content = BeautifulSoup(f.read(), "lxml")
@@ -274,6 +275,9 @@ class Command(BaseCommand):
             dl.source_product_number = content.find(
                 "code", attrs={"codesystem": "2.16.840.1.113883.6.69"}
             ).get("code")
+
+            if my_label_id is not None:
+                dl.source_product_number = f"my_label_{my_label_id}" + dl.source_product_number
 
             texts = [p.text for p in content.find_all("paragraph")]
             dl.raw_text = "\n".join(texts)

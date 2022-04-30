@@ -113,7 +113,7 @@ def process_search(search_request: SearchRequest, user: Optional[User] = None) -
     if search_request.select_section:
         sql += """ AND LOWER(section_name) = %(section_name)s"""
 
-    sql += " LIMIT 40"
+    sql += " LIMIT 100"
     logger.debug(f"sql: {sql}")
     return [d for d in DrugLabel.objects.raw(sql, params=sql_params)]
 
@@ -173,7 +173,8 @@ def build_search_result(
     # sliding window approach to mimic google's truncation
     for i in range(start, end, step):
         text = naked_text[i : i + step]
-        highlighted_text, did_highlight = highlight_text_by_term(text, search_term)
+        search_term_no_quotes = search_term.strip('"')
+        highlighted_text, did_highlight = highlight_text_by_term(text, search_term_no_quotes)
         if did_highlight:
             return search_result, highlighted_text
 

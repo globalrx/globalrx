@@ -9,10 +9,17 @@
     >
     {% if search_request_object.select_agency != '' %}
         <option value="{{search_request_object.select_agency}}">{{search_request_object.select_agency}}</option>
+        <option value="">any agency</option>
+        {% if search_request_object.select_agency == 'fda' %}
+        <option value="ema">ema</option>
+        {% else %}
+        <option value="fda">fda</option>
+        {% endif %}
     {% else %}
         <option selected value="">any agency</option>
+        <option value="fda">fda</option>
+        <option value="ema">ema</option>
     {% endif %}
-      <option value="fda">fda</option>
-      <option value="ema">ema</option>
+
     </select>
   </div>
