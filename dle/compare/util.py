@@ -4,6 +4,8 @@ import gensim
 from gensim.parsing.preprocessing import remove_stopwords
 from .models import *
 
+# Sorting of FDA sections/subsections as they appear on
+# an FDA Prescribing Information
 SECTIONS_ORDER = [
     "BOXED WARNING",
     "RECENT MAJOR CHANGES",
