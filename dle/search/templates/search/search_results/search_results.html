@@ -53,8 +53,8 @@
 <div class="pagination text-lg my-8 flex justify-center">
   <span class="step-links">
       {% if page_obj.has_previous %}
-          <a href="?page=1&{{search_query_url}}">&laquo; first</a>
-          <a href="?page={{ page_obj.previous_page_number }}&{{search_query_url}}">previous</a>
+          <a href="?page=1{{search_query_url}}">&laquo; first</a>
+          <a href="?page={{ page_obj.previous_page_number }}{{search_query_url}}">previous</a>
       {% endif %}
 
       <span class="current">
@@ -62,8 +62,8 @@
       </span>
 
       {% if page_obj.has_next %}
-          <a href="?page={{ page_obj.next_page_number }}&{{search_query_url}}">next</a>
-          <a href="?page={{ page_obj.paginator.num_pages }}&{{search_query_url}}">last &raquo;</a>
+          <a href="?page={{ page_obj.next_page_number }}{{search_query_url}}">next</a>
+          <a href="?page={{ page_obj.paginator.num_pages }}{{search_query_url}}">last &raquo;</a>
       {% endif %}
   </span>
 </div>
