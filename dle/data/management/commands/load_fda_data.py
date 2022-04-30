@@ -185,6 +185,12 @@ class Command(BaseCommand):
                     content = BeautifulSoup(f.read(), "lxml")
 
                     for section in content.find_all("component"):
+                        # the structuredbody component is the parent that contains everything, skip it
+                        structured_body = section.find_next("structuredbody")
+                        if structured_body is not None:
+                            logger.debug(f"SKIPPING: structuredbody")
+                            continue
+
                         code = section.find(
                             "code", attrs={"codesystem": "2.16.840.1.113883.6.1"}
                         )
