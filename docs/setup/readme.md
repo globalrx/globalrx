@@ -138,43 +138,43 @@ ______
 
 References: 
 
+The database server uses Amazon Linux 2 OS on ARM, with MariaDB.
+
+[MariaDB Deployment](https://mariadb.com/docs/deploy/)
+
+[Install MariaDB 10.7 on Amazon Linux 2](https://techviewleo.com/how-to-install-mariadb-server-on-amazon-linux/)
+
+[Installing MariaDB with yum](https://mariadb.com/kb/en/yum/)
+
+The Application server uses Amazon Linux 2 OS on X86, Apache webserver, Django Python Framework.
+
+[Python Installation](https://techviewleo.com/how-to-install-python-on-amazon-linux/)
+
 [Django Quick Install Guide](https://docs.djangoproject.com/en/4.0/intro/install/)
 
 [How to Install Django](https://docs.djangoproject.com/en/4.0/topics/install/)
 
-[Python Installation](https://techviewleo.com/how-to-install-python-on-amazon-linux/)
+A Python virtual environment (venv) is used to segregate the Python application dependencies
 
 [virtualenv setup](https://aws.amazon.com/premiumsupport/knowledge-center/ec2-linux-python3-boto3/)
 
+mod_wsgi plugin for Apache is used to connect to the Python application
+
 [mod_wsgi installation](https://modwsgi.readthedocs.io/en/develop/user-guides/quick-installation-guide.html)
+
+The application is using SSL/TLS
 
 [setup Django to use TLS](https://stackoverflow.com/q/4323737/1807627)
 
-[setup MariaDB to use TLS](https://mariadb.com/kb/en/securing-connections-for-client-and-server/)
-
-[Installing MariaDB with yum](https://mariadb.com/kb/en/yum/)
-
-[Install MariaDB 10.7 on Amazon Linux 2](https://techviewleo.com/how-to-install-mariadb-server-on-amazon-linux/)
-
-[MySQL Secure Install Script](https://bertvv.github.io/notes-to-self/2015/11/16/automating-mysql_secure_installation/)
-
 [Configure SSL/TLS on Amazon Linux 2](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/SSL-on-amazon-linux-2.html)
+
+Lets Encrypt / Certbot is used to handle the SSL/TLS certificates. 
 
 [Using Lets Encrypt on Amazon Linux 2](https://aws.amazon.com/blogs/compute/extending-amazon-linux-2-with-epel-and-lets-encrypt/)
 
 [Using CertBot](https://eff-certbot.readthedocs.io/en/stable/using.html)
 
-[ELB](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-application-load-balancer.html)
-
-[MariaDB ColumnStore Tables](https://mariadb.com/docs/multi-node/columnstore/schema-design/create-table/)
-
-[MariaDB Deployment](https://mariadb.com/docs/deploy/)
-
-[MariaDB ColumnStore configuration](https://mariadb.com/docs/deploy/topologies/columnstore-object-storage/enterprise-server-10-6/)
-
-[MariaDB ColumnStore test installation](https://fromdual.com/create-a-single-node-mariadb-columnstore-test-installation)
-
-[MariaDB ColumnStore Deployment](https://mariadb.com/docs/deploy/topologies/single-node/community-columnstore-cs10-6/)
+Django deployment checklist
 
 [Deployment Checklist](https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/)
 
