@@ -1,3 +1,4 @@
+#!/bin/bash
 
 # parameters
 
@@ -125,7 +126,7 @@ pip install -r /var/www/django/dle/dle/requirements.txt
 
 # - Apache configuration
 
-sudo cp /var/www/django/dle/setup/dle.conf /etc/httpd/conf.d/dle.conf
+sudo cp /var/www/django/dle/docs/setup/dle.conf /etc/httpd/conf.d/dle.conf
 
 sudo systemctl start httpd
 sudo systemctl enable httpd
@@ -137,16 +138,16 @@ sudo systemctl enable httpd
 sudo yum install mod_ssl -y
 cd /etc/pki/tls/certs
 sudo ./make-dummy-cert localhost.crt
-sudo cp /var/www/django/dle/setup/ssl.conf /etc/httpd/conf.d/ssl.conf
+sudo cp /var/www/django/dle/docs/setup/ssl.conf /etc/httpd/conf.d/ssl.conf
 
 # certbot for Let's Encrypt SSL cert
 sudo amazon-linux-extras install epel -y
 sudo yum install python2-certbot-apache.noarch -y
 
-sudo cp /var/www/django/dle/setup/httpd.conf /etc/httpd/conf/httpd.conf
+sudo cp /var/www/django/dle/docs/setup/httpd.conf /etc/httpd/conf/httpd.conf
 sudo systemctl restart httpd
 
-# needs virtal host setup on port 80 first
+# needs virtual host setup on port 80 first
 # needs Apache running first
 sudo certbot --apache -d $HOST -d $HOST_ALIAS -m $HOST_EMAIL -n --agree-tos
 
@@ -163,6 +164,9 @@ python /var/www/django/dle/dle/manage.py migrate
 python /var/www/django/dle/dle/manage.py load_ema_data --type full
 python /var/www/django/dle/dle/manage.py load_fda_data --type full
 python /var/www/django/dle/dle/manage.py update_latest_drug_labels
+
+# after loading the data reset the permissions for the media dir
+sudo chown -R ec2-user:apache /var/www/django/dle/dle/media/
 
 # - Setup cron entries
 CRONLOG="/home/ec2-user/cron.log"
