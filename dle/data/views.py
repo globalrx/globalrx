@@ -32,8 +32,9 @@ def single_label_view(request, drug_label_id):
         sections_dict = {}
         section_names = []
 
-    # get all drug labels with the same product_name
-    drug_label_versions = DrugLabel.objects.filter(product_name=drug_label.product_name).order_by('-version_date')
+    # get all drug labels with the same source_product_number
+    drug_label_versions = DrugLabel.objects.filter(
+        source_product_number=drug_label.source_product_number).order_by('version_date')
     section_names.sort()
 
     context = {

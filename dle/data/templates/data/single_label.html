@@ -14,7 +14,7 @@
       </dl>
     </div>
     <hr>
-    <h5>List of all versions of <b>{{drug_label.product_name}}:</b></h5>
+    <h5>List of all versions of <b>{{drug_label.product_name|title}}</b> with NDC code <b>{{drug_label.source_product_number}}:</b></h5>
     <p>(you can select any two versions and compare them.)</p>
     <div class="row">
       <form name="result_to_compare_form" method="get" action="/compare/compare_versions" target="_blank">
