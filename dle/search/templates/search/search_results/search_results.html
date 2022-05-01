@@ -29,10 +29,12 @@
 {% for result, highlighted_text in page_obj %}
 <div class="flex my-8 items-center">
   <div class="md:ml-48 w-1/2">
-    <a href=/data/{{result.id}} class="text-base text-stone-900" target="_blank">
+    <a href="{% url 'data:single_label_view' drug_label_id=result.id search_text=search_request_object.search_text %}"
+      class="text-base text-stone-900" target="_blank">
       {{result.generic_name}} — {{result.marketer}}
     </a>
-    <a href=/data/{{result.id}} target="_blank">
+    <a href="{% url 'data:single_label_view' drug_label_id=result.id search_text=search_request_object.search_text %}"
+       target="_blank">
       <h2 class="text-xl text-blue-700 group-hover:underline">
         {{result.product_name}}
       </h2>

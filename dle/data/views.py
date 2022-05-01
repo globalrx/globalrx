@@ -11,7 +11,7 @@ def index(request):
     return HttpResponse(str)
 
 
-def single_label_view(request, drug_label_id):
+def single_label_view(request, drug_label_id, search_text=""):
     drug_label = get_object_or_404(DrugLabel, pk=drug_label_id)
     # for now, assume just one
     try:
@@ -23,10 +23,23 @@ def single_label_view(request, drug_label_id):
             section_names.append(section.section_name)
             sections_dict[section.section_name] = {"section_name": section.section_name}
             
-            if drug_label.source == "EMA":
-                sections_dict[section.section_name]["section_text"] = section.section_text.replace("\n", "<br>")
+            # If navigating from search result to single label view
+            # highlight the search text within the single label section text
+            if search_text != "":
+                text = ""
+                for word in section.section_text.split():
+                    for search_word in search_text.split():
+                        if word.lower() == search_word.lower():
+                            text += f"<span style='background-color:yellow'> {word} </span>"
+                        else:
+                            text += f"{word} "
             else:
-                sections_dict[section.section_name]["section_text"] = section.section_text
+                text = section.section_text
+            
+            if drug_label.source == "EMA":
+                sections_dict[section.section_name]["section_text"] = text.replace("\n", "<br>")
+            else:
+                sections_dict[section.section_name]["section_text"] = text
 
     except ObjectDoesNotExist:
         sections_dict = {}

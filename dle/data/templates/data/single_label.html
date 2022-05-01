@@ -6,8 +6,8 @@
       <dl>
         <dt>Generic Name: <b>{{ drug_label.generic_name|title }}</b></dt>
         <dt>Version Date: <b>{{ drug_label.version_date }}</b></dt>
-        <dt>Product Number: <b>{{ drug_label.source_product_number }}</b></dt>
-        <dt>Marketing Authorization Holder: <b>{{ drug_label.marketer|title }}</b></dt>
+        <dt>Product Number (NDC Code): <b>{{ drug_label.source_product_number }}</b></dt>
+        <dt>Marketing Authorization Holder (MAH): <b>{{ drug_label.marketer|title }}</b></dt>
         <dt>Source: <b>{{ drug_label.source }}</b></dt>
         <dt>Go to this <a href="{{ drug_label.link }}">link</a> for the original (FDA/EMA) source document.</dt>
         <dt></dt>
@@ -15,14 +15,14 @@
     </div>
     <hr>
     <h5>List of all versions of <b>{{drug_label.product_name|title}}</b> with NDC code <b>{{drug_label.source_product_number}}:</b></h5>
-    <p>(you can select any two versions and compare them.)</p>
+    <p>(select any two versions and to compare them.)</p>
     <div class="row">
       <form name="result_to_compare_form" method="get" action="/compare/compare_versions" target="_blank">
         {% for label in drug_label_versions %}
         <div class="form-check">
           <label class="form-check-label" for="{{label.id}}">
             <input type="checkbox" class="form-check-input compare-checkbox" onclick="_versions_handleSelectClick()" value={{label.id}} />
-              <a href=/data/{{label.id}} class="text-sml text-stone-900" target="_blank">
+              <a href="{% url 'data:single_label_view' drug_label_id=label.id %}" class="text-sml text-stone-900" target="_blank">
                 <strong>
                   <tr>
                     <td>{{label.product_name}} |</td>
@@ -37,7 +37,7 @@
         {% endfor %}
         <br>
         <button type="button" onclick="_versions_handleCompareSubmit()" class="btn btn-primary">
-          Compare Two Versions
+          Compare Versions
         </button>
       </form>
     </div>
@@ -70,8 +70,6 @@
           </td>
         </tr>
       </table>
-      <!-- <p><h5>{{ section.section_name|title }}</h5></p>
-      <text>{{ section.section_text|safe }}</text> -->
     </div>
     {% endfor %}
   </div>
