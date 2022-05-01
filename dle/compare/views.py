@@ -105,7 +105,15 @@ def compare_labels(request: HttpRequest) -> HttpResponse:
     section_names_list = list(sections_dict.keys())
     section_names_list.sort()
     context["section_names"] = section_names_list
-    context["sections"] = [v for k, v in sections_dict.items()]
+    context["sections"] = []
+
+    for sec_name in SECTIONS_ORDER:
+        if sec_name in sections_dict.keys():
+            context["sections"].append(sections_dict[sec_name])
+    
+    for key, val in sections_dict.items():
+        if key not in SECTIONS_ORDER:
+            context["sections"].append(val)
 
     return render(request, 'compare/compare_labels.html', context)
 
@@ -171,7 +179,16 @@ def compare_versions(request):
     section_names_list = list(sections_dict.keys())
     section_names_list.sort()
     context["section_names"] = section_names_list
-    context["sections"] = [v for k, v in sections_dict.items()]
+    context["sections"] = []
+    
+    for sec_name in SECTIONS_ORDER:
+        if sec_name in sections_dict.keys():
+            context["sections"].append(sections_dict[sec_name])
+    
+    for key, val in sections_dict.items():
+        if key not in SECTIONS_ORDER:
+            context["sections"].append(val)
+
     return render(request, 'compare/compare_versions.html', context)
 
 def compare_result(request):

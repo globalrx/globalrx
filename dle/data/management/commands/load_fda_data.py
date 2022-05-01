@@ -14,8 +14,8 @@ from django.conf import settings
 from django.db.utils import IntegrityError, OperationalError
 
 from data.models import DrugLabel, LabelProduct, ProductSection
-from data.constants import FDA_SECTION_NAMES
 from users.models import MyLabel
+from data.constants import FDA_SECTION_NAME_MAP
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ class Command(BaseCommand):
             "--insert", type=strtobool, help="Set to connect to DB", default=True
         )
         parser.add_argument(
-            "--cleanup", type=strtobool, help="Set to cleanup files", default=True
+            "--cleanup", type=strtobool, help="Set to cleanup files", default=False
         )
         parser.add_argument(
             "--my_label_id", type=int, help="set my_label_id for --type my_label", default=None
@@ -84,6 +84,37 @@ class Command(BaseCommand):
             self.cleanup(xml_files)
 
         logger.info("DONE")
+
+    # Test function for data exploration
+    def get_names(self, xml_files):
+        unapproved_count = 0
+        exception_count = 0
+        total_count = 0
+        for xml_file in xml_files:
+            total_count += 1
+            with open(xml_file) as f:
+                content = BeautifulSoup(f.read(), "lxml")
+                product_name = ""
+                generic_name = ""
+                try:
+                    product_name = content.find("subject").find("name").text.upper()
+                    generic_name = content.find("genericmedicine").find("name").text
+                    unapproved_bool = False
+                    approval = content.find("approval")
+                    if approval is not None:
+                        for code in approval.find_all("code"):
+                            if "unapproved" in code.get("displayname", "").lower():
+                                unapproved_bool = True
+                except Exception as e:
+                    print(e)
+                    exception_count +=1
+                if unapproved_bool:
+                    unapproved_count += 1
+                    print(f"{product_name:50}\t{generic_name:50}\t{str(xml_file).split('/')[-1]}")
+            if total_count % 100 == 0:
+                print(f"{unapproved_count}:{len(xml_files)}\t{exception_count}")
+
+        print(f"{unapproved_count}:{len(xml_files)}\t{exception_count}")
 
     def download_records(self, import_type):
         logger.info("Downloading bulk archives.")
@@ -250,15 +281,21 @@ class Command(BaseCommand):
         logger.debug(f"insert: {insert}")
         with open(xml_file) as f:
             content = BeautifulSoup(f.read(), "lxml")
+
+            # Skip unapproved drug labels
+            if self.check_if_unapproved(content):
+                logger.info(f"Skipping {xml_file} because it is not approved")
+                return
+
             dl.source = "FDA"
-            dl.product_name = content.find("subject").find("name").text.upper()
+            dl.product_name = content.find("subject").find("name").text.title()
             try:
                 generic_name = content.find("genericmedicine").find("name").text
             except AttributeError:
                 # don't insert record if we cannot find this
                 logger.error("unable to find generic_name")
                 return
-            dl.generic_name = generic_name[:255]
+            dl.generic_name = generic_name[:255].title()
 
             try:
                 dl.version_date = datetime.strptime(
@@ -268,19 +305,21 @@ class Command(BaseCommand):
                 dl.version_date = datetime.now()
 
             try:
-                dl.marketer = content.find("author").find("name").text.upper()
+                dl.marketer = content.find("author").find("name").text.title()
             except AttributeError:
                 dl.marketer = ""
 
-            dl.source_product_number = content.find(
-                "code", attrs={"codesystem": "2.16.840.1.113883.6.69"}
-            ).get("code")
-
+            # Ensure always selecting the same ndc code if multiple
+            ndc_codes = [ndc_code.get("code") for ndc_code in content.find_all("code", attrs={"codesystem": "2.16.840.1.113883.6.69"})]
+            dl.source_product_number = sorted(ndc_codes)[0]
+            
+            
             if my_label_id is not None:
                 dl.source_product_number = f"my_label_{my_label_id}" + dl.source_product_number
 
-            texts = [p.text for p in content.find_all("paragraph")]
-            dl.raw_text = "\n".join(texts)
+            # texts = [p.text for p in content.find_all("paragraph")]
+            # dl.raw_text = "\n".join(texts)
+            dl.raw_rext = ""
 
             lp = LabelProduct(drug_label=dl)
 
@@ -335,10 +374,10 @@ class Command(BaseCommand):
                 title = self.re_remove_nonalpha_characters.sub("", title)
                 title = self.re_combine_whitespace.sub(" ", title).strip()
 
-                if title not in FDA_SECTION_NAMES:
+                if title not in FDA_SECTION_NAME_MAP.keys():
                     section_name = "OTHER"
                 else:
-                    section_name = title
+                    section_name = FDA_SECTION_NAME_MAP[title]
 
                 # Now that we have determined what section, grab all the text in the component and add it as the
                 # value to a corresponding hashmap. If a value already exists, add it to the end
@@ -368,7 +407,7 @@ class Command(BaseCommand):
             for section_name, section_text in section_map.items():
                 ps = ProductSection(
                     label_product=lp,
-                    section_name=section_name.upper(),
+                    section_name=section_name.title(),
                     section_text=section_text,
                 )
                 try:
@@ -379,6 +418,17 @@ class Command(BaseCommand):
                     logger.error(str(e))
                 except OperationalError as e:
                     logger.error(str(e))
+
+    def check_if_unapproved(self, content):
+        try:
+            approval = content.find("approval")
+            if approval is not None:
+                for code in approval.find_all("code"):
+                    if "unapproved" in code.get("displayname", "").lower():
+                        return True  # It is unapproved
+        except Exception as e:
+            logger.warning(e)
+        return False  # Otherwise assume it is approved
 
     def cleanup(self, files):
         for file in files:
