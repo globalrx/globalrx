@@ -17,7 +17,7 @@
             <tr>
                 <td class="section-td">
                     <dl>
-                        <dt>Product Name: <a href=/data/{{dl1.id}}>{{ dl1.product_name|title }}</a></dt>
+                        <dt>Product Name: <a href="{% url 'data:single_label_view' drug_label_id=dl1.id %}">{{ dl1.product_name|title }}</a></dt>
                         <dt>Generic Name: {{ dl1.generic_name|title }}</dt>
                         <dt>Version Date: {{ dl1.version_date }}</dt>
                         <dt>Product Number: {{ dl1.source_product_number }}</dt>
@@ -27,7 +27,7 @@
                 </td>
                 <td class="section-td">
                     <dl>
-                        <dt>Product Name: <a href=/data/{{dl1.id}}>{{ dl2.product_name|title }}</a></dt>
+                        <dt>Product Name: <a href="{% url 'data:single_label_view' drug_label_id=dl2.id %}">{{ dl2.product_name|title }}</a></dt>
                         <dt>Generic Name: {{ dl2.generic_name|title }}</dt>
                         <dt>Version Date: {{ dl2.version_date }}</dt>
                         <dt>Product Number: {{ dl2.source_product_number }}</dt>

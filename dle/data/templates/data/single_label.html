@@ -1,43 +1,76 @@
 {% extends "compare/layout.html" %}
 {% block content %}
-  <div class="container-fluid">
+  <div class="container-fluid" id="topdiv">
     <h1> {{ drug_label.product_name|title }}</h1>
     <div class="row">
       <dl>
         <dt>Generic Name: <b>{{ drug_label.generic_name|title }}</b></dt>
         <dt>Version Date: <b>{{ drug_label.version_date }}</b></dt>
-        <dt>Product Number: <b>{{ drug_label.source_product_number }}</b></dt>
-        <dt>Marketing Authorization Holder: <b>{{ drug_label.marketer|title }}</b></dt>
+        <dt>Product Number (NDC Code): <b>{{ drug_label.source_product_number }}</b></dt>
+        <dt>Marketing Authorization Holder (MAH): <b>{{ drug_label.marketer|title }}</b></dt>
         <dt>Source: <b>{{ drug_label.source }}</b></dt>
         <dt>Go to this <a href="{{ drug_label.link }}">link</a> for the original (FDA/EMA) source document.</dt>
         <dt></dt>
       </dl>
     </div>
     <hr>
-    <h5>List of all versions of <b>{{drug_label.product_name}}:</b></h5>
+    <h5>List of all versions of <b>{{drug_label.product_name|title}}</b> with NDC code <b>{{drug_label.source_product_number}}:</b></h5>
+    <p>(select any two versions and to compare them.)</p>
     <div class="row">
       <form name="result_to_compare_form" method="get" action="/compare/compare_versions" target="_blank">
         {% for label in drug_label_versions %}
         <div class="form-check">
           <label class="form-check-label" for="{{label.id}}">
             <input type="checkbox" class="form-check-input compare-checkbox" onclick="_versions_handleSelectClick()" value={{label.id}} />
-              <a href=/data/{{label.id}} class="text-sml text-stone-900" target="_blank">
-                <h6 class="text-xl text-blue-700 group-hover:underline">
-                  <b>{{label.product_name}} ({{label.version_date}})</b> | {{label.source}} | {{label.marketer}}
-                </h6>
+              <a href="{% url 'data:single_label_view' drug_label_id=label.id %}" class="text-sml text-stone-900" target="_blank">
+                <strong>
+                  <tr>
+                    <td>{{label.product_name}} |</td>
+                    <td>{{label.source_product_number}} |</td>
+                    <td>{{label.source}}</td>
+                    <td>({{label.version_date}})</td>
+                  </tr>
+                </strong>
               </a>
           </label>
         </div>
         {% endfor %}
+        <br>
         <button type="button" onclick="_versions_handleCompareSubmit()" class="btn btn-primary">
-          Compare Two Versions
+          Compare Versions
         </button>
       </form>
     </div>
     <hr>
-    {% for section in product_sections %}
-      <p><h5>{{ section.section_name }}</h5></p>
-      <p>{{ section.section_text|safe }}</p>
+    <!-- drop down selection for quick access of a specific section -->
+    <div class="row" id="sectionFilterContainer"> 
+      <div class="col-lg">
+          <label for="section-filter">Jump to a specific section: </label>
+          <select name="section-filter" id="sectionFilter" onchange="jumpToSection()">
+              <option value="all">All Sections </option>
+              {% for sec_name in section_names %}
+              <option value="{{sec_name|cut:' '}}">{{ sec_name|title }}</option>
+              {% endfor %}
+          </select>
+      </div>
+    </div>
+    <!-- display each section's text  -->
+    {% for section in sections %}
+    <div class="row" id="{{section.section_name|cut:' '}}" style="margin-top: 10px;">
+      <table>
+        <tr>
+          <th><h5>{{ section.section_name|title }}</h5></th>
+        </tr>
+        <tr>
+          <td>{{ section.section_text|safe }}</td>
+        </tr>
+        <tr>
+          <td>
+            <a href="#topdiv">Go to the top</a>.
+          </td>
+        </tr>
+      </table>
+    </div>
     {% endfor %}
   </div>
 {% endblock content %}
@@ -113,7 +146,10 @@
         return;
       }
     }
+
+    function jumpToSection() {
+      var selected_sec = document.getElementById("sectionFilter").value;
+      document.getElementById(selected_sec).scrollIntoView();
+    }
   </script>
 {% endblock %}
-
-
