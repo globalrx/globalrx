@@ -30,7 +30,6 @@ class Command(BaseCommand):
     def __init__(self, stdout=None, stderr=None, no_color=False, force_color=False):
         root_logger = logging.getLogger("")
         root_logger.setLevel(logging.INFO)
-        root_logger.setLevel(logging.DEBUG)
 
         self.root_dir = settings.MEDIA_ROOT / "fda"
         os.makedirs(self.root_dir, exist_ok=True)
