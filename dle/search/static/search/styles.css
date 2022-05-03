@@ -7,16 +7,20 @@ header {
     top: 0;
     width: 100%;
     z-index: 1;
+    display: flex;
+    justify-content: space-between;
 }
 
 .content {
-    margin: 80px 20px 20px 40px;
+    margin: 80px 20px 20px 20px;
 }
 
 .brand {
     font-size: 2rem;
     margin-top: 16px;
     margin-left: 40px;
+    padding-bottom: 16px;
+    float: left;
 }
 
 .brand-logo {
@@ -26,13 +30,21 @@ header {
 .brand-logo:hover {
     color: #bbb;
     border-bottom: 5px solid rgb(0, 149, 255);
+    text-decoration: none;
 }
 
 .nav {
-    float: right;
-    margin-top: -36px;
+    margin-top: 26px;
     margin-right: 40px;
-    display: flex;
+    float: right;
+}
+
+ul.nav {
+    text-align: center;
+}
+
+ul.nav li {
+    display: inline-block;
 }
 
 .nav-link {
