@@ -1,0 +1,51 @@
+
+header {
+    box-shadow: 0px 2px 4px  rgba(0,0,0,.5);
+    background-color: #0069D7;
+    height: 80px;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1;
+}
+
+.content {
+    margin: 80px 20px 20px 40px;
+}
+
+.brand {
+    font-size: 2rem;
+    margin-top: 16px;
+    margin-left: 40px;
+}
+
+.brand-logo {
+    color: #fff;
+}
+
+.brand-logo:hover {
+    color: #bbb;
+    border-bottom: 5px solid rgb(0, 149, 255);
+}
+
+.nav {
+    float: right;
+    margin-top: -36px;
+    margin-right: 40px;
+    display: flex;
+}
+
+.nav-link {
+    float: left;
+    display: block;
+    color: #fff;
+    border-bottom: 5px solid transparent;
+    padding-left: 0px;
+    padding-right: 0px;
+    margin-right: 20px;
+}
+
+.nav-link:hover {
+    color: #bbb;
+    border-bottom: 5px solid rgb(0, 149, 255);
+}

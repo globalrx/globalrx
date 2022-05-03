@@ -1,39 +1,21 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script
-      src="https://unpkg.com/htmx.org@1.7.0"
-      integrity="sha384-EzBXYPt0/T6gxNp0nuPtLkmRpmDBbjg6WmCUZRLXBBwYYmwAUxzlSGej0ARHX0Bo"
-      crossorigin="anonymous"
-    ></script>
-    <style>
-      /* clears the ‘X’ from Internet Explorer */
-      input[type="search"]::-ms-clear {
-        display: none;
-        width: 0;
-        height: 0;
-      }
-      input[type="search"]::-ms-reveal {
-        display: none;
-        width: 0;
-        height: 0;
-      }
-      /* clears the ‘X’ from Chrome */
-      input[type="search"]::-webkit-search-decoration,
-      input[type="search"]::-webkit-search-cancel-button,
-      input[type="search"]::-webkit-search-results-button,
-      input[type="search"]::-webkit-search-results-decoration {
-        display: none;
-      }
-      input::-webkit-calendar-picker-indicator {
-        display: none !important;
-      }
-    </style>
-    <title>{% block title %} DLE {% endblock title %}</title>
-  </head>
-  <body>
-    {% block content %}{% endblock content %}
-    {% block footer_scripts %}{% endblock footer_scripts %}
-  </body>
+<html lang="en">
+    <head>
+        {% load static %}
+        <meta charset="UTF-8">
+        <title>{% block title %}DLE{% endblock title %}</title>
+        <link rel="icon" href="{% static 'search/dle-logo.png' %}">
+
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+-            integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+
+        <link href="{% static 'search/styles.css' %}" rel="stylesheet">
+
+        {% block head %}{% endblock %}
+    </head>
+    <body>
+        {% include 'search/header.html' %}
+        <div class="content">{% block content %}{% endblock %}</div>
+        {% block footer_scripts %}{% endblock %}
+    </body>
 </html>

@@ -1,6 +1,6 @@
-{% extends "users/layout.html" %}
+{% extends "search/base.html" %}
 
-{% block body %}
+{% block content %}
     <div class="login">
        <h2>Log in</h2><br>
 
@@ -21,7 +21,7 @@
                 <input class="row form-control" type="password" name="password" placeholder="Password">
             </div>
 
-            <input class="btn btn-dark" type="submit" value="Login">
+            <input class="btn btn-primary" type="submit" value="Login">
         </form><br>
 
         Don't have an account? <a href="{% url 'users:register' %}">Register here.</a>
