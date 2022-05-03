@@ -27,7 +27,7 @@ def login_view(request):
         # Check if authentication successful
         if user is not None:
             login(request, user)
-            return redirect(reverse("users:index"))
+            return redirect(reverse("search:index"))
 
         else:
             return render(
