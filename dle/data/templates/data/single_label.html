@@ -1,4 +1,5 @@
 {% extends "search/base.html" %}
+
 {% block content %}
   <div class="container-fluid" id="topdiv">
     <h1> {{ drug_label.product_name|title }}</h1>
@@ -57,7 +58,12 @@
     <!-- display each section's text  -->
     {% for section in sections %}
     <div class="row" id="{{section.section_name|cut:' '}}" style="margin-top: 10px;">
-      <table style="width:100%"></table>
+      <table style="width:100%">
+        <tr>
+          <td>
+            <hr>
+          </td>
+        </tr>
         <tr>
           <th><h5>{{ section.section_name|title }}</h5></th>
         </tr>
