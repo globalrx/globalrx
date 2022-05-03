@@ -48,7 +48,8 @@
                 <label for="section-filter">Select Section: </label>
                 <select name="section-filter" id="sectionFilter" onchange="showSection()">
                     <option value="all">All Sections </option>
-                    <option value="common-sections">All Common Sections </option>
+                    <option value="diff-sections">Sections with Different Text</option>
+                    <option value="matching-sections">Sections with Matching Text</option>
                     {% for sec_name in section_names %}
                     <option value="{{sec_name|cut:' '}}">{{ sec_name|title }}</option>
                     {% endfor %}
@@ -60,36 +61,39 @@
         </div>
         {% if sections %}
             {% for section in sections %}
-                <div class="row sec-content" id="{{section.section_name|cut:' '}}" style="display:block">
-                    <button type="button" class="collapsible"> > {{ section.section_name|title }}</button>
-                    <table class="section-table" style="display:none">
-                        <tr>
-                          <td class="{{ section.textMatches }} section-td" style="width:50%">
-                              <p>
-                                {% for tuple in section.section_text1 %}
-                                    {% if tuple.0 == 0 %}
-                                        {{ tuple.1|safe }}
-                                    {% elif tuple.0 == -1 %}
-                                        <span class="diff-text-highlight">{{ tuple.1 }}</span>
-                                    {% endif %}
-                                {% endfor %}
-                              </p>
-                          </td>
-                          <td class="{{ section.textMatches }} section-td" style="width:50%">
-                              <p>
-                                {% for tuple in section.section_text2 %}
-                                    {% if tuple.0 == 0 %}
-                                        {{ tuple.1|safe }}
-                                    {% elif tuple.0 == 1 %}
-                                        <span class="diff-text-highlight">{{ tuple.1 }}</span>
-                                    {% endif %}
-                                {% endfor %}
+            <div class="row sec-content {{section.textMatches}}" id="{{section.section_name|cut:' '}}" style="display:block">
+                <button type="button" class="collapsible">
+                    <i class="fa fa-plus-square-o" style="display:block"> <strong>{{ section.section_name|title }}</strong></i>
+                    <i class="fa fa-minus-square-o" style="display:none"> <strong>{{ section.section_name|title }}</strong></i>
+                </button>
+                <table class="section-table" style="display:none" style="width:100%">
+                    <tr>
+                        <td class="td-{{section.textMatches}} section-td" style="width:50%">
+                            <p>
+                            {% for tuple in section.section_text1 %}
+                                {% if tuple.0 == 0 %}
+                                    {{ tuple.1|safe }}
+                                {% elif tuple.0 == -1 %}
+                                    <span class="diff-text-highlight">{{ tuple.1|safe }}</span>
+                                {% endif %}
+                            {% endfor %}
+                            </p>
+                        </td>
+                        <td class="td-{{section.textMatches}} section-td" style="width:50%">
+                            <p>
+                            {% for tuple in section.section_text2 %}
+                                {% if tuple.0 == 0 %}
+                                    {{ tuple.1|safe }}
+                                {% elif tuple.0 == 1 %}
+                                    <span class="diff-text-highlight">{{ tuple.1|safe }}</span>
+                                {% endif %}
+                            {% endfor %}
 
-                              </p>
-                          </td>
-                        </tr>
-                    </table>
-                </div>
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </div>
             {% endfor %}
         {% else %}
             <p>No section texts are found.</p>
@@ -111,12 +115,19 @@
          */
         for (i = 0; i < coll.length; i++) {
             coll[i].addEventListener("click", function() {
-                this.classList.toggle("active");
-                var content = this.nextElementSibling;
+                const content = this.nextElementSibling;
+                const plus_icon = this.getElementsByTagName('i')[0];
+                const minus_icon = this.getElementsByTagName('i')[1];
                 if (content.style.display === "block") {
                     content.style.display = "none";
+                    this.classList.remove("active");
+                    minus_icon.style.display = "none";
+                    plus_icon.style.display = "block";
                 } else {
                     content.style.display = "block";
+                    this.classList.toggle("active");
+                    minus_icon.style.display = "block";
+                    plus_icon.style.display = "none";
                 }
             });
         }
@@ -126,16 +137,46 @@
          * selection from the drop down filter.
          */
         function showSection() {
-            var selected_sec = document.getElementById("sectionFilter").value;
+            const selected_sec = document.getElementById("sectionFilter").value;
             if (selected_sec == 'all') {
                 const sec_divs = document.getElementsByClassName('sec-content');
 
                 for (const div of sec_divs) {
                     div.style.display = 'block';
-                    var tbl = div.getElementsByTagName('table')[0];
+                    const tbl = div.getElementsByTagName('table')[0];
                     tbl.style.display = "none";
-                    var btn = div.getElementsByTagName('button')[0];
+                    const btn = div.getElementsByTagName('button')[0];
                     btn.classList.remove('active');
+                }
+            } else if (selected_sec == 'matching-sections') { 
+                const sec_divs = document.getElementsByClassName('sec-content');
+
+                for (const div of sec_divs) {
+                    div.style.display = 'none';
+                    const tbl = div.getElementsByTagName('table')[0];
+                    tbl.style.display = "none";
+                    const btn = div.getElementsByTagName('button')[0];
+                    btn.classList.remove('active');
+                }
+                const common_sec = document.getElementsByClassName('matching-section');
+
+                for (const div of common_sec) {
+                    div.style.display = 'block';
+                }
+            } else if (selected_sec == 'diff-sections') { 
+                const sec_divs = document.getElementsByClassName('sec-content');
+
+                for (const div of sec_divs) {
+                    div.style.display = 'none';
+                    const tbl = div.getElementsByTagName('table')[0];
+                    tbl.style.display = "none";
+                    const btn = div.getElementsByTagName('button')[0];
+                    btn.classList.remove('active');
+                }
+                const common_sec = document.getElementsByClassName('diff-section');
+
+                for (const div of common_sec) {
+                    div.style.display = 'block';
                 }
             } else {
                 const sec_divs = document.getElementsByClassName('sec-content');
@@ -154,8 +195,8 @@
          * Onclick of the Hide All Sections button, it hides the text of all sections
          * leaving the collapsible blue buttons.
          */
-         function expandSections() {
-            var btn = document.getElementById("expandSections");
+        function expandSections() {
+            const btn = document.getElementById("expandSections");
             if (btn.innerHTML=="Expand All Sections") {
                 btn.innerHTML = "Hide All Sections";
                 const section_tbls = document.getElementsByClassName('section-table');
@@ -165,6 +206,8 @@
                 const section_btns = document.getElementsByClassName('collapsible');
                 for (const btn of section_btns) {
                     btn.classList.toggle("active");
+                    btn.getElementsByTagName('i')[0].style.display = "none";
+                    btn.getElementsByTagName('i')[1].style.display = "block";
                 }
             }
             else {
@@ -176,6 +219,8 @@
                 const section_btns = document.getElementsByClassName('collapsible');
                 for (const btn of section_btns) {
                     btn.classList.remove("active");
+                    btn.getElementsByTagName('i')[0].style.display = "block";
+                    btn.getElementsByTagName('i')[1].style.display = "none";
                 }
             }
             console.log(btn.innerHTML);
