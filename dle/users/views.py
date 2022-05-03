@@ -11,11 +11,6 @@ from django.core import management
 from django.db import connection
 
 
-@login_required
-def index(request):
-    return render(request, "users/index.html")
-
-
 def login_view(request):
     if request.method == "POST":
 
