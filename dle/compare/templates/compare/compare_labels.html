@@ -164,6 +164,8 @@
                     const btn = div.getElementsByTagName('button')[0];
                     btn.classList.remove('active');
                 }
+
+                document.getElementById("expandSections").innerHTML="Expand All Sections";
             } else if (selected_sec == 'common-sections') { 
                 const sec_divs = document.getElementsByClassName('sec-content');
 
@@ -179,6 +181,8 @@
                 for (const div of common_sec) {
                     div.style.display = 'block';
                 }
+
+                document.getElementById("expandSections").innerHTML="Expand All Sections";
             } else {
                 const sec_divs = document.getElementsByClassName('sec-content');
 
