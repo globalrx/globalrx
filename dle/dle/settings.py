@@ -32,7 +32,7 @@ ALLOWED_HOSTS = [
     "testserver",
 ]
 
-# Deployment che
+# Deployment checklist
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!

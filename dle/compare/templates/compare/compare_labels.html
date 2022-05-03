@@ -1,7 +1,11 @@
+{% extends "search/base.html" %}
 
-{% extends "compare/layout.html" %}
-{% block header %}
-{% endblock header %}
+{% block title %}Compare{% endblock %}
+
+{% block head %}
+{% load static %}
+<link href="{% static 'compare/styles.css' %}" rel="stylesheet">
+{% endblock %}
 
 {% block content %}
     <div class="container-fluid">
