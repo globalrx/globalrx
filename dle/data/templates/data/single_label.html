@@ -14,8 +14,8 @@
       </dl>
     </div>
     <hr>
-    <h5>List of all versions of <b>{{drug_label.product_name|title}}</b> with NDC code <b>{{drug_label.source_product_number}}:</b></h5>
-    <p>(select any two versions and to compare them.)</p>
+    <h5>List of all versions with the same <i>product number</i> <b>({{drug_label.source_product_number}}):</b></h5>
+    <p>(select any two versions to compare)</p>
     <div class="row">
       <form name="result_to_compare_form" method="get" action="/compare/compare_versions" target="_blank">
         {% for label in drug_label_versions %}
@@ -25,7 +25,7 @@
               <a href="{% url 'data:single_label_view' drug_label_id=label.id %}" class="text-sml text-stone-900" target="_blank">
                 <strong>
                   <tr>
-                    <td>{{label.product_name}} |</td>
+                    <td>{{label.product_name|title}} |</td>
                     <td>{{label.source_product_number}} |</td>
                     <td>{{label.source}}</td>
                     <td>({{label.version_date}})</td>
@@ -57,7 +57,7 @@
     <!-- display each section's text  -->
     {% for section in sections %}
     <div class="row" id="{{section.section_name|cut:' '}}" style="margin-top: 10px;">
-      <table>
+      <table style="width:100%"></table>
         <tr>
           <th><h5>{{ section.section_name|title }}</h5></th>
         </tr>
@@ -66,7 +66,7 @@
         </tr>
         <tr>
           <td>
-            <a href="#topdiv">Go to the top</a>.
+            <a href="#topdiv">Go to the top.</a>
           </td>
         </tr>
       </table>

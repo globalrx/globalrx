@@ -35,6 +35,17 @@ def single_label_view(request, drug_label_id, search_text=""):
                             text += f"{word} "
             else:
                 text = section.section_text
+
+            # convert common xml tags to html tags
+            text = text.replace('<list listtype="unordered" ', '<ul ')
+            text = text.replace('<list', '<ul ')
+            text = text.replace('</list>', '</ul>')
+            text = text.replace('<item', '<li')
+            text = text.replace('</item>', '</li>')
+            text = text.replace('<paragraph', '<p')
+            text = text.replace('</paragraph>', '</p>')
+            text = text.replace('<linkhtml', '<a')
+            text = text.replace('</linkhtml>', '</a>')
             
             if drug_label.source == "EMA":
                 sections_dict[section.section_name]["section_text"] = text.replace("\n", "<br>")
