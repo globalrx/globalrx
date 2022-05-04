@@ -22,7 +22,7 @@ def login_view(request):
         # Check if authentication successful
         if user is not None:
             login(request, user)
-            return redirect(reverse("search:index"))
+            return redirect(reverse("search:index"), request)
 
         else:
             return render(
@@ -62,7 +62,7 @@ def register(request):
                 request, "users/register.html", {"message": "Username already taken."}
             )
         login(request, user)
-        return redirect(reverse("search:index"))
+        return redirect(reverse("search:index"), request)
     else:
         return render(request, "users/register.html")
 
