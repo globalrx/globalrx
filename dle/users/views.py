@@ -11,11 +11,6 @@ from django.core import management
 from django.db import connection
 
 
-@login_required
-def index(request):
-    return render(request, "users/index.html")
-
-
 def login_view(request):
     if request.method == "POST":
 
@@ -27,7 +22,7 @@ def login_view(request):
         # Check if authentication successful
         if user is not None:
             login(request, user)
-            return redirect(reverse("users:index"))
+            return redirect(reverse("search:index"))
 
         else:
             return render(
@@ -67,7 +62,7 @@ def register(request):
                 request, "users/register.html", {"message": "Username already taken."}
             )
         login(request, user)
-        return redirect(reverse("users:index"))
+        return redirect(reverse("search:index"))
     else:
         return render(request, "users/register.html")
 
