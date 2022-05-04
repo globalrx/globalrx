@@ -9,7 +9,6 @@ from . import services as SearchService
 from data.models import DrugLabel
 
 # NOTE comment out cache decoractors when doing development to view updates to your front-end templates.
-@cache_page(60 * 20) # cache for 20 mins
 def index(request: HttpRequest) -> HttpResponse:
     """Landing page search view."""
     TYPE_AHEAD_MAPPING = get_type_ahead_mapping()
