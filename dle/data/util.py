@@ -8,6 +8,10 @@ def highlight_query_string(text: str, qstring: str) -> str:
     Returns:
         str: A text with the query term highlighted (put b/n <span> tags)
     """
+    # if qstring is empty, return text as is
+    if qstring == "":
+      return text
+
     # if qstring in double quotes, find & highligh full query str
     if qstring.startswith('"') and qstring.endswith('"'):
         qlist = [qstring[1:-1]]
@@ -41,6 +45,7 @@ def highlight_query_string(text: str, qstring: str) -> str:
         result_text = output_text
 
     return result_text
+
 
 def reformat_html_tags_in_raw_text(text: str) -> str:
     """

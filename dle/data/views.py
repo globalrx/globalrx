@@ -26,10 +26,7 @@ def single_label_view(request, drug_label_id, search_text=""):
             
             # If navigating from search result to single label view
             # highlight the search text within the single label section text
-            if search_text != "":
-                text = highlight_query_string(section.section_text, search_text)
-            else:
-                text = section.section_text
+            text = highlight_query_string(section.section_text, search_text)
 
             # convert common xml tags to html tags
             text = reformat_html_tags_in_raw_text(text)
