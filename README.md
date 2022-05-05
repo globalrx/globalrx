@@ -22,3 +22,5 @@ Additional information for the project is included in the [Latest Report](./docs
 
 For setup instructions see: [Setup](./docs/setup/readme.md)
 
+Project slides are [Here](./docs/dle.pdf)
+

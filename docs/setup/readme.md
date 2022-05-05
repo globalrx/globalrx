@@ -9,6 +9,8 @@ This document contains information relating to deploying the DLE system in AWS.
 
 The current architecture of DLE includes 2 EC2 instances (one for Django server and one for MariaDB server), and uses Route 53 for the domain name and DNS.
 
+![DLE Arch Diagram](DLE_AWS_System_Arch.png)
+
 There are currently 2 scripts that are provided that can assist with the deployment of the instances: `server_instance_setup.sh`, and `db_instance_setup.sh`.
 
 Overview of current procedure:
