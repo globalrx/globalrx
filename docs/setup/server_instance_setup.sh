@@ -166,6 +166,7 @@ python /var/www/django/dle/dle/manage.py load_fda_data --type full
 python /var/www/django/dle/dle/manage.py update_latest_drug_labels
 
 # after loading the data reset the permissions for the media dir
+mkdir /var/www/django/dle/dle/media/my_labels
 sudo chown -R ec2-user:apache /var/www/django/dle/dle/media/
 
 # - Setup cron entries
