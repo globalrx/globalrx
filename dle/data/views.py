@@ -27,12 +27,14 @@ def single_label_view(request, drug_label_id, search_text=""):
             # highlight the search text within the single label section text
             if search_text != "":
                 text = ""
+                search_words = search_text.split()
+                search_words = [word.lower() for word in search_words]
                 for word in section.section_text.split():
-                    for search_word in search_text.split():
-                        if word.lower() == search_word.lower():
-                            text += f"<span style='background-color:yellow'> {word} </span>"
-                        else:
-                            text += f"{word} "
+                    if word.lower() in search_words:
+                        text += f"<span style='background-color:yellow'> {word} </span>"
+                    else:
+                        text += word + " "
+
             else:
                 text = section.section_text
 
