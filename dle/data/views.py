@@ -3,6 +3,7 @@ from django.http import HttpResponse
 from .models import DrugLabel, LabelProduct, ProductSection
 from django.core.exceptions import ObjectDoesNotExist
 from compare.util import *
+from .util import *
 
 
 def index(request):
@@ -25,29 +26,10 @@ def single_label_view(request, drug_label_id, search_text=""):
             
             # If navigating from search result to single label view
             # highlight the search text within the single label section text
-            if search_text != "":
-                text = ""
-                search_words = search_text.split()
-                search_words = [word.lower() for word in search_words]
-                for word in section.section_text.split():
-                    if word.lower() in search_words:
-                        text += f"<span style='background-color:yellow'> {word} </span>"
-                    else:
-                        text += word + " "
-
-            else:
-                text = section.section_text
+            text = highlight_query_string(section.section_text, search_text)
 
             # convert common xml tags to html tags
-            text = text.replace('<list listtype="unordered" ', '<ul ')
-            text = text.replace('<list', '<ul ')
-            text = text.replace('</list>', '</ul>')
-            text = text.replace('<item', '<li')
-            text = text.replace('</item>', '</li>')
-            text = text.replace('<paragraph', '<p')
-            text = text.replace('</paragraph>', '</p>')
-            text = text.replace('<linkhtml', '<a')
-            text = text.replace('</linkhtml>', '</a>')
+            text = reformat_html_tags_in_raw_text(text)
             
             if drug_label.source == "EMA":
                 sections_dict[section.section_name]["section_text"] = text.replace("\n", "<br>")
