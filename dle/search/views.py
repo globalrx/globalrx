@@ -35,10 +35,10 @@ def list_search_results(request: HttpRequest) -> HttpResponse:
     if request.user and request.user.is_authenticated:
         return list_search_results_impl(request)
     return list_search_results_cached(request)
-    
+
 @cache_page(60 * 20)
 def list_search_results_cached(request: HttpRequest) -> HttpResponse:
-    list_search_results_impl(request)
+    return list_search_results_impl(request)
 
 def list_search_results_impl(request: HttpRequest) -> HttpResponse:
     """Search results list view
