@@ -2,15 +2,25 @@ from typing import List, Set, Tuple
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.core.paginator import Paginator
-from django.views.decorators.cache import cache_page
+from django.views.decorators.cache import cache_page, cache_control
 from search.models import SearchRequest
 from .services import get_type_ahead_mapping
 from . import services as SearchService
 from data.models import DrugLabel
 
-# NOTE comment out cache decoractors when doing development to view updates to your front-end templates.
+# NOTE comment out cache decorators when doing development to view updates to your front-end templates.
 def index(request: HttpRequest) -> HttpResponse:
     """Landing page search view."""
+    # turn off caching for authenticated users
+    if request.user and request.user.is_authenticated:
+        return index_impl(request)
+    return index_cached(request)
+
+@cache_page(60 * 20)
+def index_cached(request: HttpRequest) -> HttpResponse:
+    return index_impl(request)
+
+def index_impl(request: HttpRequest) -> HttpResponse:
     TYPE_AHEAD_MAPPING = get_type_ahead_mapping()
     context = {
         "type_ahead_manufacturer": TYPE_AHEAD_MAPPING["manufacturers"],
@@ -21,8 +31,16 @@ def index(request: HttpRequest) -> HttpResponse:
 
     return render(request, "search/search_landing/search_landing.html", context)
 
-@cache_page(60 * 20)
 def list_search_results(request: HttpRequest) -> HttpResponse:
+    if request.user and request.user.is_authenticated:
+        return list_search_results_impl(request)
+    return list_search_results_cached(request)
+    
+@cache_page(60 * 20)
+def list_search_results_cached(request: HttpRequest) -> HttpResponse:
+    list_search_results_impl(request)
+
+def list_search_results_impl(request: HttpRequest) -> HttpResponse:
     """Search results list view
     Args:
         request (HttpRequest): GET request with search text and multiple boolean flags.
