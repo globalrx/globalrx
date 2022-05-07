@@ -3,6 +3,7 @@ from django.http import HttpResponse, HttpRequest
 from django.core.exceptions import ObjectDoesNotExist
 from .models import *
 from .util import *
+from data.util import *
 import bleach
 
 
@@ -15,6 +16,7 @@ def compare_labels(request: HttpRequest) -> HttpResponse:
     """
     drug_label1 = get_object_or_404(DrugLabel, id = request.GET['first-label'])
     drug_label2 = get_object_or_404(DrugLabel, id = request.GET['second-label'])
+    search_text = request.GET['search_text']
 
     try:
         label_product1 = LabelProduct.objects.filter(drug_label = drug_label1).first()
@@ -32,27 +34,28 @@ def compare_labels(request: HttpRequest) -> HttpResponse:
     sections_dict = {}
 
     for section in dl1_sections:
+        text = bleach.clean(section.section_text, strip=True)
         sections_dict[section.section_name] = { 
             "section_name": section.section_name, 
-            "section_text1": bleach.clean(section.section_text, strip=True),
-            "section_text2": "Section/subsection doesn't exist for this drug label.",
+            "section_text1": highlight_query_string(text, search_text),
+            "section_text2": "No text found for this section.",
             "isCommon": "not-common-section",
         }
     
     for section in dl2_sections:
+        text = bleach.clean(section.section_text, strip=True)
         if section.section_name in sections_dict.keys():
-            sections_dict[section.section_name]["section_text2"] = bleach.clean(section.section_text, strip=True)
+            sections_dict[section.section_name]["section_text2"] = highlight_query_string(text, search_text)
             sections_dict[section.section_name]["isCommon"] = "common-section"
         else:
             sections_dict[section.section_name] = { 
                 "section_name": section.section_name,
-                "section_text1": "Section/subsection doesn't exist for this drug label.",
-                "section_text2": bleach.clean(section.section_text, strip=True),
+                "section_text1": "No text found for this section.",
+                "section_text2": highlight_query_string(text, search_text),
                 "isCommon": "not-common-section",
             }
 
     if 'third-label' in request.GET:
-        print("third-label requested")
         drug_label3 = get_object_or_404(DrugLabel, id = request.GET['third-label'])
         try:
             label_product3 = LabelProduct.objects.filter(drug_label = drug_label3).first()
@@ -60,18 +63,19 @@ def compare_labels(request: HttpRequest) -> HttpResponse:
             context['dl3'] = drug_label3
 
             for section_name in sections_dict.keys():
-                sections_dict[section_name]["section_text3"] = "Section/subsection doesn't exist for this drug label."
+                sections_dict[section_name]["section_text3"] = "No text found for this section."
 
             for section in dl3_sections:
+                text = bleach.clean(section.section_text, strip=True)
                 if section.section_name in sections_dict.keys():
-                    sections_dict[section.section_name]["section_text3"] = bleach.clean(section.section_text, strip=True)
+                    sections_dict[section.section_name]["section_text3"] = highlight_query_string(text, search_text)
                     sections_dict[section.section_name]["isCommon"] = "common-section"
                 else:
                     sections_dict[section.section_name] = { 
                         "section_name": section.section_name,
-                        "section_text1": "Section/subsection doesn't exist for this drug label.",
-                        "section_text2": "Section/subsection doesn't exist for this drug label.",
-                        "section_text3": bleach.clean(section.section_text, strip=True),
+                        "section_text1": "No text found for this section.",
+                        "section_text2": "No text found for this section.",
+                        "section_text3": highlight_query_string(text, search_text),
                         "isCommon": "not-common-section",
                     }
 
@@ -124,7 +128,7 @@ def compare_versions(request):
         sections_dict[section.section_name] = { 
             "section_name": section.section_name, 
             "section_text1": section.section_text,
-            "section_text2": "Section/subsection doesn't exist for this drug label.",
+            "section_text2": "No text found for this section.",
             }
     
     for section in dl2_sections:
@@ -133,7 +137,7 @@ def compare_versions(request):
         else:
             sections_dict[section.section_name] = { 
                 "section_name": section.section_name,
-                "section_text1": "Section/subsection doesn't exist for this drug label.",
+                "section_text1": "No text found for this section.",
                 "section_text2": section.section_text,
             }
 
