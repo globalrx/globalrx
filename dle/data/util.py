@@ -9,7 +9,7 @@ def highlight_query_string(text: str, qstring: str) -> str:
     Returns:
         str: A text with the query term highlighted (put b/n <span> tags)
     """
-    text_lower = input_text.lower()
+    text_lower = text.lower()
 
     # if qstring is empty, return text as is
     if qstring == "":
