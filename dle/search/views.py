@@ -16,7 +16,7 @@ def index(request: HttpRequest) -> HttpResponse:
         return index_impl(request)
     return index_cached(request)
 
-@cache_page(60 * 20)
+@cache_page(60 * 60)
 def index_cached(request: HttpRequest) -> HttpResponse:
     return index_impl(request)
 
@@ -36,7 +36,7 @@ def list_search_results(request: HttpRequest) -> HttpResponse:
         return list_search_results_impl(request)
     return list_search_results_cached(request)
 
-@cache_page(60 * 20)
+@cache_page(60 * 60)
 def list_search_results_cached(request: HttpRequest) -> HttpResponse:
     return list_search_results_impl(request)
 
