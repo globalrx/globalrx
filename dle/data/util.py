@@ -1,3 +1,4 @@
+import re
 
 def highlight_query_string(text: str, qstring: str) -> str:
     """
@@ -8,6 +9,8 @@ def highlight_query_string(text: str, qstring: str) -> str:
     Returns:
         str: A text with the query term highlighted (put b/n <span> tags)
     """
+    text_lower = input_text.lower()
+
     # if qstring is empty, return text as is
     if qstring == "":
       return text
@@ -24,28 +27,39 @@ def highlight_query_string(text: str, qstring: str) -> str:
     else:
         qlist = qstring.split()
 
-    result_text = text
 
-    for qterm in qlist:
-        length = len(qterm)
-        index = 0
-        output_text = ""
-        subtext = result_text[0:]
-        while index != -1:
-            index = subtext.find(qterm)
-            if index == -1:
-                output_text += subtext
-            else:
-                output_text += subtext[0:index]
-                output_text += f"<span style='background-color:yellow'>" 
-                output_text += subtext[index: index + length]
-                output_text += "</span>"
-                subtext = subtext[index + length:]
+    # include upper, title, capitalized cases of the query strings
+    qlist += [qterm.upper() for qterm in qlist] \
+           + [qterm.capitalize() for qterm in qlist] \
+           + [qterm.title() for qterm in qlist]
 
-        result_text = output_text
+    # get (index, "qterm") tuples in the input text
+    positions = []
+    for qterm in set(qlist):
+        positions += [(_.start(), qterm) for _ in re.finditer(qterm, text_lower)]
 
-    return result_text
+    if positions == []:
+        return text
 
+    positions.sort()
+    # iterate through positions and insert <span> tags in text
+    output_text = ""
+    length = len(positions)
+    start = 0
+    end = positions[0][0]
+
+    for i in range(length):
+        output_text += text[start:end]
+        output_text += f"<span style='background-color:yellow'>"
+        output_text += positions[i][1]
+        output_text += "</span>"
+        start = end + len(positions[i][1])
+        if i < length - 1:
+            end = positions[i+1][0]
+
+    output_text += text[start:len(text)]
+
+    return output_text
 
 def reformat_html_tags_in_raw_text(text: str) -> str:
     """
