@@ -57,7 +57,7 @@ Launch EC2 Instance
 - AMI - Amazon Linux 2 AMI, 64-bit (Arm)
 - Instance Type - r6g.xlarge
 - Configure Instance - User data > As file > Select the [`db_instance_setup.sh`](./db_instance_setup.sh) file
-- Add Storage - 50GB gp3 volume
+- Add Storage - 50GB gp3 volume, 6000 IOPS
 - Tags - 'Name' => 'dle-maria'
 - Security Group - Select an existing security group > 'default VPC security group'
 - Launch - Create a new key pair (dle) OR Choose an existing key pair
@@ -87,7 +87,7 @@ Launch EC2 Instance
 (using these settings for now, may modify)
 
 - AMI - Amazon Linux 2 AMI, 64-bit (X86)
-- Instance Type - t2.micro
+- Instance Type - t2.medium
 - Configure Instance - User data > As file > Select the [`server_instance_setup.sh`](./server_instance_setup.sh) file
 - Add Storage - 42GB gp3 volume
 - Tags - 'Name' => 'dle-django'
