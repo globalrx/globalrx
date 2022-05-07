@@ -95,25 +95,13 @@ WSGI_APPLICATION = "dle.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.mysql",
-#         "NAME": "dle",
-#         "USER": "dle_user",
-#         "PASSWORD": os.environ.get("DATABASE_PASSWORD", "uDyvfMXHIKCJ"),
-#         "HOST": os.environ.get("DATABASE_HOST", "drug-label-db.org"),
-#         "PORT": "3306",
-#     }
-# }
-
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.mysql",
         "NAME": "dle",
         "USER": "dle_user",
-        "PASSWORD": "uDyvfMXHIKCJ",
-        # 'HOST': '172.31.12.231', # private IP
-        "HOST": "44.238.69.61",  # public IP
+        "PASSWORD": os.environ.get("DATABASE_PASSWORD", "uDyvfMXHIKCJ"),
+        "HOST": os.environ.get("DATABASE_HOST", "drug-label-db.org"),
         "PORT": "3306",
     }
 }

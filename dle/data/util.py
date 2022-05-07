@@ -9,6 +9,8 @@ def highlight_query_string(text: str, qstring: str) -> str:
     Returns:
         str: A text with the query term highlighted (put b/n <span> tags)
     """
+    text_lower = input_text.lower()
+
     # if qstring is empty, return text as is
     if qstring == "":
       return text
@@ -34,7 +36,7 @@ def highlight_query_string(text: str, qstring: str) -> str:
     # get (index, "qterm") tuples in the input text
     positions = []
     for qterm in set(qlist):
-        positions += [(_.start(), qterm) for _ in re.finditer(qterm, text)]
+        positions += [(_.start(), qterm) for _ in re.finditer(qterm, text_lower)]
 
     if positions == []:
         return text
