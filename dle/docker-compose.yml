@@ -1,0 +1,35 @@
+version: '3'
+
+volumes:
+  local_postgres_data: {}
+  local_postgres_data_backups: {}
+  certs:
+    driver: local
+  esdata01:
+    driver: local
+
+services:
+  django:
+    build:
+      dockerfile: Dockerfile.dev
+    image: dle-django
+    depends_on:
+      - postgres
+    links:
+      - postgres
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    # command: tail -F anything # Use this to keep up container to test if it fails to start
+
+  postgres:
+    hostname: postgres
+    image: postgres:14.6 # latest supported by RDS
+    volumes:
+      - local_postgres_data:/var/lib/postgresql/data
+      - local_postgres_data_backups:/backups
+    env_file:
+      - .env

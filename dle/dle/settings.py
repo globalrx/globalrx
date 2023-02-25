@@ -12,10 +12,12 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 
 from pathlib import Path
 import os
-from dotenv import load_dotenv
+from django.core.exceptions import ImproperlyConfigured
+import environ
 
 # can override settings in .env, see .env.example
-load_dotenv()
+env = environ.Env()
+environ.Env.read_env()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -24,24 +26,36 @@ STATIC_ROOT = os.path.join(BASE_DIR, "static/")
 
 MEDIA_ROOT = BASE_DIR / "media"
 
-ALLOWED_HOSTS = [
-    "druglabelexplorer.org",
-    "www.druglabelexplorer.org",
-    "127.0.0.1",
-    "localhost",
-    "testserver",
-]
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/4.0/howto/static-files/
+
+STATIC_URL = "/static/"
+
+# Hosts and CIDR (AWS subnets)
+try:
+    ALLOWED_HOSTS = [
+        "druglabelexplorer.org",
+        "www.druglabelexplorer.org",
+        "127.0.0.1",
+        "localhost",
+        "testserver",
+    ] + env.list("ALLOWED_HOSTS")
+except ImproperlyConfigured:
+    ALLOWED_HOSTS = ["localhost", "0.0.0.0", "127.0.0.1"]
+try:
+    ALLOWED_CIDR_NETS = env.list("ALLOWED_CIDR_NETS")
+    print(f"ALLOWED_CIDR_NETS: {ALLOWED_CIDR_NETS}")
+except ImproperlyConfigured:
+    print("Allowed CIDR Nets is not set")
 
 # Deployment checklist
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get(
-    "SECRET_KEY", "django-insecure-_6bj_d%p=_-uxqkg7dzg=8e7@35g2b8q08gtjq=$%spegl*v-_"
-)
+SECRET_KEY = env.str("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.environ.get("DEBUG", False)
+DEBUG = env.bool("DEBUG", False)
 
 LOGIN_URL = "/users/login/"
 
@@ -95,16 +109,20 @@ WSGI_APPLICATION = "dle.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
+# DATABASES = {
+#     "default": {
+#         "ENGINE": "django.db.backends.mysql",
+#         "NAME": "dle",
+#         "USER": "dle_user",
+#         "PASSWORD": os.environ.get("DATABASE_PASSWORD", "uDyvfMXHIKCJ"),
+#         "HOST": os.environ.get("DATABASE_HOST", "drug-label-db.org"),
+#         "PORT": "3306",
+#     }
+# }
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.mysql",
-        "NAME": "dle",
-        "USER": "dle_user",
-        "PASSWORD": os.environ.get("DATABASE_PASSWORD", "uDyvfMXHIKCJ"),
-        "HOST": os.environ.get("DATABASE_HOST", "drug-label-db.org"),
-        "PORT": "3306",
-    }
+    "default": env.db("DATABASE_URL")
 }
+DATABASES["default"]["ENGINE"] = 'django.db.backends.postgresql',
 
 # override host for CI process
 if os.environ.get("GITHUB_WORKFLOW"):
@@ -140,11 +158,6 @@ USE_I18N = True
 USE_TZ = True
 
 USE_L10N = True
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.0/howto/static-files/
-
-STATIC_URL = "static/"
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
