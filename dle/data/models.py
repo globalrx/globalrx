@@ -1,4 +1,6 @@
 from django.db import models
+from django.contrib.postgres.indexes import GinIndex
+from django.contrib.postgres.search import SearchVectorField
 
 # Create your models here. Then run:
 # `python manage.py makemigrations`
@@ -65,3 +67,9 @@ class ProductSection(models.Model):
     label_product = models.ForeignKey(LabelProduct, on_delete=models.CASCADE)
     section_name = models.CharField(max_length=255, db_index=True)
     section_text = models.TextField()
+
+    # https://fueled.com/the-cache/posts/backend/django/setup-full-text-search-index-in-django/
+    search_vector = SearchVectorField(null=True)
+
+    class Meta:
+        indexes = (GinIndex(fields=["search_vector"]),)
