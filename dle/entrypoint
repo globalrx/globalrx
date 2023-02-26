@@ -21,7 +21,7 @@ fi
 if [[ ($INIT_SUPERUSER) && ("$INIT_SUPERUSER" = "True") ]]; then
   # Uses the DJANGO_SUPERUSER_* environment variables to create a superuser
   echo "Creating superuser"
-  python3 manage.py createsuperuser --noinput --username
+  python3 manage.py createsuperuser --noinput
 fi
 
 # if [[ ($LOAD) && ("$LOAD" = "True") ]]; then
