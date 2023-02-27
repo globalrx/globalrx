@@ -24,11 +24,19 @@ if [[ ($INIT_SUPERUSER) && ("$INIT_SUPERUSER" = "True") ]]; then
   python3 manage.py createsuperuser --noinput
 fi
 
-# if [[ ($LOAD) && ("$LOAD" = "True") ]]; then
-#   echo "Beginning the data ingest"
-#   python3 manage.py ingest --type All
-#   echo "Ended the data ingest"
-# fi
+if [[ ($LOAD) && ("$LOAD" = "True") ]]; then
+  echo "Beginning the data ingest"
+  echo "Loading EMA data"
+  python3 manage.py load_ema_data --type full
+  echo "Finished loading EMA data"
+  echo "Loading FDA data"
+  python3 manage.py load_fda_data --type full
+  echo "Finished loading FDA data"
+  echo "Updating latest drug labels"
+  python3 manage.py update_latest_drug_labels
+  echo "Finished updating latest drug labels"
+  echo "Ended the data ingest"
+fi
 
 # Trying to run Nginx as separate container
 # If using base Dockerfile which installs Nginx in the Django container, then set this flag to true
