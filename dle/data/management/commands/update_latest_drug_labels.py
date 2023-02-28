@@ -52,7 +52,7 @@ class Command(BaseCommand):
             AND dl.version_date = t.version_date
         """
 
-        sql_4 = f"ALTER TABLE {LASTEST_DRUG_LABELS_TABLE} ADD INDEX id (id)"
+        sql_4 = f"CREATE INDEX IF NOT EXISTS id ON {LASTEST_DRUG_LABELS_TABLE} (id)"
 
         with connection.cursor() as cursor:
             cursor.execute(sql_1)
