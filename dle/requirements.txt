@@ -19,6 +19,7 @@ djangorestframework==3.14.0
 # git+https://github.com/ColeDCrawford/elasticsearch-django/tree/es-config-options#egg=elasticsearch-django # no git in the container
 https://github.com/ColeDCrawford/elasticsearch-django/archive/es-config-options.tar.gz#egg=elasticsearch-django
 
+eland[pytorch]==8.3.0
 et-xmlfile==1.1.0
 fonttools==4.32.0
 gensim==4.1.2
