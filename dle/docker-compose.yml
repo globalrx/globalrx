@@ -100,6 +100,7 @@ services:
       - ${ES_PORT}:9200
     environment:
       - node.name=es01
+      - node.roles=[master, data, ingest, ml]
       - cluster.name=${CLUSTER_NAME}
       - discovery.type=single-node
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
@@ -117,7 +118,7 @@ services:
       - xpack.security.transport.ssl.verification_mode=certificate
       - xpack.license.self_generated.type=${LICENSE}
       - ingest.geoip.downloader.enabled=false
-      - xpack.ml.enabled=false
+      - xpack.ml.enabled=true
     env_file:
       - .env
     mem_limit: ${MEM_LIMIT}
@@ -152,6 +153,7 @@ services:
       - ELASTICSEARCH_USERNAME=kibana_system
       - ELASTICSEARCH_PASSWORD=${KIBANA_PASSWORD}
       - ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES=config/certs/ca/ca.crt
+      - xpack.ml.enabled=true
     mem_limit: ${MEM_LIMIT}
     healthcheck:
       test:
