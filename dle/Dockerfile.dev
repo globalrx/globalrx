@@ -29,7 +29,8 @@ COPY requirements.txt /app
 RUN pip install -r requirements.txt
 
 # Setup app
-COPY . /app
+# COPY . /app
+COPY entrypoint /app
 
 # RUN sed -i 's/\r$//g' /app/postgres_ready.py
 # RUN chmod +x /app/postgres_ready.py

@@ -14,6 +14,7 @@ from pathlib import Path
 import os
 from django.core.exceptions import ImproperlyConfigured
 import environ
+import ssl
 
 # can override settings in .env, see .env.example
 env = environ.Env()
@@ -71,6 +72,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "search.apps.SearchConfig",
+    "elasticsearch_django"
 ]
 
 AUTH_USER_MODEL = "users.User"
@@ -183,4 +185,40 @@ LOGGING = {
         "handlers": ["console"],
         "level": "WARNING",
     },
+}
+
+# Elasticsearch
+SEARCH_SETTINGS = {
+    'connections': {
+        # 'default': env.str('ELASTICSEARCH_URL'),
+        'default': {
+            'url': env.str('ELASTICSEARCH_URL'),
+            'verify_certs': True,
+            'http_auth': (env.str('ELASTICSEARCH_USER'), env.str('ELASTIC_PASSWORD')),
+            'ssl_version': ssl.TLSVersion.TLSv1_2,
+            'ca_certs': '/usr/share/elasticsearch/config/certs/ca/ca.crt'
+        }
+    },
+    'indexes': {
+        'druglabel': {
+            'models': [
+                'data.DrugLabel',
+                # 'data.LabelProduct',
+                # 'data.ProductSection',
+            ]
+        }
+    },
+    'settings': {
+        # batch size for ES bulk api operations
+        'chunk_size': 500,
+        # default page size for search results
+        'page_size': 25,
+        # set to True to connect post_save/delete signals
+        'auto_sync': True,
+        # List of models which will never auto_sync even if auto_sync is True
+        'never_auto_sync': [],
+        # if true, then indexes must have mapping files
+        'strict_validation': False,
+        'mappings_dir': 'search/mappings',
+    }
 }

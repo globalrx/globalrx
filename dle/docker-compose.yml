@@ -25,6 +25,8 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
+      # certs are needed for elasticsearch HTTPS
+      - certs:/usr/share/elasticsearch/config/certs
     # command: tail -F anything # Use this to keep up container to test if it fails to start
 
   postgres:
@@ -102,7 +104,7 @@ services:
       - discovery.type=single-node
       - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
       - bootstrap.memory_lock=true
-      - xpack.security.enabled=true
+      - xpack.security.enabled=true # turning this off makes setup not complete and Kibana not start
       - xpack.security.http.ssl.enabled=true
       - xpack.security.http.ssl.key=certs/es01/es01.key
       - xpack.security.http.ssl.certificate=certs/es01/es01.crt

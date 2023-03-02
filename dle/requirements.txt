@@ -3,7 +3,6 @@ backports.zoneinfo==0.2.1;python_version<"3.9"
 beautifulsoup4==4.10.0
 black==22.1.0
 bleach==5.0.0
-# bs4==0.0. # same as beautifulsoup4
 certifi==2021.10.8
 charset-normalizer==2.0.12
 click==8.0.4
@@ -11,6 +10,15 @@ cycler==0.11.0
 diff-match-patch==20200713
 Django==4.0.2
 django-environ==0.9.0
+djangorestframework==3.14.0
+
+# elasticsearch-django==8.1.2
+# Using local instead for now ...
+# -install-option="--no-build-isolation" -e /usr/share/elasticsearch-django
+# Cole's fork of elasticsearch-django
+# git+https://github.com/ColeDCrawford/elasticsearch-django/tree/es-config-options#egg=elasticsearch-django # no git in the container
+https://github.com/ColeDCrawford/elasticsearch-django/archive/es-config-options.tar.gz#egg=elasticsearch-django
+
 et-xmlfile==1.1.0
 fonttools==4.32.0
 gensim==4.1.2
@@ -20,7 +28,6 @@ kiwisolver==1.4.2
 lxml==4.8.0
 matplotlib==3.5.1
 mypy-extensions==0.4.3
-# mysqlclient==2.1.0
 numpy==1.22.3
 openpyxl==3.0.9
 packaging==21.3
@@ -28,6 +35,8 @@ pandas==1.4.1
 pathspec==0.9.0
 Pillow==9.1.0
 platformdirs==2.5.1
+# only needed if installing elasticsearch-django in editable mode for local dev
+# poetry==1.4.0
 psycopg2==2.9.5
 PyMuPDF==1.19.6
 pyparsing==3.0.8
