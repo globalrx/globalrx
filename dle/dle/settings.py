@@ -186,7 +186,8 @@ SEARCH_SETTINGS = {
             'verify_certs': True,
             'http_auth': (env.str('ELASTICSEARCH_USER'), env.str('ELASTIC_PASSWORD')),
             'ssl_version': ssl.TLSVersion.TLSv1_2,
-            'ca_certs': '/usr/share/elasticsearch/config/certs/ca/ca.crt'
+            'ca_certs': '/usr/share/elasticsearch/config/certs/ca/ca.crt',
+            'timeout': 180,
         }
     },
     'indexes': {
@@ -203,6 +204,7 @@ SEARCH_SETTINGS = {
     },
     'settings': {
         # batch size for ES bulk api operations
+        #timed out at 500 and 100 and 25 on BERT - was taking ~15 to ~28s per vectorization task so needed 3min and batch size of 5
         'chunk_size': 500,
         # default page size for search results
         'page_size': 25,

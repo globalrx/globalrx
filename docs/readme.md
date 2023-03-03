@@ -71,7 +71,8 @@ The project is containerized so that it can be run locally or deployed to a clou
                     "id": 3243
                 }
                 ```
-    - Set up BERT pipeline
+    - Set up BERT pipeline (requires Elasticsearch trial license and ML features enabled; may not work well locally due to resource constraints)
+        - See https://www.elastic.co/blog/how-to-deploy-nlp-text-embeddings-and-vector-search
         - From the `Django` service, run `eland_import_hub_model --ca-certs /usr/share/elasticsearch/config/certs/ca/ca.crt --url https://elastic:<YOUR PASSWORD></YOUR>@es01:9200/ --hub-model-id Charangan/MedBERT --task-type text_embedding --start` to import the MedBERT model into Elasticsearch
         - In Kibana, create the pipeline:
             ```
@@ -80,38 +81,56 @@ The project is containerized so that it can be run locally or deployed to a clou
                 "description": "Text embedding pipeline using HuggingFace Charangan/MedBERT",
                 "processors": [
                     {
-                    "inference": {
-                        "model_id": "charangan__medbert",
-                        "target_field": "text_embedding",
-                        "field_map": {
-                        "text": "section_text"
+                        "inference": {
+                            "model_id": "charangan__medbert",
+                            "target_field": "text_embedding",
+                            "field_map": {
+                                "section_text": "text_field"
+                            }
                         }
-                    }
                     }
                 ],
                 "on_failure": [
                     {
-                    "set": {
-                        "description": "Index document to 'failed-<index>'",
-                        "field": "_index",
-                        "value": "failed-{{{_index}}}"
-                    }
+                        "set": {
+                            "description": "Index document to 'failed-<index>'",
+                            "field": "_index",
+                            "value": "failed-{{{_index}}}"
+                        }
                     },
                     {
-                    "set": {
-                        "description": "Set error message",
-                        "field": "ingest.failure",
-                        "value": "{{_ingest.on_failure_message}}"
-                    }
+                        "set": {
+                            "description": "Set error message",
+                            "field": "ingest.failure",
+                            "value": "{{_ingest.on_failure_message}}"
+                        }
                     }
                 ]
             }
             ```
+    - Set the index default pipeline
+        ```
+        PUT /productsection/_settings
+        {
+            "index" : {
+                "default_pipeline": "medbert"
+            }
+        }
+        ```
     - Index Django data into Elasticsearch
         - Run `python3 manage.py update_search_index druglabel` to index all drug labels (~43k March 2023)
+            - This should run fairly quickly, no vectorization
         - Run `python3 manage.py update_search_index productsection` to index all product sections (~958k March 2023)
-    - TODO figure out how to run BERT vectorization during ingest
-        - See https://www.elastic.co/blog/how-to-deploy-nlp-text-embeddings-and-vector-search
+            - This took between 20 minutes and an hour before vectorization and is too slow to run locally with ~10GB RAM, MEM_LIMIT for ES at 8GB, and 4CPUs (~20s per document) with a batch size of 5 (vs 500...) and timeout at 180s. Will need a bigger machine to run this.
+            - If you too are experiencing this slow of indexing, you can remove the default pipeline and index the data without vectorization, then rerun `update_search_index` without the pipeline:
+            ```
+            PUT /productsection/_settings
+            {
+                "index" : {
+                    "default_pipeline": null
+                }
+            }
+            ```
 
 ## Deployment
 
