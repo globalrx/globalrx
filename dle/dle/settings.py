@@ -111,16 +111,6 @@ WSGI_APPLICATION = "dle.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-# DATABASES = {
-#     "default": {
-#         "ENGINE": "django.db.backends.mysql",
-#         "NAME": "dle",
-#         "USER": "dle_user",
-#         "PASSWORD": os.environ.get("DATABASE_PASSWORD", "uDyvfMXHIKCJ"),
-#         "HOST": os.environ.get("DATABASE_HOST", "drug-label-db.org"),
-#         "PORT": "3306",
-#     }
-# }
 DATABASES = {
     "default": env.db("DATABASE_URL")
 }
@@ -203,10 +193,13 @@ SEARCH_SETTINGS = {
         'druglabel': {
             'models': [
                 'data.DrugLabel',
-                # 'data.LabelProduct',
-                # 'data.ProductSection',
             ]
-        }
+        },
+        'productsection': {
+            'models': [
+                'data.ProductSection',
+            ]
+        },
     },
     'settings': {
         # batch size for ES bulk api operations

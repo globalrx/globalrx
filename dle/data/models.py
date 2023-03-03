@@ -16,6 +16,7 @@ SOURCES = [
     ("EMA", "EU - European Medicines Agency"),
 ]
 
+### DRUG LABEL ###
 # See: https://github.com/yunojuno/elasticsearch-django/blob/master/tests/models.py
 class DrugLabelQuerySet(SearchResultsQuerySet):
     pass
@@ -94,6 +95,7 @@ class DrugLabel(SearchDocumentMixin,models.Model):
     def get_search_queryset(self, index='_all'):
         return self.get_queryset()
 
+#### LABEL PRODUCT ####
 class LabelProduct(models.Model):
     """A `DrugLabel` may have multiple `LabelProduct`s.
     These are typically for different routes of administration for the medication.
@@ -101,8 +103,16 @@ class LabelProduct(models.Model):
 
     drug_label = models.ForeignKey(DrugLabel, on_delete=models.CASCADE)
 
+### PRODUCT SECTION ###
+class ProductSectionQuerySet(SearchResultsQuerySet):
+    pass
 
-class ProductSection(models.Model):
+class ProductSectionModelManager(SearchDocumentManagerMixin, models.Manager):
+    def get_search_queryset(self, index="_all"):
+        return self.all()
+
+# class ProductSection(models.Model):
+class ProductSection(SearchDocumentMixin, models.Model):
     """There are multiple `ProductSection`s for each `LabelProduct`.
     The original sections vary by DrugLabel->source.
     We attempt to standardize them
@@ -113,7 +123,27 @@ class ProductSection(models.Model):
     section_text = models.TextField()
 
     # https://fueled.com/the-cache/posts/backend/django/setup-full-text-search-index-in-django/
+    # TODO can probably remove this once we deprecate PSQL based search?
     search_vector = SearchVectorField(null=True)
+
+    objects = ProductSectionModelManager.from_queryset(ProductSectionQuerySet)()
 
     class Meta:
         indexes = (GinIndex(fields=["search_vector"]),)
+    
+    def as_search_document(self, index="_all") -> dict:
+        """Converts a ProductSection into a Elasticsearch document.
+        Returns:
+            dict: Search document
+        """
+        return {
+            "label_product_id": self.label_product.id,
+            "drug_label_id": self.label_product.drug_label.id,
+            "drug_label_name": DrugLabel.objects.get(id=self.label_product.drug_label.id).product_name,
+            "section_name": self.section_name,
+            "section_text": self.section_text,
+            "id": self.id,
+        }
+    
+    def get_search_queryset(self, index='_all'):
+        return self.get_queryset()
