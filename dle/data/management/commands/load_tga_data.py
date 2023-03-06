@@ -32,6 +32,8 @@ TGA_BASE_URL = "https://www.ebs.tga.gov.au/ebs/picmi/picmirepository.nsf/"
 # add `--verbosity 2` for info output
 # add `--verbosity 3` for debug output
 class Command(BaseCommand):
+    count = 0 # TODO: Remove once pdf parser is supported
+
     help = "Loads data from TGA"
 
     def __init__(self, stdout=None, stderr=None, no_color=False, force_color=False):
@@ -74,54 +76,71 @@ class Command(BaseCommand):
 
         logger.info(f"total urls to process: {len(urls)}")
 
-        for url in urls:
-            try:
-                logger.info(f"processing url: {url}")
-                dl = self.get_drug_label_from_url(url)
-                logger.debug(repr(dl))
-                # dl.link is url of pdf
-                # for now, assume only one LabelProduct per DrugLabel
-                lp = LabelProduct(drug_label=dl)
-                lp.save()
-                dl.raw_text = self.parse_pdf(dl.link, lp)
-                dl.save()
-                self.num_drug_labels_parsed += 1
-            except IntegrityError as e:
-                logger.warning(self.style.WARNING("Label already in db"))
-                logger.debug(e, exc_info=True)
-            except AttributeError as e:
-                logger.warning(self.style.ERROR(repr(e)))
-            logger.info(f"sleep 1s")
-            time.sleep(1)
+        # Before being able to access the PDFs, we have to accept the access terms
+        # Then store the cookies and pass it to the requests
+        chrome_options = Options()
+        chrome_options.add_argument('--no-sandbox')
+        chrome_options.add_argument('--disable-dev-shm-usage')
+        chrome_options.add_argument('--headless')
+        driver = webdriver.Chrome(options=chrome_options)
+        driver.get(TGA_BASE_URL + "/pdf?OpenAgent")
+        time.sleep(1)
+        button = driver.find_element_by_xpath('/html/body/form/div[2]/div[3]/div[1]/a[1]')
+        driver.execute_script("arguments[0].click();", button)
+        time.sleep(5)
+        driver_cookies = driver.get_cookies()
+        cookies = {c['name']:c['value'] for c in driver_cookies}
 
-        for url in self.error_urls.keys():
-            logger.warning(self.style.WARNING(f"error parsing url: {url}"))
+        # Iterate all the query URLs
+        for url in urls:
+            logger.info(f"processing url: {url}")
+            # Grab the webpage
+            response = requests.get(url)
+            soup = BeautifulSoup(response.text, "html.parser")
+            table = soup.find("table")
+            table_body = table.find("tbody")
+            rows = table_body.find_all("tr")
+            # Iterate all the products in the table
+            for row in rows:
+                try:
+                    dl = self.get_drug_label_from_row(soup, row)
+                    logger.debug(repr(dl))
+                    # dl.link is url of pdf
+                    # for now, assume only one LabelProduct per DrugLabel
+                    lp = LabelProduct(drug_label=dl)
+                    lp.save()
+                    dl.raw_text = self.parse_pdf(dl.link, lp, cookies)
+                    dl.save()
+                    self.num_drug_labels_parsed += 1
+                except IntegrityError as e:
+                    logger.warning(self.style.WARNING("Label already in db"))
+                    logger.debug(e, exc_info=True)
+                except AttributeError as e:
+                    logger.warning(self.style.ERROR(repr(e)))
+                except ValueError as e:
+                    logger.warning(self.style.WARNING(repr(e)))
+                logger.info(f"sleep 1s")
+                time.sleep(1)
+
+            for url in self.error_urls.keys():
+                logger.warning(self.style.WARNING(f"error parsing url: {url}"))
 
         logger.info(f"num_drug_labels_parsed: {self.num_drug_labels_parsed}")
         logger.info(self.style.SUCCESS("process complete"))
         return
 
-    def get_drug_label_from_url(self, url):
+    def get_drug_label_from_row(self, soup, row):
         dl = DrugLabel()  # empty object to populate as we go
-        dl.source = "TEST"
+        dl.source = "TGA5"
 
-        # grab the webpage
-        response = requests.get(url)
-        soup = BeautifulSoup(response.text, "html.parser")
-        table = soup.find("table")
-        table_body = table.find("tbody")
-        rows = table_body.find_all("tr")
-        for row in rows:
-            columns = row.find_all("td")
-            # product name is located at the fitst column
-            dl.product_name = columns[0].text.strip()
-            # pdf link is located at the second column
-            dl.link = TGA_BASE_URL + columns[1].find("a")["href"]
-            dl.source_product_number = columns[1].find("a")["target"] #TODO: what is this product number?
-            print(dl.link)
-            # active ingredient(s) at the third column
-            dl.generic_name = columns[2].text.strip()
-            print(dl.generic_name)
+        columns = row.find_all("td")
+        # product name is located at the fitst column
+        dl.product_name = columns[0].text.strip()
+        # pdf link is located at the second column
+        dl.link = TGA_BASE_URL + columns[1].find("a")["href"]
+        dl.source_product_number = columns[1].find("a")["target"] #TODO: what is this product number?
+        # active ingredient(s) at the third column
+        dl.generic_name = columns[2].text.strip()
         # get version date from the footer
         footer = soup.find("div", {"class": "Footer"})
         date_str_key = "Last updated:"
@@ -146,14 +165,13 @@ class Command(BaseCommand):
         for i in range(tries - 1):
             yield 2**i + random.uniform(0, 1)
 
-    def parse_pdf(self, pdf_url, lp):
+    def parse_pdf(self, pdf_url, lp, cookies):
         # have a backoff time for pulling the pdf from the website
         for t in self.get_backoff_time(5):
             try:
                 logger.info(f"time to sleep: {t}")
                 time.sleep(t)
-                print(pdf_url)
-                response = requests.get(pdf_url)
+                response = requests.get(pdf_url, cookies=cookies)
                 break  # no Exception means we were successful
             except (ValueError, ChunkedEncodingError) as e:
                 logger.error(self.style.ERROR(f"caught error: {e.__class__.__name__}"))
@@ -163,35 +181,23 @@ class Command(BaseCommand):
             logger.error(self.style.ERROR("unable to grab url contents"))
             self.error_urls[pdf_url] = True
             return "unable to download pdf"
-        
-        if b"Product and Consumer Medicine Information Licence" in response.content:
-            chrome_options = Options()
-            chrome_options.add_argument('--no-sandbox')
-            chrome_options.add_argument('--disable-dev-shm-usage')
-            chrome_options.add_argument('--headless')
-            driver = webdriver.Chrome('/root/.cache/selenium/chromedriver/linux64/110.0.5481.77/chromedriver', options=chrome_options)
-            driver.get(pdf_url)
-            driver.find_element_by_xpath("//a[@href='javascript: IAccept();']").click()
-            response = requests.get(pdf_url)
-        # save pdf to default_storage / MEDIA_ROOT
+
         filename = default_storage.save(
-            settings.MEDIA_ROOT / "tga.pdf", ContentFile(response.content)
+            settings.MEDIA_ROOT / f"tga_{self.count}.pdf", ContentFile(response.content)
         )
         logger.info(f"saved file to: {filename}")
 
-        tga_file = settings.MEDIA_ROOT / "tga.pdf"
+        tga_file = settings.MEDIA_ROOT / f"tga_{self.count}.pdf"
+        self.count += 1
         raw_text = self.process_tga_file(tga_file, lp, pdf_url)
         # delete the file when done
-        default_storage.delete(filename)
+        #default_storage.delete(filename)
         return raw_text
 
     def process_tga_file(self, tga_file, lp, pdf_url=""):
-        #Parse the file here
-        with fitz.open(tga_file) as pdf_doc:
-            for page in pdf_doc:
-                raw_text += page.get_text()
-        print(raw_text)
-        logger.info("Success")
+        # TODO: Parse the pdf file here
+        raw_text = ""
+        logger.info("Stubbed out - Success")
         return raw_text
 
     def get_tga_pi_urls(self):
