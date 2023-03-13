@@ -27,6 +27,36 @@ logger = logging.getLogger(__name__)
 
 TGA_BASE_URL = "https://www.ebs.tga.gov.au/ebs/picmi/picmirepository.nsf/"
 
+EU_FORMATTED_SECTIONS = [
+    # notes for the re pattern:
+    # escape the period we want to match e.g. "1.0" => r"1\.0"
+    # look for one or more whitespace characters r"\s+"
+    # find any characters (one or more times) r"(.+)" with re.DOTALL flag
+    # stop when we find the closing string
+    (r"(4\.1\.?\s+(?:THERAPEUTIC\sINDICATIONS|Therapeutic\s[i|I]ndications)\s)(.+)(\n4\.2\.?\s+(DOSE\sAND\sMETHOD\sOF\sADMINISTRATION|Dose\s[a|A]nd\s[m|M]ethod\s[o|O]f\s[a|A]dministration)\s)", "Indications"),
+    (r"(4\.2\.?\s+(?:DOSE\sAND\sMETHOD\sOF\sADMINISTRATION|Dose\s[a|A]nd\s[m|M]ethod\s[o|O]f\s[a|A]dministration)\s)(.+)(\n4\.3\.?\s+(CONTRAINDICATIONS|Contraindications)\s)", "Posology"),
+    (r"(4\.3\.?\s+(?:CONTRAINDICATIONS|Contraindications)\s)(.+)(\n4\.4\.?\s+(SPECIAL\sWARNINGS\sAND\sPRECAUTIONS\sFOR\sUSE|[s|S]pecial\s[w|W]arnings\s[a|A]nd\s[p|P]recautions\s[f|F]or\s[u|U]se)\s)", "Contraindications"),
+    (r"(4\.4\.?\s+(?:SPECIAL\sWARNINGS\sAND\sPRECAUTIONS\sFOR\sUSE|[s|S]pecial\s[w|W]arnings\s[a|A]nd\s[p|P]recautions\s[f|F]or\s[u|U]se)\s)(.+)(\n4\.5\.?\s+(INTERACTIONS\s+WITH\s+OTHER\s+MEDICINES(?:\s+AND\s+OTHER\s+FORMS\s+OF\s+INTERACTIONS)?|Interations\s+[w|W]ith\s+[o|O]ther\s+[m|M]edicines(?:\s+[a|A]nd\s+[o|O]ther\s+[f|F]orms\s+[o|O]f\s+[i|I]nterations)?)\s)", "Warnings"),
+    (r"(4\.5\.?\s+(?:INTERACTIONS\s+WITH\s+OTHER\s+MEDICINES(?:\s+AND\s+OTHER\s+FORMS\s+OF\s+INTERACTIONS)?|Interations\s+[w|W]ith\s+[o|O]ther\s+[m|M]edicines(?:\s+[a|A]nd\s+[o|O]ther\s+[f|F]orms\s+[o|O]f\s+[i|I]nterations)?)\s)(.+)(\n4\.6\.?\s+(FERTILITY,\s?PREGNANCY,?\s?AND\sLACTATION|[f|F]ertility,\s?[p|P]regnancy\sand\s[l|L]actation)\s)", "Interactions"),
+    (r"(4\.6\.?\s+(?:FERTILITY, PREGNANCY AND LACTATION|[f|F]ertility, [p|P]regnancy and [l|L]actation)\s)(.+)(\n4\.7\.?\s+(EFFECTS\sON\sABILITY\sTO\sDRIVE\sAND\sUSE\sMACHINES|[e|E]ffects [o|O]n [a|A]bility [t|T]o [d|D]rive [a|A]nd [u|U]se [m|M]achines)\s)", "Pregnancy"),
+    (r"(4\.7\.?\s+(?:EFFECTS\sON\sABILITY\sTO\sDRIVE\sAND\sUSE\sMACHINES|[e|E]ffects [o|O]n [a|A]bility [t|T]o [d|D]rive [a|A]nd [u|U]se [m|M]achines)\s)(.+)(\n4\.8\.?\s+(ADVERSE EFFECTS \(UNDESIRABLE EFFECTS\)|[a|A]dverse [e|E]ffects)\s)", "Effects on driving"),
+    (r"(4\.8\.?\s+(?:ADVERSE EFFECTS \(UNDESIRABLE EFFECTS\)|[a|A]dverse [e|E]ffects)\s)(.+)(\n4\.9\.?\s+(OVERDOSE|Overdose)\s)", "Side effects"),
+    (r"(4\.9\.?\s+(?:OVERDOSE|Overdose)\s)(.+)(\n5\.?\s+PHARMACOLOGICAL)", "Overdose")
+]
+
+OTHER_FORMATTED_SECTIONS = [
+    (r"(INDICATIONS)(.+)(CONTRAINDICATIONS)", "Indications"),
+    (r"(CONTRAINDICATIONS)(.+)(PRECAUTIONS)", "Contraindications"),
+    # Pregnancy, Interactions and Effects on driving are all under the PRECAUTIONS section
+    (r"(Use in [p|P]regnancy)(.+)(Use in [l|L]actation)", "Pregnancy"),
+    (r"(Interactions with other medicines)(.+)(Effects on laboratory tests)", "Interactions"),
+    (r"(Effects on ability to drive and use machines)(.+)(ADVERSE (REACTIONS|EFFECTS))", "Effects on driving"),
+    (r"(PRECAUTIONS)(.+)(ADVERSE (REACTIONS|EFFECTS))", "Warnings"),
+    (r"(ADVERSE (?:REACTIONS|EFFECTS))(.+)(DOSAGE AND ADMINISTRATION)", "Side effects"),
+    (r"(DOSAGE AND ADMINISTRATION)(.+)(OVERDOSAGE)", "Posology"),
+    (r"(OVERDOSAGE)(.+)(PRESENTATION)", "Overdose")
+]
+
 # runs with `python manage.py load_tga_data`
 # add `--type full` to import the full dataset
 # add `--verbosity 2` for info output
@@ -193,45 +223,31 @@ class Command(BaseCommand):
         default_storage.delete(filename)
         return raw_text
 
-    def process_tga_pdf_file(self, tga_file, lp, pdf_url=""):
-        raw_text = ""
-        with fitz.open(tga_file) as pdf_doc:
-            for page in pdf_doc:
-                raw_text += page.get_text()
-
+    def parse_pdf_sections(self, raw_text, lp, pdf_url, section_format):
         start_idx = 0
-        # For TGA labels, there are usually 10 sections:
-        # 1. NAME
-        # 2. QUALITATIVE AND QUANTITATIVE COMPOSITION
-        # 3. PHARMACEUTICAL FORM
-        # 4. CLINICAL PARTICULARS
-        # 5. PHARMACOLOGICAL PROPERTIES
-        # 6. PHARMACEUTICAL PARTICULARS
-        # 7. MEDICINE SCHEDULE (POISONS STANDARD)
-        # 8. SPONSOR
-        # 9. DATE OF FIRST APPROVAL
-        # 10. DATE OF REVISION
-        
-        # Skip the first header as that is the medicine name, which we already know
-        # Skip the last 3 sections as well, which might be not useful
-        for section_number in range(2,8): # section 2 to 7
+        num_fails = 0
+        # Start with parsing the labels with the EU format, 
+        #  if it fails to parse (i.e. fail to parse 9 sections), then try the other format
+        for section in section_format:
             # Basically search for anything between the start section header until the next section header starts
-            pattern = f"{section_number}\.?\s+([A-Z][A-Z][A-Z][A-Z]+\s.+)(\s{section_number+1}\.?\s+[A-Z][A-Z][A-Z][A-Z]+\s)"
+            pattern = section[0]
             regex = re.compile(pattern, re.DOTALL)
             match = regex.search(raw_text, start_idx)
             section_text = ""
-            section_name = ""
-            if match and match[1]:
+            section_name = section[1]
+            if match:
                 # Move the start index to the next section
-                start_idx = match.end(1)
-                # Get the position of the first newline character, 
-                #  and use it to separate the section header and the section text
-                first_newline = match[1].find('\n')
-                section_name = match[1][:first_newline]
-                section_text = match[1][first_newline+1:]
+                if section_format == OTHER_FORMATTED_SECTIONS:
+                    # Pregnancy, Interactions and Effects on driving are all under the PRECAUTIONS section, so don't update the index
+                    if section_name != "Pregnancy" and section_name != "Interactions" and section_name != "Effects on driving":
+                        start_idx = match.end(2)
+                else:
+                    start_idx = match.end(2)
+                section_text = match[2]
             else:
-                logger.error(self.style.ERROR(f"Unable to find section {section_number} from {pdf_url}"))
+                logger.error(self.style.ERROR(f"Unable to find section {section_name} from {pdf_url}"))
                 self.error_urls[pdf_url] = True
+                num_fails += 1
                 continue
 
             logger.debug(f"found section_name: {section_name}")
@@ -242,6 +258,22 @@ class Command(BaseCommand):
                 label_product=lp, section_name=section_name, section_text=section_text
             )
             ps.save()
+        return num_fails
+
+    def process_tga_pdf_file(self, tga_file, lp, pdf_url=""):
+        raw_text = ""
+        with fitz.open(tga_file) as pdf_doc:
+            for page in pdf_doc:
+                raw_text += page.get_text()
+
+        num_fails = 0
+        # Start with parsing the labels with the EU format
+        num_fails = self.parse_pdf_sections(raw_text, lp, pdf_url, EU_FORMATTED_SECTIONS)
+        # If it fails to parse using the EU format, then try to parse it with other format
+        if num_fails == len(EU_FORMATTED_SECTIONS):
+            self.error_urls[pdf_url] = False
+            logger.error(self.style.ERROR(f"Parsing with other format"))
+            num_fails = self.parse_pdf_sections(raw_text, lp, pdf_url, OTHER_FORMATTED_SECTIONS)
 
         return raw_text
 
