@@ -36,6 +36,14 @@ Resources:
     Properties:
       TemplateURL: >-
         https://globalrx.s3.amazonaws.com/deploy_vpc.yaml
+
+  NestedStackECR:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: >-
+        https://globalrx.s3.amazonaws.com/deploy_ecr.yaml
+
+
   NestedStackEC2:
     Type: AWS::CloudFormation::Stack
     Properties:
