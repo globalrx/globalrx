@@ -11,14 +11,7 @@ diff-match-patch==20200713
 Django==4.0.2
 django-environ==0.9.0
 djangorestframework==3.14.0
-
-# elasticsearch-django==8.1.2
-# Using local instead for now ...
-# -install-option="--no-build-isolation" -e /usr/share/elasticsearch-django
-# Cole's fork of elasticsearch-django
-# git+https://github.com/ColeDCrawford/elasticsearch-django/tree/es-config-options#egg=elasticsearch-django # no git in the container
-https://github.com/ColeDCrawford/elasticsearch-django/archive/es-config-options.tar.gz#egg=elasticsearch-django
-
+elasticsearch-django==8.2
 eland[pytorch]==8.3.0
 et-xmlfile==1.1.0
 fonttools==4.32.0
