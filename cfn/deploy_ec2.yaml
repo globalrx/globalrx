@@ -28,10 +28,10 @@ Parameters:
     Type: String
     Default: "vpc-23074059"
     Description: VPC ID
-  DBEndpointParameter:
-    Type: String
-    Default: "xxxxx"
-    Description: DB Endpoint
+#  DBEndpointParameter:
+#    Type: String
+#    Default: "xxxxx"
+#    Description: DB Endpoint
 
 Resources:
   globalRxKey:
