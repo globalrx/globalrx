@@ -36,9 +36,8 @@ Resources:
 
   globalRxDB:
     Type: AWS::RDS::DBInstance
-    DependsOn: globalRxDBSecGroup
     Properties:
-      DBSecurityGroups:
+      VPCSecurityGroups:
         - !GetAtt "globalRxDBSecGroup.GroupId"
       AllocatedStorage: '60'
       DBInstanceClass: !Ref DBTypeParameter

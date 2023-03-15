@@ -43,6 +43,11 @@ Resources:
       TemplateURL: >-
         https://globalrx.s3.amazonaws.com/deploy_ecr.yaml
 
+  NestedStackRDS:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: >-
+        https://globalrx.s3.amazonaws.com/deploy_rds.yaml
 
   NestedStackEC2:
     Type: AWS::CloudFormation::Stack
@@ -55,6 +60,11 @@ Resources:
         NameParameter: !Ref NameParameter
         KeyIDParameter: !Ref KeyIDParameter
         ImageIDParameter: !Ref ImageIDParameter
+        DBEndpointParameter:
+          Fn::GetAtt: 
+          - NestedStackRDS
+          - Outputs.globalRxEndpoint
+
         VPCParameter:
           Fn::GetAtt: 
           - NestedStackVPC

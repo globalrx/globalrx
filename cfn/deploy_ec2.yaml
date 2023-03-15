@@ -28,6 +28,10 @@ Parameters:
     Type: String
     Default: "vpc-23074059"
     Description: VPC ID
+  DBEndpointParameter:
+    Type: String
+    Default: "xxxxx"
+    Description: DB Endpoint
 
 Resources:
   globalRxKey:
@@ -68,17 +72,21 @@ Resources:
             systemctl enable docker
             systemctl start docker
             yum install git -y
+            curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
+            chmod +x /usr/local/bin/docker-compose
+
             cd /home/ec2-user
             git clone https://github.com/globalrx/globalrx.git
-
-            EMAIL=${admin_email}
             cd /home/ec2-user/globalrx/dle
             git checkout elasticsearch-django
+
+            EMAIL=${admin_email}
+            DB_ENDPOINT=${db_endpoint}
+
             cp .env.example .env
             sed 's/LOAD=False/LOAD=True/g' -i /home/ec2-user/globalrx/dle/.env
             sed "s/DJANGO_SUPERUSER_EMAIL.*/DJANGO_SUPERUSER_EMAIL="$EMAIL"/g" -i /home/ec2-user/globalrx/dle/.env
-            curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
-            chmod +x /usr/local/bin/docker-compose
+            sed "s/DATABASE_URL.*/DATABASE_URL=$DB_ENDPOINT" -i /home/ec2-user/globalrx/dle/dle/settings.py
             IP=$(dig +short txt ch whoami.cloudflare @1.0.0.1  | tr -d '"')
             sed "s/ALLOWED_HOSTS = \[/ALLOWED_HOSTS = \["\"$IP\"",/g" -i /home/ec2-user/globalrx/dle/dle/settings.py
             cd /home/ec2-user
@@ -87,8 +95,8 @@ Resources:
             echo "/usr/local/bin/docker-compose up" >> start_script.sh
             chmod 755 start_script.sh
             nohup ./start_script.sh > output &
-
-          - admin_email: !Ref EmailParameter
+           - admin_email: !Ref EmailParameter
+           - db_endpoint: !Ref DBEndpointParameter
 
 #sed 's/LOAD=False/LOAD=True/g' -i /home/ec2-user/globalrx/dle/.env
 
