@@ -52,12 +52,12 @@ jobs:
           template: https://globalrx.s3.amazonaws.com/deploy_ecr.yaml   # Pass vars to re-use in Image Push
         continue-on-error: true
 
-      - name: Login to Amazon ECR
+      - name: Login to Amazon ECR  # adapted from https://towardsaws.com/build-push-docker-image-to-aws-ecr-using-github-actions-8396888a8f9e
         if: contains(github.event.head_commit.message, 'push_django')
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Push Django to ECR
+      - name: Push Django to ECR  # adapted from https://towardsaws.com/build-push-docker-image-to-aws-ecr-using-github-actions-8396888a8f9e
         if: contains(github.event.head_commit.message, 'push_django')
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}

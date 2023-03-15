@@ -53,12 +53,7 @@ Resources:
     Properties:
       TemplateURL: >-
         https://globalrx.s3.amazonaws.com/deploy_rds.yaml
-      Parameters:
-        VPCParameter:
-          Fn::GetAtt: 
-          - NestedStackVPC
-          - Outputs.VPC
-        DBTypeParameter: !Ref DBTypeParameter
+
   
   NestedStackEC2:
     Type: AWS::CloudFormation::Stack
