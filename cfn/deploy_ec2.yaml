@@ -81,7 +81,6 @@ Resources:
             git checkout elasticsearch-django
 
             EMAIL=${admin_email}
-            #DB_ENDPOINT=${db_endpoint}
 
             cp .env.example .env
             sed 's/LOAD=False/LOAD=True/g' -i /home/ec2-user/globalrx/dle/.env
@@ -97,6 +96,7 @@ Resources:
             nohup ./start_script.sh > output &
           - admin_email: !Ref EmailParameter
      #     - db_endpoint: !Ref DBEndpointParameter
+#DB_ENDPOINT=${db_endpoint}
 
 #sed 's/LOAD=False/LOAD=True/g' -i /home/ec2-user/globalrx/dle/.env
  
