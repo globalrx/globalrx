@@ -99,7 +99,7 @@ Resources:
      #     - db_endpoint: !Ref DBEndpointParameter
 
 #sed 's/LOAD=False/LOAD=True/g' -i /home/ec2-user/globalrx/dle/.env
-
+ 
 #/usr/local/bin/docker-compose up 
 
 #docker exec -it dle-django-1 'python /app/manage.py load_ema_data'
