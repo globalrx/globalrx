@@ -73,12 +73,14 @@ The project is containerized so that it can be run locally or deployed to a clou
                 ```
     - Set up BERT pipeline (requires Elasticsearch trial license and ML features enabled; may not work well locally due to resource constraints)
         - See https://www.elastic.co/blog/how-to-deploy-nlp-text-embeddings-and-vector-search
-        - From the `Django` service, run `eland_import_hub_model --ca-certs /usr/share/elasticsearch/config/certs/ca/ca.crt --url https://elastic:<YOUR PASSWORD></YOUR>@es01:9200/ --hub-model-id Charangan/MedBERT --task-type text_embedding --start` to import the MedBERT model into Elasticsearch
+        - Most likely model: [`pritamdeka/S-PubMedBert-MS-MARCO`](https://huggingface.co/pritamdeka/S-PubMedBert-MS-MARCO)
+        - From the `Django` service, run `eland_import_hub_model --ca-certs /usr/share/elasticsearch/config/certs/ca/ca.crt --url https://elastic:<YOUR PASSWORD>@es01:9200/ --hub-model-id <MODELID> --task-type text_embedding --start`
+        - For Elastic Cloud: `eland_import_hub_model --cloud-id <CLOUDID> --hub-model-id <MODELID> --task-type text_embedding --start`
         - In Kibana, create the pipeline:
             ```
-            PUT _ingest/pipeline/medbert
+            PUT _ingest/pipeline/pubmedbert
             {
-                "description": "Text embedding pipeline using HuggingFace Charangan/MedBERT",
+                "description": "Text embedding pipeline using HuggingFace pritamdeka/S-PubMedBert-MS-MARCO",
                 "processors": [
                     {
                         "inference": {
@@ -108,12 +110,20 @@ The project is containerized so that it can be run locally or deployed to a clou
                 ]
             }
             ```
+    - Deploy the model. Can be 2/2 or 1/4 on a 6 CPU setup; threads must be power of 2 and not exceed allocated processors
+        ```
+        POST _ml/trained_models/pritamdeka__s-pubmedbert-ms-marco/deployment/_start
+        {
+            "number_of_allocations": 2,
+            "threads_per_allocation": 2
+        }
+        ```
     - Set the index default pipeline
         ```
         PUT /productsection/_settings
         {
             "index" : {
-                "default_pipeline": "medbert"
+                "default_pipeline": "pubmedbert"
             }
         }
         ```
