@@ -50,6 +50,7 @@ Resources:
 
   NestedStackRDS:
     Type: AWS::CloudFormation::Stack
+    DependsOn: NestedStackVPC
     Properties:
       TemplateURL: >-
         https://globalrx.s3.amazonaws.com/deploy_rds.yaml
@@ -57,6 +58,7 @@ Resources:
   
   NestedStackEC2:
     Type: AWS::CloudFormation::Stack
+    DependsOn: NestedStackRDS
     Properties:
       TemplateURL: >-
         https://globalrx.s3.amazonaws.com/deploy_ec2.yaml
