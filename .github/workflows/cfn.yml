@@ -57,7 +57,7 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build, tag, and push image to Amazon ECR
+      - name: Push Django to ECR
         if: contains(github.event.head_commit.message, 'push_django')
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -69,8 +69,7 @@ jobs:
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
 
-
-      - name: Deploy to AWS CloudFormation
+      - name: Deploy CFN Main Template
         if: contains(github.event.head_commit.message, 'deploy_main')
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
