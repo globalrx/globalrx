@@ -85,7 +85,7 @@ Resources:
             cp .env.example .env
             sed 's/LOAD=False/LOAD=True/g' -i /home/ec2-user/globalrx/dle/.env
             sed "s/DJANGO_SUPERUSER_EMAIL.*/DJANGO_SUPERUSER_EMAIL="$EMAIL"/g" -i /home/ec2-user/globalrx/dle/.env
-            sed "s/DATABASE_URL.*/DATABASE_URL=$DB_ENDPOINT" -i /home/ec2-user/globalrx/dle/dle/settings.py
+            
             IP=$(dig +short txt ch whoami.cloudflare @1.0.0.1  | tr -d '"')
             sed "s/ALLOWED_HOSTS = \[/ALLOWED_HOSTS = \["\"$IP\"",/g" -i /home/ec2-user/globalrx/dle/dle/settings.py
             cd /home/ec2-user
@@ -97,6 +97,7 @@ Resources:
           - admin_email: !Ref EmailParameter
      #     - db_endpoint: !Ref DBEndpointParameter
 #DB_ENDPOINT=${db_endpoint}
+#sed "s/DATABASE_URL.*/DATABASE_URL=$DB_ENDPOINT" -i /home/ec2-user/globalrx/dle/dle/settings.py
 
 #sed 's/LOAD=False/LOAD=True/g' -i /home/ec2-user/globalrx/dle/.env
  
