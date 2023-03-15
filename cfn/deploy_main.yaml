@@ -27,7 +27,12 @@ Parameters:
     Type: String
     Default: "aeg224@g.harvard.edu"
     Description: email for django admin user
-
+  DBTypeParameter:
+    Type: String
+    Default: "db.t4g.medium"
+    AllowedValues:
+      - db.t4g.medium
+    Description: Default is db.t4g.medium.
 
 
 Resources:
@@ -48,7 +53,13 @@ Resources:
     Properties:
       TemplateURL: >-
         https://globalrx.s3.amazonaws.com/deploy_rds.yaml
-
+      Parameters:
+        VPCParameter:
+          Fn::GetAtt: 
+          - NestedStackVPC
+          - Outputs.VPC
+        DBTypeParameter: !Ref DBTypeParameter
+  
   NestedStackEC2:
     Type: AWS::CloudFormation::Stack
     Properties:
@@ -64,7 +75,6 @@ Resources:
           Fn::GetAtt: 
           - NestedStackRDS
           - Outputs.globalRxEndpoint
-
         VPCParameter:
           Fn::GetAtt: 
           - NestedStackVPC

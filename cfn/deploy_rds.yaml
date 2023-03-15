@@ -22,7 +22,6 @@ Parameters:
     Description: VPC ID
 
 Resources:
- 
   globalRxDBSecGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:

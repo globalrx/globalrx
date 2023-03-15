@@ -95,8 +95,8 @@ Resources:
             echo "/usr/local/bin/docker-compose up" >> start_script.sh
             chmod 755 start_script.sh
             nohup ./start_script.sh > output &
-           - admin_email: !Ref EmailParameter
-           - db_endpoint: !Ref DBEndpointParameter
+          - admin_email: !Ref EmailParameter
+          - db_endpoint: !Ref DBEndpointParameter
 
 #sed 's/LOAD=False/LOAD=True/g' -i /home/ec2-user/globalrx/dle/.env
 
