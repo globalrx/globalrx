@@ -68,7 +68,7 @@ Resources:
         NameParameter: !Ref NameParameter
         KeyIDParameter: !Ref KeyIDParameter
         ImageIDParameter: !Ref ImageIDParameter
-#        DBEndpointParameter:
+#        DBEndpointParameter: 
 #          Fn::GetAtt: 
 #          - NestedStackRDS
 #          - Outputs.globalRxEndpoint
