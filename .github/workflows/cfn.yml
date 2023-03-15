@@ -1,9 +1,8 @@
-# Note: IAM user credentials needed
+# Note: until permissions can be minimized, IAM user credentials require
+#       manual modification to run the code below.
 
 name: CI
-
 on:
-
   push:
     branches: [ "alex_cfn" ]
   pull_request:
@@ -13,6 +12,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+
       - name: pull repo
         uses: actions/checkout@v3
  
@@ -25,9 +25,6 @@ jobs:
           aws-region: us-east-1
         continue-on-error: true
 
-      
-
-
       - name: Upload to S3
         run: |
           aws s3 sync ./cfn s3://globalrx
@@ -37,13 +34,12 @@ jobs:
           AWS_DEFAULT_REGION: 'us-east-1'
         continue-on-error: true
 
-
       - name: Deploy ECR Repositories
         if: contains(github.event.head_commit.message, 'create_ecr_repos')
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
           name: test
-          template: /cfn/deploy_ecr.yaml
+          template: https://globalrx.s3.amazonaws.com/deploy_ecr.yaml
         continue-on-error: true
         
       - name: Deploy to AWS CloudFormation
@@ -52,10 +48,9 @@ jobs:
         with:
           name: test
           capabilities: CAPABILITY_NAMED_IAM
-          template: /cfn/deploy_main.yaml
+          template: https://globalrx.s3.amazonaws.com/deploy_main.yaml
         continue-on-error: true
 
-    
       - name: Run a multi-line script
         run: |
           whoami

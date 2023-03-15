@@ -115,7 +115,7 @@ Resources:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
       GroupDescription: Open 22 and 8000
-      VpcId: "vpc-23074059"
+      VpcId: !Ref VPCParameter
       SecurityGroupIngress:
           - IpProtocol: tcp
             FromPort: '22'
