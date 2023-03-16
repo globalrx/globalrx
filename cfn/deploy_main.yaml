@@ -17,8 +17,6 @@ Parameters:
   KeyIDParameter:
     Type: String
     Default: "globalrx_sshkey"
-    AllowedValues:
-      - CHBC_MAC
   NameParameter:
     Type: String
     Default: "CFN_TEST"
