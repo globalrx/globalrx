@@ -83,7 +83,6 @@ Resources:
             EMAIL=${admin_email}
 
             cp .env.example .env
-#sed 's/LOAD=False/LOAD=True/g' -i /home/ec2-user/globalrx/dle/.env
             sed "s/DJANGO_SUPERUSER_EMAIL.*/DJANGO_SUPERUSER_EMAIL="$EMAIL"/g" -i /home/ec2-user/globalrx/dle/.env
             echo KIBANA_MEM_LIMIT=200MB >> /home/ec2-user/globalrx/dle/.env
 
@@ -94,9 +93,13 @@ Resources:
             echo "cd /home/ec2-user/globalrx/dle" >> start_script.sh
             echo "/usr/local/bin/docker-compose up" >> start_script.sh
             chmod 755 start_script.sh
-#nohup ./start_script.sh > output &
           - admin_email: !Ref EmailParameter
-      
+
+
+
+#sed 's/LOAD=False/LOAD=True/g' -i /home/ec2-user/globalrx/dle/.env
+#nohup ./start_script.sh > output & 
+
      #     - db_endpoint: !Ref DBEndpointParameter 
 #DB_ENDPOINT=${db_endpoint}
 #sed "s/DATABASE_URL.*/DATABASE_URL=$DB_ENDPOINT" -i /home/ec2-user/globalrx/dle/dle/settings.py
