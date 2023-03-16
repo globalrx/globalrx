@@ -16,7 +16,7 @@ Parameters:
     Description: Amazon Linux AMI.
   KeyIDParameter:
     Type: String
-    Default: "CHBC_MAC"
+    Default: "globalrx_sshkey"
     AllowedValues:
       - CHBC_MAC
   NameParameter:
@@ -62,18 +62,18 @@ Resources:
     Properties:
       TemplateURL: >-
         https://globalrx.s3.amazonaws.com/deploy_ec2.yaml
-      Parameters:
-        EmailParameter: !Ref EmailParameter
-        InstanceTypeParameter: !Ref InstanceTypeParameter
-        NameParameter: !Ref NameParameter
-        KeyIDParameter: !Ref KeyIDParameter
-        ImageIDParameter: !Ref ImageIDParameter
+#      Parameters:
+#        EmailParameter: !Ref EmailParameter
+#        InstanceTypeParameter: !Ref InstanceTypeParameter
+#        NameParameter: !Ref NameParameter
+#        KeyIDParameter: !Ref KeyIDParameter
+#        ImageIDParameter: !Ref ImageIDParameter
 #        DBEndpointParameter: 
 #          Fn::GetAtt: 
 #          - NestedStackRDS
 #          - Outputs.globalRxEndpoint
-        VPCParameter:
-          Fn::GetAtt: 
-          - NestedStackVPC
-          - Outputs.VPC
+#        VPCParameter:
+#          Fn::GetAtt: 
+#          - NestedStackVPC
+#          - Outputs.VPC
 

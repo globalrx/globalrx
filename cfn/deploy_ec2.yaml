@@ -95,6 +95,7 @@ Resources:
             chmod 755 start_script.sh
             nohup ./start_script.sh > output &
           - admin_email: !Ref EmailParameter
+      
      #     - db_endpoint: !Ref DBEndpointParameter
 #DB_ENDPOINT=${db_endpoint}
 #sed "s/DATABASE_URL.*/DATABASE_URL=$DB_ENDPOINT" -i /home/ec2-user/globalrx/dle/dle/settings.py
