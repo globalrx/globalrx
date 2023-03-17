@@ -60,16 +60,16 @@ Resources:
     Properties:
       TemplateURL: >-
         https://globalrx.s3.amazonaws.com/deploy_ec2.yaml
-#      Parameters:
-#        EmailParameter: !Ref EmailParameter
-#        InstanceTypeParameter: !Ref InstanceTypeParameter
-#        NameParameter: !Ref NameParameter
-#        KeyIDParameter: !Ref KeyIDParameter
-#        ImageIDParameter: !Ref ImageIDParameter
-#        DBEndpointParameter: 
-#          Fn::GetAtt: 
-#          - NestedStackRDS
-#          - Outputs.globalRxEndpoint
+      Parameters:
+        EmailParameter: !Ref EmailParameter
+        InstanceTypeParameter: !Ref InstanceTypeParameter
+        NameParameter: !Ref NameParameter
+        KeyIDParameter: !Ref KeyIDParameter
+        ImageIDParameter: !Ref ImageIDParameter
+        DBEndpointParameter: 
+          Fn::GetAtt: 
+          - NestedStackRDS
+          - Outputs.globalRxEndpoint
 #        VPCParameter:
 #          Fn::GetAtt: 
 #          - NestedStackVPC
