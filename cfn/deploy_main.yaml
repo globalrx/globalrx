@@ -72,6 +72,6 @@ Resources:
           - Outputs.globalRxEndpoint
 #        VPCParameter:
 #          Fn::GetAtt: 
-#          - NestedStackVPC
+#          - NestedStackVPC 
 #          - Outputs.VPC
 
