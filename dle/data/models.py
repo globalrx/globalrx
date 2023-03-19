@@ -36,7 +36,7 @@ class DrugLabel(SearchDocumentMixin,models.Model):
 
     source = models.CharField(max_length=8, choices=SOURCES, db_index=True)
     product_name = models.CharField(max_length=255, db_index=True)
-    generic_name = models.CharField(max_length=255, db_index=True)
+    generic_name = models.CharField(max_length=2048, db_index=True)
     version_date = models.DateField(db_index=True)
     source_product_number = models.CharField(max_length=255, db_index=True)
     "source-specific product-id"
