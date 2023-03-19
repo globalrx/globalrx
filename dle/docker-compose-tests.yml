@@ -23,7 +23,7 @@ services:
       SECRET_KEY: secretdoesntmatter!whenindev
       DATABASE_URL: postgres://postgres:password@postgres:5432/postgres
       ELASTICSEARCH_URL: http://localhost:9200
-      ELASTICSEARCH_PASSWORD: fakethisisrequiredfordjangotostart
+      ELASTIC_PASSWORD: fakethisisrequiredfordjangotostart
       ELASTICSEARCH_USER: elastic_also_required
     ports:
       - "8000:8000"
