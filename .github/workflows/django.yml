@@ -13,7 +13,7 @@ jobs:
     strategy:
       max-parallel: 4
       matrix:
-        python-version: [3.8]
+        python-version: [3.10]
 
     steps:
       - uses: actions/checkout@v3
@@ -34,5 +34,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r dle/requirements.txt
       - name: Run Tests
+        env:
+          # Dummy secret key for CI
+          SECRET_KEY: 5u_yfl1bicprio+i3na0ix(bo7kvkj8#liipbokfuxh@rjq-^c
         run: |
           cd dle && python manage.py test --noinput
