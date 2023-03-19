@@ -145,7 +145,7 @@ class Command(BaseCommand):
     
         drug_label_parsed = 0
         # Iterate all the drugs in the table
-        while(drug_label_parsed != num_total_results):
+        while(drug_label_parsed < num_total_results):
             soup = BeautifulSoup(driver.page_source, "html.parser")
             table = soup.find("table")
             table_body = table.find("tbody")
@@ -176,7 +176,7 @@ class Command(BaseCommand):
                 drug_label_parsed += 1
             # Click the next button
             next_button = driver.find_element_by_id('results_next')
-            if next_button and drug_label_parsed != num_total_results:
+            if next_button != None and drug_label_parsed < num_total_results:
                 next_button.click()
                 # Wait for a bit, take awhile for it to load
                 time.sleep(10)
