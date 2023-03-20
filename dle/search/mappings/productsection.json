@@ -2,10 +2,7 @@
     "productsection": {
       "mappings": {
         "properties": {
-          "id": {
-            "type": "long"
-          },
-          "label_product": {
+          "drug_label_generic_name": {
             "type": "text",
             "fields": {
               "keyword": {
@@ -13,6 +10,36 @@
                 "ignore_above": 256
               }
             }
+          },
+          "drug_label_id": {
+            "type": "long"
+          },
+          "drug_label_link": {
+            "type": "text"
+          },
+          "drug_label_product_name": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          },
+          "drug_label_source": {
+            "type": "keyword"
+          },
+          "drug_label_source_product_number": {
+            "type": "text"
+          },
+          "drug_label_version_date": {
+            "type": "date"
+          },
+          "id": {
+            "type": "long"
+          },
+          "label_product_id": {
+            "type": "long"
           },
           "section_name": {
             "type": "text",
@@ -24,13 +51,7 @@
             }
           },
           "section_text": {
-            "type": "text",
-            "fields": {
-              "keyword": {
-                "type": "keyword",
-                "ignore_above": 256
-              }
-            }
+            "type": "text"
           }
         }
       }
