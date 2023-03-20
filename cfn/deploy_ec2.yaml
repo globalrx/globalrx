@@ -30,7 +30,7 @@ Parameters:
     Description: VPC ID
   DBEndpointParameter:
     Type: String
-    Default: "xxxxx"
+    Default: "asdf-globalrxdb-axodhrci4xgh.cj9gkkj3it4b.us-east-1.rds.amazonaws.com"
     Description: DB Endpoint
 
 Resources:
@@ -81,7 +81,6 @@ Resources:
             git checkout elasticsearch-django
 
             EMAIL=${EmailParameter}
-
             cp .env.example .env
             sed "s/DJANGO_SUPERUSER_EMAIL.*/DJANGO_SUPERUSER_EMAIL="$EMAIL"/g" -i /home/ec2-user/globalrx/dle/.env
 
@@ -89,17 +88,16 @@ Resources:
             sed "s/ALLOWED_HOSTS = \[/ALLOWED_HOSTS = \["\"$IP\"",/g" -i /home/ec2-user/globalrx/dle/dle/settings.py
             DB_ENDPOINT=${DBEndpointParameter}
             sed "s/DATABASE_URL.*/DATABASE_URL=$DB_ENDPOINT/g" -i /home/ec2-user/globalrx/dle/.env
-            sed 's/LOAD=False/LOAD=True/g' -i /home/ec2-user/globalrx/dle/.env
-            nohup ./start_script.sh > output & 
 
             cd /home/ec2-user
             echo "#!/bin/sh" > start_script.sh
             echo "cd /home/ec2-user/globalrx/dle" >> start_script.sh
             echo "/usr/local/bin/docker-compose up" >> start_script.sh
             chmod 755 start_script.sh
-
+            nohup ./start_script.sh > output & 
 #nohup ./start_script.sh > output &
 #sed "s/DATABASE_URL.*/DATABASE_URL=test-nestedstackrds-15n6nr35w3r0n-globalrxdb-gd0s0nru6f80.cj9gkkj3it4b.us-east-1.rds.amazonaws.com" -i /home/ec2-user/globalrx/dle/settings.py
+#            sed 's/LOAD=False/LOAD=True/g' -i /home/ec2-user/globalrx/dle/.env
 
 
 #- admin_email: !Ref EmailParameter
