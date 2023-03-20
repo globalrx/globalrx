@@ -56,7 +56,7 @@ Resources:
   
   NestedStackEC2:
     Type: AWS::CloudFormation::Stack
-    DependsOn: NestedStackRDS
+ #   DependsOn: NestedStackRDS
     Properties:
       TemplateURL: >-
         https://globalrx.s3.amazonaws.com/deploy_ec2.yaml
