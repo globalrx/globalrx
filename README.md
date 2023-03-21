@@ -24,3 +24,13 @@ For setup instructions see: [Setup](./docs/setup/readme.md)
 
 Project slides are [Here](./docs/dle.pdf)
 
+#### Design
+
+We decide to use Searchkit
+
+Searchkit to simplify using Elasticsearch for Search:
+
+UI Search Components for React, Vue, Angular, and more
+Searchkit Node API proxies Elasticsearch requests from the browser.
+Ability to use Elasticsearch Query DSL for advanced queries
+
