@@ -1,0 +1,126 @@
+# Create an index
+PUT druglabel
+
+# post a dummy doc to create mapping structure
+POST druglabel/_doc/1
+{
+  "source": "test",
+  "product_name": "name",
+  "generic_name": "generic name",
+  "version_date": "version date",
+  "source_product_number": "123456789",
+  "raw_text": "a long lot of text will go here",
+  "marketer": "a marketer",
+  "link": "https://fakeurl.com"
+}
+
+# get mapping structure
+GET druglabel/_mapping
+
+# activate trial license
+POST /_license/start_trial?acknowledge=true
+
+# test a single doc against a deployed model
+POST /_ml/trained_models/charangan__medbert/deployment/_infer
+{
+  "docs": {
+    "text_field": "1\nANNEX I\nSUMMARY OF PRODUCT CHARACTERISTICS\n2\n1.\nNAME OF THE MEDICINAL PRODUCT\nViramune 200 mg tablets\n2.\nQUALITATIVE AND QUANTITATIVE COMPOSITION\nEach tablet contains 200 mg of nevirapine (as anhydrous). \nExcipients with known effect\nEach tablet contains 318 mg of lactose (as monohydrate).\nEach tablet contains less than 1 mmol sodium (23 mg), that is to say essentially ‘sodium-free’.\nFor the full list of excipients, see section 6.1.\n3.\nPHARMACEUTICAL FORM\nTablet.\nWhite, oval, biconvex tablets. One side is embossed with the code “54 193”, with a single bisect \nseparating the “54” and “193”. The opposite side is marked with the company symbol."
+  }
+}
+
+# create index 
+PUT productsection
+# post dummy doc to create mapping structure
+POST productsection/_doc/1
+{
+  "label_product": "product",
+  "section_name": "name",
+  "section_text": "text field here to be indexed",
+  "id": 3243
+}
+# get mapping structure
+GET productsection/_mapping
+
+# get counts of different indices
+GET productsection/_count
+GET druglabel/_count
+GET failed-productsection/_count
+
+# create an ingest pipeline
+PUT _ingest/pipeline/medbert
+{
+  "description": "Text embedding pipeline using HuggingFace Charangan/MedBERT",
+  "processors": [
+    {
+      "inference": {
+        "model_id": "charangan__medbert",
+        "target_field": "text_embedding",
+        "field_map": {
+          "section_text": "text_field"
+        }
+      }
+    }
+  ],
+  "on_failure": [
+    {
+      "set": {
+        "description": "Index document to 'failed-<index>'",
+        "field": "_index",
+        "value": "failed-{{{_index}}}"
+      }
+    },
+    {
+      "set": {
+        "description": "Set error message",
+        "field": "ingest.failure",
+        "value": "{{_ingest.on_failure_message}}"
+      }
+    }
+  ]
+}
+
+# set the index default pipeline
+PUT /productsection/_settings
+{
+  "index" : {
+    "default_pipeline": "medbert"
+  }
+}
+
+# delete all documents in an index without dropping the index itself
+POST /productsection/_delete_by_query
+{
+  "query": {
+    "match_all": {}
+  }
+}
+
+POST /failed-productsection/_delete_by_query
+{
+  "query": {
+    "match_all": {}
+  }
+}
+
+# see all indices
+GET /_cat/indices
+
+# get some sample docs from failed-productsection index
+GET /failed-productsection/_search/?pretty=true&q="a"
+
+# see cluster tasks
+GET /_cluster/pending_tasks
+
+# see ML node resource stats
+GET _ml/memory/_stats
+
+# get a sample doc from productsection index
+GET /productsection/_search/?pretty=true
+
+# set productsection pipeline to none because it's too slow to ingest all docs locally
+PUT /productsection/_settings
+{
+    "index" : {
+        "default_pipeline": null
+    }
+}

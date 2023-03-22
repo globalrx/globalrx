@@ -92,7 +92,7 @@ class DrugLabelModelTests(TestCase):
             source="EMA",
             product_name="Skilarence",
             generic_name="dimethyl fumarate",
-            version_date="2022-03-08",  # EU formats date differently
+            version_date="2022-09-27",  # EU formats date differently
             source_product_number="EMEA/H/C/002157",
             marketer="Almirall S.A",
         )

@@ -1,24 +1,27 @@
 asgiref==3.5.0
-backports.zoneinfo==0.2.1
+backports.zoneinfo==0.2.1;python_version<"3.9"
 beautifulsoup4==4.10.0
 black==22.1.0
 bleach==5.0.0
-bs4==0.0.1
 certifi==2021.10.8
 charset-normalizer==2.0.12
 click==8.0.4
 cycler==0.11.0
 diff-match-patch==20200713
 Django==4.0.2
+django-environ==0.9.0
+djangorestframework==3.14.0
+elasticsearch-django==8.2
+eland[pytorch]==8.3.0
 et-xmlfile==1.1.0
 fonttools==4.32.0
 gensim==4.1.2
+gunicorn==20.1.0
 idna==3.3
 kiwisolver==1.4.2
 lxml==4.8.0
 matplotlib==3.5.1
 mypy-extensions==0.4.3
-mysqlclient==2.1.0
 numpy==1.22.3
 openpyxl==3.0.9
 packaging==21.3
@@ -26,6 +29,9 @@ pandas==1.4.1
 pathspec==0.9.0
 Pillow==9.1.0
 platformdirs==2.5.1
+# only needed if installing elasticsearch-django in editable mode for local dev
+# poetry==1.4.0
+psycopg2==2.9.5
 PyMuPDF==1.19.6
 pyparsing==3.0.8
 python-dateutil==2.8.2
@@ -41,3 +47,4 @@ tomli==2.0.1
 typing-extensions==4.1.1
 urllib3==1.26.9
 webencodings==0.5.1
+selenium==3.8.0

@@ -122,7 +122,7 @@ class Command(BaseCommand):
         records = []
 
         if import_type == "full":
-            for i in range(1, 5):
+            for i in range(1, 6):
                 archive_url = f"ftp://public.nlm.nih.gov/nlmdata/.dailymed/dm_spl_release_human_rx_part{i}.zip"
                 records.append(self.download_single_zip(archive_url, file_dir))
         elif import_type == "monthly":

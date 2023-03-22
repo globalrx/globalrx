@@ -1,28 +1,37 @@
-# Drug Label Explorer (DLE)
+# GlobalRx
 
-#### Overview
+## Overview
 
-DrugLabelExplorer is a tool for searching drug labels. The system loads drug label data from the Federal Drug Administration [FDA](https://labels.fda.gov/) and the European Medicines Agency [EMA](https://www.ema.europa.eu/en/medicines) and stores these into a MariaDB database. Searches can performed against this database using the form provided on the website.
+GlobalRx is a tool for searching drug labels, created as part of the Harvard University Extension School Software Engineering Capstone course 2023. It builds upon the [Drug Label Explorer (DLE)](https://github.com/DrugLabelExplorer/dle) created by the 2022 course and extends that project to include additional label regions and new features.
 
-At the time of this writing, the latest version of the website is deployed at [druglabelexplorer.org](https://druglabelexplorer.org), which may or may not be available at the time you are reading this.
+### Data
+GlobalRx currently includes labels from the following sources:
+- [FDA - USA](https://labels.fda.gov/)
+- [EMA - EU](https://www.ema.europa.eu/en/medicines)
+These labels are parsed and stored in a Postgres database using Django models, then indexed into Elasticsearch for faster and more accurate search leveraging semantic and vector search capabilities.
 
-#### Features
+### Features
 
-Main features of DLE include:
+Main features of GlobalRx include:
 
 - The ability to search drug labels from multiple sources
 - The ability to compare different drug labels
 - The ability to register as a user and load your own private drug labels
 
-#### System
+### System
 
-DLE is a web app written in Python using the [Django](https://www.djangoproject.com/) framework. The backend uses [MariaDB](https://mariadb.org/).
+GlobalRx is a web app written in Python using the [Django](https://www.djangoproject.com/) framework. The backend uses Postgres and Elasticsearch for data storage and search. The frontend uses Django templates. The application is containerized using Docker for easy deployment and development.
 
-Additional information for the project is included in the [Latest Report](./docs/report.pdf)
+### Setup
 
-For setup instructions see: [Setup](./docs/setup/readme.md)
+For GlobalRx setup instructions see: [Setup](./docs/readme.md)
+The current database structure is avaiable via [DBVisualizer export](./docs/dbvisualizer.png)
 
-Project slides are [Here](./docs/dle.pdf)
+#### DLE 2022
+Due to changes, DLE 2022 may no longer work as originally designed. See [Drug Label Explorer (DLE)](https://github.com/DrugLabelExplorer/dle) for the original project. Some artifacts of that project are still available in this repository, but are not actively maintained.
+- Additional information for DLE is included in the [2022 Report](./docs/dle/report.pdf)
+- DLE setup instructions: [Setup](./docs/dle/setup/readme.md)
+- 2022 project slides are [Here](./docs/dle/dle.pdf)
 
 #### Design
 
