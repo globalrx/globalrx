@@ -1,0 +1,40 @@
+Parameters:
+  DBTypeParameter:
+    Type: String
+    Default: "db.t4g.medium"
+    AllowedValues:
+      - db.t4g.medium
+    Description: Default is db.t4g.medium.
+  VPCParameter:
+    Type: String
+    Default: "vpc-23074059"
+    Description: VPC ID
+
+Resources:
+  globalRxDBSecGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Open 5432
+      VpcId: !Ref VPCParameter
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '5432'
+          ToPort: '5432'
+          CidrIp: 0.0.0.0/0 
+
+  globalRxDB:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      VPCSecurityGroups:
+        - !GetAtt "globalRxDBSecGroup.GroupId"
+      AllocatedStorage: '60'
+      DBInstanceClass: !Ref DBTypeParameter
+      Engine: postgres
+      MasterUsername: postgres
+      MasterUserPassword: fghyucvsafd
+    DeletionPolicy: Delete
+
+Outputs:
+  globalRxEndpoint:
+      Description: "DB Endpoint"
+      Value: !GetAtt globalRxDB.Endpoint.Address
