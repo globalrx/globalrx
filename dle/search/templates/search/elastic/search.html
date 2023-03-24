@@ -5,54 +5,7 @@
 <script src="https://cdn.jsdelivr.net/npm/instantsearch.js@4"></script>
 <script src="https://cdn.jsdelivr.net/npm/searchkit@latest"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7/themes/algolia-min.css"/>
-
-<style>
-    .ais-ClearRefinements {
-        margin: 1em 0;
-      }
-      
-      .ais-SearchBox {
-        margin: 1em 0;
-      }
-      
-      .ais-Pagination {
-        margin-top: 1em;
-      }
-      
-      .left-panel {
-        float: left;
-        width: 400px;
-      }
-      
-      .right-panel {
-        margin-left: 410px;
-      }
-      
-      /**.ais-InstantSearch {
-        max-width: 960px;
-        overflow: hidden;
-        margin: 0 auto;
-      }**/
-      
-      .ais-Hits-item {
-        margin-bottom: 1em;
-      }
-      
-      .ais-Hits-item img {
-        margin-right: 1em;
-      }
-      
-      .hit-name {
-        margin-bottom: 0.5em;
-      }
-      
-      .hit-description {
-        color: #888;
-        font-size: 14px;
-        margin-bottom: 0.5em;
-      }
-
-</style>
+<link href="../../static/search/styles.css" rel="stylesheet" />
 
 {% endblock %}
 {% block content %}
@@ -81,14 +34,16 @@
 {% endblock %}
 
 {% block footer_scripts %}
+
+<!-- TODO try to get this into another file - tried a few times and failed tonight -->
 <script type="text/javascript">
     /* global instantsearch algoliasearch */
 
     // Basic auth with username/password is not supported - bug: see https://github.com/searchkit/searchkit/issues/1235
     const sk = new Searchkit({
       connection: {
-        host: "https://localhost:9200",
-        apiKey: "VzIzb19JWUIzUFlMNDNDVnBIYk06WTA4UkJBMmlSak9mSmM0NklzMXJ6QQ=="
+        host: "https://localhost:9200", // TODO remove hardcoding for deployment
+        apiKey: "aF9xVEVJY0JLbDFoeUxRVlFzUzY6SEdEbng2dy1SMC1oZktieUlZTFczQQ==" // TODO remove hardcoding for deployment
       },
       search_settings: {
         highlight_attributes: ["section_name", "drug_label_product_name", "drug_label_generic_name"],
