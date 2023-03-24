@@ -124,3 +124,62 @@ PUT /productsection/_settings
         "default_pipeline": null
     }
 }
+
+# Bigger productsection index
+PUT /productsection
+PUT /productsection/_mapping
+{
+  "properties": {
+      "id": {
+          "type": "long"
+      },
+      "label_product_id": {
+          "type": "long"
+      },
+      "section_name": {
+          "type": "text",
+          "fields": {
+              "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+              }
+          }
+      },
+      "section_text": {
+          "type": "text"
+      },
+      "drug_label_id": {
+          "type": "long"
+      },
+      "drug_label_product_name": {
+          "type": "text",
+          "fields": {
+              "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+              }
+          }
+      },
+      "drug_label_source": {
+          "type": "keyword"
+      },
+      "drug_label_generic_name": {
+          "type": "text",
+          "fields": {
+              "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+              }
+          }
+      },
+      "drug_label_version_date": {
+          "type": "date"
+      },
+      "drug_label_source_product_number": {
+          "type": "text"
+      },
+      "drug_label_link": {
+          "type": "text"
+      }
+  }
+}

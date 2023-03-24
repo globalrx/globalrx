@@ -76,3 +76,7 @@ def list_search_results_impl(request: HttpRequest) -> HttpResponse:
     }
 
     return render(request, "search/search_results/search_results.html", context=context)
+
+def es_search(request: HttpRequest) -> HttpResponse:
+    """Search results list view"""
+    return render(request, "search/elastic/search.html", context={})

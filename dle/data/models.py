@@ -133,13 +133,21 @@ class ProductSection(SearchDocumentMixin, models.Model):
     
     def as_search_document(self, index="_all") -> dict:
         """Converts a ProductSection into a Elasticsearch document.
+        Includes many fields from the related DrugLabel.
         Returns:
             dict: Search document
         """
+        # TODO if we do not need any of these fields for search (e.g. only needed for display on a template page), then we can remove them here to save ES index space
         return {
             "label_product_id": self.label_product.id,
             "drug_label_id": self.label_product.drug_label.id,
-            "drug_label_name": DrugLabel.objects.get(id=self.label_product.drug_label.id).product_name,
+            "drug_label_product_name": DrugLabel.objects.get(id=self.label_product.drug_label.id).product_name,
+            "drug_label_source": DrugLabel.objects.get(id=self.label_product.drug_label.id).source,
+            "drug_label_generic_name": DrugLabel.objects.get(id=self.label_product.drug_label.id).generic_name,
+            "drug_label_version_date": DrugLabel.objects.get(id=self.label_product.drug_label.id).version_date,
+            "drug_label_source_product_number": DrugLabel.objects.get(id=self.label_product.drug_label.id).source_product_number,
+            "drug_label_marketer": DrugLabel.objects.get(id=self.label_product.drug_label.id).marketer,
+            "drug_label_link": DrugLabel.objects.get(id=self.label_product.drug_label.id).link,
             "section_name": self.section_name,
             "section_text": self.section_text,
             "id": self.id,
