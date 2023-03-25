@@ -43,7 +43,7 @@
     const sk = new Searchkit({
       connection: {
         host: "https://localhost:9200", // TODO remove hardcoding for deployment
-        apiKey: "aF9xVEVJY0JLbDFoeUxRVlFzUzY6SEdEbng2dy1SMC1oZktieUlZTFczQQ==" // TODO remove hardcoding for deployment
+        apiKey: "LUQ2Q0VZY0I3SmJyS1lSZjdiREI6dHZHUWRhMEZSbXVWa3R0RlhpTmZ1Zw==" // TODO remove hardcoding for deployment
       },
       search_settings: {
         highlight_attributes: ["section_name", "drug_label_product_name", "drug_label_generic_name"],
@@ -110,6 +110,7 @@
                     </h2>
                     <h3>
                         Generic Name: ${components.Highlight({ attribute: 'drug_label_generic_name', hit })}
+
                     </h3>
                     <h3>
                         Section: ${components.Highlight({ attribute: 'section_name', hit })}

@@ -1,27 +1,98 @@
-name: Django CI
+# Note: until permissions can be minimized, IAM user credentials require
+#       manual modification to run the code below. 
 
+name: CI
 on:
   push:
-    branches: [ main ]
+    branches: [ "alex_cfn" ]
   pull_request:
-    branches: [ main ]
-
+    branches: [ "alex_cfn" ]
+  workflow_dispatch:
 jobs:
   build:
-    runs-on: ubuntu-18.04
-    strategy:
-      max-parallel: 4
-      matrix:
-        python-version: ['3.10']
-
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
 
-      - name: Run dockerized tests
-        uses: cloudposse/github-action-docker-compose-test-run@main
+      - name: pull repo
+        uses: actions/checkout@v3
+ 
+      - name: Configure AWS credentials
+        id: creds
+        uses: aws-actions/configure-aws-credentials@v1
         with:
-          file: docker-compose-tests.yml
-          service: django
-          command: run-tests.sh
-          workdir: dle
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+        continue-on-error: true
+
+      - name: Upload to S3
+        run: |
+          aws s3 sync ./cfn s3://globalrx
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: 'us-east-1'
+        continue-on-error: true
+
+
+      - name: Push cfn to S3
+        run: |
+          aws s3 sync ./cfn s3://globalrx
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: 'us-east-1'
+        continue-on-error: true
+
+
+      - name: Create EC2  
+        if: contains(github.event.head_commit.message, 'create_ec2')
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: test
+          template: https://globalrx.s3.amazonaws.com/deploy_ec2.yaml   
+        continue-on-error: true
+
+
+
+      - name: Deploy ECR Repositories 
+        if: contains(github.event.head_commit.message, 'create_ecr_repos')
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: test
+          template: https://globalrx.s3.amazonaws.com/deploy_ecr.yaml   # Pass vars to re-use in Image Push
+        continue-on-error: true
+
+      - name: Login to Amazon ECR  # adapted from https://towardsaws.com/build-push-docker-image-to-aws-ecr-using-github-actions-8396888a8f9e
+        if: contains(github.event.head_commit.message, 'push_django')
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Push Django to ECR  # adapted from https://towardsaws.com/build-push-docker-image-to-aws-ecr-using-github-actions-8396888a8f9e
+        if: contains(github.event.head_commit.message, 'push_django')
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: django
+          IMAGE_TAG: latest
+        run: |
+          cd docker
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+
+      - name: Deploy CFN Main Template
+        if: contains(github.event.head_commit.message, 'deploy_main')
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: test
+          capabilities: CAPABILITY_NAMED_IAM
+          template: https://globalrx.s3.amazonaws.com/deploy_main.yaml
+        continue-on-error: true
+
+      - name: Run a multi-line script
+        run: |
+          whoami
+          pwd
+          cd /etc
+          ls
+        continue-on-error: true

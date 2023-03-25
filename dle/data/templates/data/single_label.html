@@ -23,7 +23,7 @@
         <div class="form-check">
           <label class="form-check-label" for="{{label.id}}">
             <input type="checkbox" class="form-check-input compare-checkbox" onclick="_versions_handleSelectClick()" value={{label.id}} />
-              <a href="{% url 'data:single_label_view' drug_label_id=label.id %}" class="text-sml text-stone-900" target="_blank">
+              <a href="{% url 'data:' drug_label_id=label.id %}" class="text-sml text-stone-900" target="_blank">
                 <strong>
                   <tr>
                     <td>{{label.product_name|title}} |</td>
