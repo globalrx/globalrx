@@ -4,9 +4,9 @@
 name: CI
 on:
   push:
-    branches: [ "alex_cfn" ]
+    branches: [ "alex" ]
   pull_request:
-    branches: [ "alex_cfn" ]
+    branches: [ "alex" ]
   workflow_dispatch:
 jobs:
   build:
