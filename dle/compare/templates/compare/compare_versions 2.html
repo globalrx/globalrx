@@ -1,0 +1,235 @@
+{% extends "search/base.html" %}
+
+{% block title %}Compare{% endblock %}
+
+{% block head %}
+{% load static %}
+<link href="{% static 'compare/styles.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+    <div class="container-fluid">
+        <div class="row">
+            <h6> Comparing versions dated 
+                <b> {{dl1.version_date }}</b> and 
+                <b>{{dl2.version_date }}</b>:
+            </h6>
+        </div>
+        <br>
+        <div class="row">
+            <table id="headerTable">
+            <tr>
+                <td class="section-td">
+                    <dl>
+                        <dt>Product Name: <a href="{% url 'data:single_label_view' drug_label_id=dl1.id %}">{{ dl1.product_name|title }}</a></dt>
+                        <dt>Generic Name: {{ dl1.generic_name|title }}</dt>
+                        <dt>Version Date: {{ dl1.version_date }}</dt>
+                        <dt>Product Number: {{ dl1.source_product_number }}</dt>
+                        <dt>Marketer: {{ dl1.marketer|title }}</dt>
+                        <dt>Source: {{ dl1.source }}</dt>
+                    </dl>
+                </td>
+                <td class="section-td">
+                    <dl>
+                        <dt>Product Name: <a href="{% url 'data:single_label_view' drug_label_id=dl2.id %}">{{ dl2.product_name|title }}</a></dt>
+                        <dt>Generic Name: {{ dl2.generic_name|title }}</dt>
+                        <dt>Version Date: {{ dl2.version_date }}</dt>
+                        <dt>Product Number: {{ dl2.source_product_number }}</dt>
+                        <dt>Marketer: {{ dl2.marketer|title }}</dt>
+                        <dt>Source: {{ dl2.source }}</dt>
+                    </dl>
+                </td>
+            </tr>
+            </table>
+        </div>
+        <hr>
+        <div class="row" id="sectionFilterContainer"> 
+            <div class="col-lg">
+                <label for="section-filter">Select Section: </label>
+                <select name="section-filter" id="sectionFilter" onchange="showSection()">
+                    <option value="all">All Sections </option>
+                    <option value="diff-sections">Sections with Different Text</option>
+                    <option value="matching-sections">Sections with Matching Text</option>
+                    {% for sec_name in section_names %}
+                    <option value="{{sec_name|cut:' '}}">{{ sec_name|title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-sm">
+                <button type="button" class="btn btn-info btn-lg" id="expandSections" onclick="expandSections()">Expand All Sections</button>
+            </div>
+        </div>
+        {% if sections %}
+            {% for section in sections %}
+            <div class="row sec-content {{section.textMatches}}" id="{{section.section_name|cut:' '}}" style="display:block">
+                <button type="button" class="collapsible">
+                    <i class="fa fa-plus-square-o" style="display:block"> <strong>{{ section.section_name|title }}</strong></i>
+                    <i class="fa fa-minus-square-o" style="display:none"> <strong>{{ section.section_name|title }}</strong></i>
+                </button>
+                <table class="section-table" style="display:none" style="width:100%">
+                    <tr>
+                        <td class="td-{{section.textMatches}} section-td" style="width:50%">
+                            <p>
+                            {% for tuple in section.section_text1 %}
+                                {% if tuple.0 == 0 %}
+                                    {{ tuple.1|safe }}
+                                {% elif tuple.0 == -1 %}
+                                    <span class="diff-text-highlight">{{ tuple.1 }}</span>
+                                {% endif %}
+                            {% endfor %}
+                            </p>
+                        </td>
+                        <td class="td-{{section.textMatches}} section-td" style="width:50%">
+                            <p>
+                            {% for tuple in section.section_text2 %}
+                                {% if tuple.0 == 0 %}
+                                    {{ tuple.1|safe }}
+                                {% elif tuple.0 == 1 %}
+                                    <span class="diff-text-highlight">{{ tuple.1 }}</span>
+                                {% endif %}
+                            {% endfor %}
+
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p>No section texts are found.</p>
+        {% endif %}
+    </div>
+{% endblock content %}
+{% block footer_scripts %}
+    <script>
+        /**
+         * Get all section heading button elements
+         */
+        var coll = document.getElementsByClassName("collapsible");
+        var i;
+
+        /**
+         * Add event listener to all buttons to make section content 
+         * collapsible. When a section button is clicked, the section 
+         * content will show or hide.
+         */
+        for (i = 0; i < coll.length; i++) {
+            coll[i].addEventListener("click", function() {
+                const content = this.nextElementSibling;
+                const plus_icon = this.getElementsByTagName('i')[0];
+                const minus_icon = this.getElementsByTagName('i')[1];
+                if (content.style.display === "block") {
+                    content.style.display = "none";
+                    this.classList.remove("active");
+                    minus_icon.style.display = "none";
+                    plus_icon.style.display = "block";
+                } else {
+                    content.style.display = "block";
+                    this.classList.toggle("active");
+                    minus_icon.style.display = "block";
+                    plus_icon.style.display = "none";
+                }
+            });
+        }
+
+        /**
+         * Show/hide the section expansion buttons based on users
+         * selection from the drop down filter.
+         */
+        function showSection() {
+            const selected_sec = document.getElementById("sectionFilter").value;
+            if (selected_sec == 'all') {
+                const sec_divs = document.getElementsByClassName('sec-content');
+
+                for (const div of sec_divs) {
+                    div.style.display = 'block';
+                    const tbl = div.getElementsByTagName('table')[0];
+                    tbl.style.display = "none";
+                    const btn = div.getElementsByTagName('button')[0];
+                    btn.classList.remove('active');
+                }
+
+                document.getElementById("expandSections").innerHTML="Expand All Sections";
+            } else if (selected_sec == 'matching-sections') { 
+                const sec_divs = document.getElementsByClassName('sec-content');
+
+                for (const div of sec_divs) {
+                    div.style.display = 'none';
+                    const tbl = div.getElementsByTagName('table')[0];
+                    tbl.style.display = "none";
+                    const btn = div.getElementsByTagName('button')[0];
+                    btn.classList.remove('active');
+                }
+                const common_sec = document.getElementsByClassName('matching-section');
+
+                for (const div of common_sec) {
+                    div.style.display = 'block';
+                }
+
+                document.getElementById("expandSections").innerHTML="Expand All Sections";
+            } else if (selected_sec == 'diff-sections') { 
+                const sec_divs = document.getElementsByClassName('sec-content');
+
+                for (const div of sec_divs) {
+                    div.style.display = 'none';
+                    const tbl = div.getElementsByTagName('table')[0];
+                    tbl.style.display = "none";
+                    const btn = div.getElementsByTagName('button')[0];
+                    btn.classList.remove('active');
+                }
+                const common_sec = document.getElementsByClassName('diff-section');
+
+                for (const div of common_sec) {
+                    div.style.display = 'block';
+                }
+
+                document.getElementById("expandSections").innerHTML="Expand All Sections";
+            } else {
+                const sec_divs = document.getElementsByClassName('sec-content');
+
+                for (const div of sec_divs) {
+                    div.style.display = 'none';
+                }
+                sec_div = document.getElementById(selected_sec);
+                sec_div.style.display = "block";              
+            }
+        }
+
+        /**
+         * Onclick of the Expand All Sections button, it expands to show the
+         * text of all sections and changes the button innerHTML to "Hide All Sections".
+         * Onclick of the Hide All Sections button, it hides the text of all sections
+         * leaving the collapsible blue buttons.
+         */
+        function expandSections() {
+            const btn = document.getElementById("expandSections");
+            if (btn.innerHTML=="Expand All Sections") {
+                btn.innerHTML = "Hide All Sections";
+                const section_tbls = document.getElementsByClassName('section-table');
+                for (const tbl of section_tbls) {
+                    tbl.style.display = 'block';
+                }
+                const section_btns = document.getElementsByClassName('collapsible');
+                for (const btn of section_btns) {
+                    btn.classList.toggle("active");
+                    btn.getElementsByTagName('i')[0].style.display = "none";
+                    btn.getElementsByTagName('i')[1].style.display = "block";
+                }
+            }
+            else {
+                btn.innerHTML = "Expand All Sections";
+                const section_tbls = document.getElementsByClassName('section-table');
+                for (const tbl of section_tbls) {
+                    tbl.style.display = 'none';
+                }
+                const section_btns = document.getElementsByClassName('collapsible');
+                for (const btn of section_btns) {
+                    btn.classList.remove("active");
+                    btn.getElementsByTagName('i')[0].style.display = "block";
+                    btn.getElementsByTagName('i')[1].style.display = "none";
+                }
+            }
+            console.log(btn.innerHTML);
+        }
+    </script>
+{% endblock footer_scripts %}

@@ -1,0 +1,161 @@
+{% extends "search/base.html" %}
+
+{% block content %}
+  <div class="container-fluid" id="topdiv">
+    <h1> {{ drug_label.product_name|title }}</h1>
+    <div class="row">
+      <dl>
+        <dt>Generic Name: <b>{{ drug_label.generic_name|title }}</b></dt>
+        <dt>Version Date: <b>{{ drug_label.version_date }}</b></dt>
+        <dt>Product Number (NDC Code): <b>{{ drug_label.source_product_number }}</b></dt>
+        <dt>Marketing Authorization Holder (MAH): <b>{{ drug_label.marketer|title }}</b></dt>
+        <dt>Source: <b>{{ drug_label.source }}</b></dt>
+        <dt>Go to this <a href="{{ drug_label.link }}">link</a> for the original (FDA/EMA) source document.</dt>
+        <dt></dt>
+      </dl>
+    </div>
+    <hr>
+    <h5>List of all Drug Label versions with the same product name and marketer</h5>
+    <p>(select any two versions to compare)</p>
+    <div class="row">
+      <form name="result_to_compare_form" method="get" action="/compare/compare_versions" target="_blank">
+        {% for label in drug_label_versions %}
+        <div class="form-check">
+          <label class="form-check-label" for="{{label.id}}">
+            <input type="checkbox" class="form-check-input compare-checkbox" onclick="_versions_handleSelectClick()" value={{label.id}} />
+              <a href="{% url 'data:' drug_label_id=label.id %}" class="text-sml text-stone-900" target="_blank">
+                <strong>
+                  <tr>
+                    <td>{{label.product_name|title}} |</td>
+                    <td>{{label.source_product_number}} |</td>
+                    <td>{{label.source}}</td>
+                    <td>({{label.version_date}})</td>
+                  </tr>
+                </strong>
+              </a>
+          </label>
+        </div>
+        {% endfor %}
+        <br>
+        <button type="button" onclick="_versions_handleCompareSubmit()" class="btn btn-primary">
+          Compare Versions
+        </button>
+      </form>
+    </div>
+    <hr>
+    <!-- drop down selection for quick access of a specific section -->
+    <div class="row" id="sectionFilterContainer"> 
+      <div class="col-lg">
+          <label for="section-filter">Jump to a specific section: </label>
+          <select name="section-filter" id="sectionFilter" onchange="jumpToSection()">
+              <option value="all">All Sections </option>
+              {% for sec_name in section_names %}
+              <option value="{{sec_name|cut:' '}}">{{ sec_name|title }}</option>
+              {% endfor %}
+          </select>
+      </div>
+    </div>
+    <!-- display each section's text  -->
+    {% for section in sections %}
+    <div class="row" id="{{section.section_name|cut:' '}}" style="margin-top: 10px;">
+      <table style="width:100%">
+        <tr>
+          <td>
+            <hr>
+          </td>
+        </tr>
+        <tr>
+          <th><h5>{{ section.section_name|title }}</h5></th>
+        </tr>
+        <tr>
+          <td>{{ section.section_text|safe }}</td>
+        </tr>
+        <tr>
+          <td>
+            <a href="#topdiv">Go to the top.</a>
+          </td>
+        </tr>
+      </table>
+    </div>
+    {% endfor %}
+  </div>
+{% endblock content %}
+
+{% block footer_scripts %}
+  <script>
+    const _versions_COMPARE_CHECKBOX = "compare-checkbox";
+    /**
+     * Checks if the selected results is at the max limit
+     * @param {NodeListOf<Element>} selectedNodes - List of checkboxes that are selected
+     * @param {Optional<number>} limit - The number of allowed "selected" checkboxes
+     * @return {bool} True if number of selected checkboxes is at the limit
+     */
+    function _versions_isAtLimit(selectedNodes) {
+      return selectedNodes.length === 2;
+    }
+
+    /**
+     * Disables all unselected search result checkboxes
+     */
+    function _versions_disableRemainingCheckboxes() {
+      document
+        .querySelectorAll(`input.${_versions_COMPARE_CHECKBOX}:not(:checked)`)
+        .forEach((node) => (node.disabled = true));
+    }
+
+    /**
+     * Enables all disabled checkboxes
+     */
+    function _versions_enableRemainingCheckboxes() {
+      document
+        .querySelectorAll(`input.${_versions_COMPARE_CHECKBOX}:disabled`)
+        .forEach((node) => (node.disabled = false));
+    }
+
+    /**
+     * Fired every time the user clicks on the checkbox
+     * Limits the user to just 2 drug labels to compare.
+     */
+    function _versions_handleSelectClick() {
+      const selectedResults = document.querySelectorAll(
+        `input.${_versions_COMPARE_CHECKBOX}:checked`
+      );
+      _versions_isAtLimit(selectedResults)
+        ? _versions_disableRemainingCheckboxes()
+        : _versions_enableRemainingCheckboxes();
+    }
+
+    /**
+     * Fired when the user clicks the "compare" button
+     * Only redirect's the user if the selected labels is at the "limit"
+     *    i.e. comparing 2 selected labels requires 2 selected labels
+     */
+    function _versions_handleCompareSubmit() {
+      const selectedResults = document.querySelectorAll(
+        `input.${_versions_COMPARE_CHECKBOX}:checked`
+      );
+
+      const selectedResults_length = selectedResults.length;
+
+      if (selectedResults.length >= 2) {
+        const [firstDrug, secondDrug] = selectedResults;
+        firstDrug.name = 'first-label';
+        secondDrug.name = 'second-label';
+
+        // open the compare page in new tab
+        document.result_to_compare_form.submit();
+
+        return;
+      }
+      else {
+        window.alert("Please select 2 versions to compare.");
+        return;
+      }
+    }
+
+    function jumpToSection() {
+      var selected_sec = document.getElementById("sectionFilter").value;
+      document.getElementById(selected_sec).scrollIntoView();
+    }
+  </script>
+{% endblock %}

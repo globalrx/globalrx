@@ -78,7 +78,7 @@ Resources:
             cd /home/ec2-user
             git clone https://github.com/globalrx/globalrx.git
             cd /home/ec2-user/globalrx/dle
-            git checkout elasticsearch-django
+            git checkout alex
             mv /home/ec2-user/globalrx/dle/cfn/env_file .env
             EMAIL=${EmailParameter}
             sed "s/DJANGO_SUPERUSER_EMAIL.*/DJANGO_SUPERUSER_EMAIL="$EMAIL"/g" -i /home/ec2-user/globalrx/dle/.env

@@ -1,0 +1,19 @@
+<div>
+    <label for="brand_name_input">brand name:</label>
+  </div>
+  <datalist id="brand_name_typeahead_list">
+    {% for option in type_ahead_brand_name %}
+    <option value="{{option}}"></option>
+    {% endfor %}
+  </datalist>
+  <div>
+    <input
+      type="text"
+      name="brand_name_input"
+      class="h-10 w-60 px-3 py-1.5 shadow border border-solid border-gray-300 rounded"
+      aria-label="Default brand_name"
+      list="brand_name_typeahead_list"
+      placeholder="any brand name"
+    />
+  </div>
+  

@@ -1,0 +1,233 @@
+{% extends "search/base.html" %}
+
+{% block title %}Compare{% endblock %}
+
+{% block head %}
+{% load static %}
+<link href="{% static 'compare/styles.css' %}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+    <div class="container-fluid">
+        <div class="row">
+            {% if dl3 %}
+            <h6> Comparing drugs 
+                <b>{{dl1.product_name|title}}</b>, 
+                <b>{{dl2.product_name|title}}</b>, and 
+                <b>{{dl3.product_name|title}}</b>:
+            </h6>
+            {% else %}
+            <h6> Comparing drugs 
+                <b>{{dl1.product_name|title}}</b> and 
+                <b>{{dl2.product_name|title}}</b>:
+            </h6>
+            {% endif %}
+        </div>
+        <br>
+        <div class="row">
+            <table id="headerTable">
+            <tr>
+                <td class="section-td">
+                    <dl>
+                        <dt>Product Name: <a href="{% url 'data:single_label_view' drug_label_id=dl1.id %}">{{ dl1.product_name|title }}</a></dt>
+                        <dt>Generic Name: {{ dl1.generic_name|title }}</dt>
+                        <dt>Version Date: {{ dl1.version_date }}</dt>
+                        <dt>Product Number: {{ dl1.source_product_number }}</dt>
+                        <dt>Marketer: {{ dl1.marketer|title }}</dt>
+                        <dt>Source: {{ dl1.source }}</dt>
+                    </dl>
+                </td>
+                <td class="section-td">
+                    <dl>
+                        <dt>Product Name: <a href="{% url 'data:single_label_view' drug_label_id=dl2.id %}">{{ dl2.product_name|title }}</a></dt>
+                        <dt>Generic Name: {{ dl2.generic_name|title }}</dt>
+                        <dt>Version Date: {{ dl2.version_date }}</dt>
+                        <dt>Product Number: {{ dl2.source_product_number }}</dt>
+                        <dt>Marketer: {{ dl2.marketer|title }}</dt>
+                        <dt>Source: {{ dl2.source }}</dt>
+                    </dl>
+                </td>
+                {% if dl3 %}
+                <td class="section-td"> 
+                    <dl>
+                        <dt>Product Name: <a href="{% url 'data:single_label_view' drug_label_id=dl3.id %}">{{ dl3.product_name|title }}</a></dt>
+                        <dt>Generic Name: {{ dl3.generic_name|title }}</dt>
+                        <dt>Version Date: {{ dl3.version_date }}</dt>
+                        <dt>Product Number: {{ dl3.source_product_number }}</dt>
+                        <dt>Marketer: {{ dl3.marketer|title }}</dt>
+                        <dt>Source: {{ dl3.source }}</dt>
+                    </dl>
+                </td>
+                {% endif %}
+            </tr>
+            </table>
+        </div>
+        <hr>
+        <div class="row" id="sectionFilterContainer"> 
+            <div class="col-lg">
+                <label for="section-filter">Select Section: </label>
+                <select name="section-filter" id="sectionFilter" onchange="showSection()">
+                    <option value="all">All Sections </option>
+                    <option value="common-sections">All Common Sections </option>
+                    {% for sec_name in section_names %}
+                    <option value="{{sec_name|cut:' '}}">{{ sec_name|title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-sm">
+                <button type="button" class="btn btn-info btn-lg" id="expandSections" onclick="expandSections()">Expand All Sections</button>
+            </div>
+        </div>
+        {% if sections %}
+            {% for section in sections %}
+                <div class="row sec-content {{section.isCommon}}" id="{{section.section_name|cut:' '}}" style="display:block">
+                    <button type="button" class="collapsible">
+                        <i class="fa fa-plus-square-o" style="display:block"> <strong>{{ section.section_name|title }}</strong></i>
+                        <i class="fa fa-minus-square-o" style="display:none"> <strong>{{ section.section_name|title }}</strong></i>
+                    </button>
+                    <table class="section-table" style="display:none">
+                        <tr>
+                          {% if section.section_text3 %}
+                            <td class="section-td" style="width:34%">
+                              <p>{{ section.section_text1|safe }}</p>
+                            </td>
+                            <td class="section-td" style="width:33%">
+                              <p>{{ section.section_text2|safe }}</p>
+                            </td>
+                            <td class="section-td" style="width:33%">
+                                <p>{{ section.section_text3|safe }}</p>
+                            </td>
+                          {% else %}
+                            <td class="section-td" style="width:50%">
+                              <p>{{ section.section_text1|safe }}</p>
+                            </td>
+                            <td class="section-td" style="width:50%">
+                              <p>{{ section.section_text2|safe }}</p>
+                            </td>
+                          {% endif %}
+                        </tr>
+                    </table>
+                </div>
+            {% endfor %}
+        {% else %}
+            <p>No section texts are found.</p>
+        {% endif %}
+    </div>
+{% endblock content %}
+{% block footer_scripts %}
+    <script>
+        /**
+         * Get all section heading button elements
+         */
+        var coll = document.getElementsByClassName("collapsible");
+        var i;
+
+        /**
+         * Add event listener to all buttons to make section content 
+         * collapsible. When a section button is clicked, the section 
+         * content will show or hide.
+         */
+        for (i = 0; i < coll.length; i++) {
+            coll[i].addEventListener("click", function() {
+                // this.classList.toggle("active");
+                var content = this.nextElementSibling;
+                var plus_icon = this.getElementsByTagName('i')[0];
+                var minus_icon = this.getElementsByTagName('i')[1];
+                if (content.style.display === "block") {
+                    content.style.display = "none";
+                    this.classList.remove("active");
+                    minus_icon.style.display = "none";
+                    plus_icon.style.display = "block";
+                } else {
+                    content.style.display = "block";
+                    this.classList.toggle("active");
+                    minus_icon.style.display = "block";
+                    plus_icon.style.display = "none";
+                }
+            });
+        }
+
+        /**
+         * Show/hide the section expansion buttons based on users
+         * selection from the drop down filter.
+         */
+        function showSection() {
+            const selected_sec = document.getElementById("sectionFilter").value;
+            console.log("selected option is: " + selected_sec)
+            if (selected_sec == 'all') {
+                const sec_divs = document.getElementsByClassName('sec-content');
+
+                for (const div of sec_divs) {
+                    div.style.display = 'block';
+                    const tbl = div.getElementsByTagName('table')[0];
+                    tbl.style.display = "none";
+                    const btn = div.getElementsByTagName('button')[0];
+                    btn.classList.remove('active');
+                }
+
+                document.getElementById("expandSections").innerHTML="Expand All Sections";
+            } else if (selected_sec == 'common-sections') { 
+                const sec_divs = document.getElementsByClassName('sec-content');
+
+                for (const div of sec_divs) {
+                    div.style.display = 'none';
+                    const tbl = div.getElementsByTagName('table')[0];
+                    tbl.style.display = "none";
+                    const btn = div.getElementsByTagName('button')[0];
+                    btn.classList.remove('active');
+                }
+                const common_sec = document.getElementsByClassName('common-section');
+
+                for (const div of common_sec) {
+                    div.style.display = 'block';
+                }
+
+                document.getElementById("expandSections").innerHTML="Expand All Sections";
+            } else {
+                const sec_divs = document.getElementsByClassName('sec-content');
+
+                for (const div of sec_divs) {
+                    div.style.display = 'none';
+                }
+                sec_div = document.getElementById(selected_sec);
+                sec_div.style.display = "block";              
+            }
+        }
+
+        /**
+         * Onclick of the Expand All Sections button, it expands to show the
+         * text of all sections and changes the button innerHTML to "Hide All Sections".
+         * Onclick of the Hide All Sections button, it hides the text of all sections
+         * leaving the collapsible blue buttons.
+         */
+        function expandSections() {
+            const btn = document.getElementById("expandSections");
+            if (btn.innerHTML=="Expand All Sections") {
+                btn.innerHTML = "Hide All Sections";
+                const section_tbls = document.getElementsByClassName('section-table');
+                for (const tbl of section_tbls) {
+                    tbl.style.display = 'block';
+                }
+                const section_btns = document.getElementsByClassName('collapsible');
+                for (const btn of section_btns) {
+                    btn.classList.toggle("active");
+                    btn.getElementsByTagName('i')[0].style.display = "none";
+                    btn.getElementsByTagName('i')[1].style.display = "block";
+                }
+            }
+            else {
+                btn.innerHTML = "Expand All Sections";
+                const section_tbls = document.getElementsByClassName('section-table');
+                for (const tbl of section_tbls) {
+                    tbl.style.display = 'none';
+                }
+                const section_btns = document.getElementsByClassName('collapsible');
+                for (const btn of section_btns) {
+                    btn.classList.remove("active");
+                    btn.getElementsByTagName('i')[0].style.display = "block";
+                    btn.getElementsByTagName('i')[1].style.display = "none";
+                }
+            }
+        }
+    </script>
+{% endblock footer_scripts %}

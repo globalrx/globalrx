@@ -1,0 +1,23 @@
+<form id="refine_search_form" name="result_to_search_view" method="get" action="/search/results">
+    <input type="hidden" name="page" value="1" >
+    <div class="flex">
+      {% include "search/search_results/results_search_input.html" %}
+    </div>
+    <div class="grid grid-cols-5 gap-x-2">
+      <div>
+        {% include "search/search_results/results_section_select.html" %}
+      </div>
+      <div>
+        {% include "search/search_results/results_agency_select.html" %}
+      </div>
+      <div>
+        {% include "search/search_results/results_generic_name_input.html" %}
+      </div>
+      <div>
+        {% include "search/search_results/results_brand_name_input.html" %}
+      </div>
+      <div>
+        {% include "search/search_results/results_manufacturer_input.html" %}
+      </div>
+    </div>
+  </form>

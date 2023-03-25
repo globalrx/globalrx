@@ -1,0 +1,307 @@
+services:
+  django:
+    build:
+      context: /home/ec2-user/globalrx/dle
+      dockerfile: Dockerfile.dev
+    depends_on:
+      postgres:
+        condition: service_started
+    environment:
+      CLUSTER_NAME: dle-elastic-cluster
+      COMPOSE_PROJECT_NAME: dle
+      DATABASE_URL: postgres://postgres:fghyucvsafd@postgres:5432/postgres
+      DEBUG: "True"
+      DJANGO_SUPERUSER_EMAIL: aeg224@g.harvard.edu
+      DJANGO_SUPERUSER_PASSWORD: Wtb8qbY0kH54bF
+      DJANGO_SUPERUSER_USERNAME: admin
+      ELASTIC_CLOUD_ID: AppName:longRaNd0MStringofChars
+      ELASTIC_CLOUD_PASSWORD: RandomGenPWD
+      ELASTIC_PASSWORD: dKnaSVB4bTkRzL
+      ELASTICSEARCH_URL: https://es01:9200
+      ELASTICSEARCH_USER: elastic
+      ES_AUTO_SYNC: "False"
+      ES_PORT: "9200"
+      INIT_SUPERUSER: "False"
+      KIBANA_MEM_LIMIT: "1073741824"
+      KIBANA_PASSWORD: DU5z8Hsl792jTN
+      KIBANA_PORT: "5601"
+      LICENSE: trial
+      LOAD: "False"
+      MEM_LIMIT: "4294967296"
+      MIGRATE: "True"
+      POSTGRES_DB: postgres
+      POSTGRES_HOST: postgres
+      POSTGRES_PASSWORD: fghyucvsafd
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: postgres
+      SECRET_KEY: secretdoesntmatter!whenindev
+      STACK_VERSION: 8.5.0
+    image: dle-django
+    links:
+    - postgres
+    networks:
+      default: null
+    ports:
+    - mode: ingress
+      target: 8000
+      published: "8000"
+      protocol: tcp
+    volumes:
+    - type: bind
+      source: /home/ec2-user/globalrx/dle
+      target: /app
+      bind:
+        create_host_path: true
+    - type: volume
+      source: certs
+      target: /usr/share/elasticsearch/config/certs
+      volume: {}
+  es01:
+    depends_on:
+      setup-elastic:
+        condition: service_healthy
+    environment:
+      CLUSTER_NAME: dle-elastic-cluster
+      COMPOSE_PROJECT_NAME: dle
+      DATABASE_URL: postgres://postgres:fghyucvsafd@postgres:5432/postgres
+      DEBUG: "True"
+      DJANGO_SUPERUSER_EMAIL: aeg224@g.harvard.edu
+      DJANGO_SUPERUSER_PASSWORD: Wtb8qbY0kH54bF
+      DJANGO_SUPERUSER_USERNAME: admin
+      ELASTIC_CLOUD_ID: AppName:longRaNd0MStringofChars
+      ELASTIC_CLOUD_PASSWORD: RandomGenPWD
+      ELASTIC_PASSWORD: dKnaSVB4bTkRzL
+      ELASTICSEARCH_URL: https://es01:9200
+      ELASTICSEARCH_USER: elastic
+      ES_AUTO_SYNC: "False"
+      ES_PORT: "9200"
+      INIT_SUPERUSER: "False"
+      KIBANA_MEM_LIMIT: "1073741824"
+      KIBANA_PASSWORD: DU5z8Hsl792jTN
+      KIBANA_PORT: "5601"
+      LICENSE: trial
+      LOAD: "False"
+      MEM_LIMIT: "4294967296"
+      MIGRATE: "True"
+      POSTGRES_DB: postgres
+      POSTGRES_HOST: postgres
+      POSTGRES_PASSWORD: fghyucvsafd
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: postgres
+      SECRET_KEY: secretdoesntmatter!whenindev
+      STACK_VERSION: 8.5.0
+      bootstrap.memory_lock: "true"
+      cluster.name: dle-elastic-cluster
+      discovery.type: single-node
+      http.cors.allow-credentials: "true"
+      http.cors.allow-headers: X-Requested-With, X-Auth-Token, Content-Type, Content-Length,
+        Authorization, Access-Control-Allow-Headers, Accept, x-elastic-client-meta
+      http.cors.allow-methods: OPTIONS, HEAD, GET, POST, PUT, DELETE
+      http.cors.allow-origin: '''*'''
+      http.cors.enabled: "true"
+      ingest.geoip.downloader.enabled: "false"
+      node.name: es01
+      node.roles: '[master, data, ingest, ml]'
+      xpack.license.self_generated.type: trial
+      xpack.ml.enabled: "true"
+      xpack.security.enabled: "true"
+      xpack.security.http.ssl.certificate: certs/es01/es01.crt
+      xpack.security.http.ssl.certificate_authorities: certs/ca/ca.crt
+      xpack.security.http.ssl.enabled: "true"
+      xpack.security.http.ssl.key: certs/es01/es01.key
+      xpack.security.http.ssl.verification_mode: certificate
+      xpack.security.transport.ssl.certificate: certs/es01/es01.crt
+      xpack.security.transport.ssl.certificate_authorities: certs/ca/ca.crt
+      xpack.security.transport.ssl.enabled: "true"
+      xpack.security.transport.ssl.key: certs/es01/es01.key
+      xpack.security.transport.ssl.verification_mode: certificate
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - curl -s --cacert config/certs/ca/ca.crt https://localhost:9200 | grep -q 'missing
+        authentication credentials'
+      timeout: 10s
+      interval: 10s
+      retries: 120
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.5.0
+    mem_limit: "4294967296"
+    networks:
+      default: null
+    ports:
+    - mode: ingress
+      target: 9200
+      published: "9200"
+      protocol: tcp
+    restart: always
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+    - type: volume
+      source: certs
+      target: /usr/share/elasticsearch/config/certs
+      volume: {}
+    - type: volume
+      source: esdata01
+      target: /usr/share/elasticsearch/data
+      volume: {}
+  kibana:
+    depends_on:
+      es01:
+        condition: service_healthy
+    environment:
+      ELASTICSEARCH_HOSTS: https://es01:9200
+      ELASTICSEARCH_PASSWORD: DU5z8Hsl792jTN
+      ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES: config/certs/ca/ca.crt
+      ELASTICSEARCH_USERNAME: kibana_system
+      SERVERNAME: kibana
+      xpack.ml.enabled: "true"
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - curl -s -I http://localhost:5601 | grep -q 'HTTP/1.1 302 Found'
+      timeout: 10s
+      interval: 10s
+      retries: 120
+    image: docker.elastic.co/kibana/kibana:8.5.0
+    mem_limit: "1073741824"
+    networks:
+      default: null
+    ports:
+    - mode: ingress
+      target: 5601
+      published: "5601"
+      protocol: tcp
+    volumes:
+    - type: volume
+      source: certs
+      target: /usr/share/kibana/config/certs
+      volume: {}
+    - type: volume
+      source: kibanadata
+      target: /usr/share/kibana/data
+      volume: {}
+  postgres:
+    environment:
+      CLUSTER_NAME: dle-elastic-cluster
+      COMPOSE_PROJECT_NAME: dle
+      DATABASE_URL: postgres://postgres:fghyucvsafd@postgres:5432/postgres
+      DEBUG: "True"
+      DJANGO_SUPERUSER_EMAIL: aeg224@g.harvard.edu
+      DJANGO_SUPERUSER_PASSWORD: Wtb8qbY0kH54bF
+      DJANGO_SUPERUSER_USERNAME: admin
+      ELASTIC_CLOUD_ID: AppName:longRaNd0MStringofChars
+      ELASTIC_CLOUD_PASSWORD: RandomGenPWD
+      ELASTIC_PASSWORD: dKnaSVB4bTkRzL
+      ELASTICSEARCH_URL: https://es01:9200
+      ELASTICSEARCH_USER: elastic
+      ES_AUTO_SYNC: "False"
+      ES_PORT: "9200"
+      INIT_SUPERUSER: "False"
+      KIBANA_MEM_LIMIT: "1073741824"
+      KIBANA_PASSWORD: DU5z8Hsl792jTN
+      KIBANA_PORT: "5601"
+      LICENSE: trial
+      LOAD: "False"
+      MEM_LIMIT: "4294967296"
+      MIGRATE: "True"
+      POSTGRES_DB: postgres
+      POSTGRES_HOST: postgres
+      POSTGRES_PASSWORD: fghyucvsafd
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: postgres
+      SECRET_KEY: secretdoesntmatter!whenindev
+      STACK_VERSION: 8.5.0
+    hostname: postgres
+    image: postgres:14.6
+    networks:
+      default: null
+    ports:
+    - mode: ingress
+      target: 5432
+      published: "5432"
+      protocol: tcp
+    volumes:
+    - type: volume
+      source: local_postgres_data
+      target: /var/lib/postgresql/data
+      volume: {}
+    - type: volume
+      source: local_postgres_data_backups
+      target: /backups
+      volume: {}
+  setup-elastic:
+    command:
+    - bash
+    - -c
+    - |2
+
+        if [ xdKnaSVB4bTkRzL == x ]; then
+          echo "Set the ELASTIC_PASSWORD environment variable in the .env file";
+          exit 1;
+        elif [ xDU5z8Hsl792jTN == x ]; then
+          echo "Set the KIBANA_PASSWORD environment variable in the .env file";
+          exit 1;
+        fi;
+        if [ ! -f config/certs/ca.zip ]; then
+          echo "Creating CA";
+          bin/elasticsearch-certutil ca --silent --pem -out config/certs/ca.zip;
+          unzip config/certs/ca.zip -d config/certs;
+        fi;
+        if [ ! -f config/certs/certs.zip ]; then
+          echo "Creating certs";
+          echo -ne \
+          "instances:\n"\
+          "  - name: es01\n"\
+          "    dns:\n"\
+          "      - es01\n"\
+          "      - localhost\n"\
+          "    ip:\n"\
+          "      - 127.0.0.1\n"\
+          > config/certs/instances.yml;
+          bin/elasticsearch-certutil cert --silent --pem -out config/certs/certs.zip --in config/certs/instances.yml --ca-cert config/certs/ca/ca.crt --ca-key config/certs/ca/ca.key;
+          unzip config/certs/certs.zip -d config/certs;
+        fi;
+        echo "Setting file permissions"
+        chown -R root:root config/certs;
+        find . -type d -exec chmod 750 \{\} \;;
+        find . -type f -exec chmod 640 \{\} \;;
+        echo "Waiting for Elasticsearch availability";
+        until curl -s --cacert config/certs/ca/ca.crt https://es01:9200 | grep -q "missing authentication credentials"; do sleep 30; done;
+        echo "Setting kibana_system password";
+        until curl -s -X POST --cacert config/certs/ca/ca.crt -u "elastic:dKnaSVB4bTkRzL" -H "Content-Type: application/json" https://es01:9200/_security/user/kibana_system/_password -d "{\"password\":\"DU5z8Hsl792jTN\"}" | grep -q "^{}"; do sleep 10; done;
+        echo "All done!";
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - '[ -f config/certs/es01/es01.crt ]'
+      timeout: 5s
+      interval: 1s
+      retries: 120
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.5.0
+    networks:
+      default: null
+    user: "0"
+    volumes:
+    - type: volume
+      source: certs
+      target: /usr/share/elasticsearch/config/certs
+      volume: {}
+networks:
+  default:
+    name: dle_default
+volumes:
+  certs:
+    name: dle_certs
+    driver: local
+  esdata01:
+    name: dle_esdata01
+    driver: local
+  kibanadata:
+    name: dle_kibanadata
+    driver: local
+  local_postgres_data:
+    name: dle_local_postgres_data
+  local_postgres_data_backups:
+    name: dle_local_postgres_data_backups
