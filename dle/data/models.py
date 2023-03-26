@@ -14,6 +14,7 @@ from elasticsearch_django.models import (
 SOURCES = [
     ("FDA", "USA - Federal Drug Administration"),
     ("EMA", "EU - European Medicines Agency"),
+    ("TGA", "AU - Therapeutic Goods Administration"),
 ]
 
 ### DRUG LABEL ###
