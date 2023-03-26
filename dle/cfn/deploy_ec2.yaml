@@ -95,6 +95,8 @@ Resources:
             chmod 755 start_script.sh
             nohup ./start_script.sh > output & 
 
+#curl -L https://raw.githubusercontent.com/docker/compose-cli/main/scripts/install/install_linux.sh | sh
+
 
 #nohup ./start_script.sh > output &
 #sed "s/DATABASE_URL.*/DATABASE_URL=test-nestedstackrds-15n6nr35w3r0n-globalrxdb-gd0s0nru6f80.cj9gkkj3it4b.us-east-1.rds.amazonaws.com" -i /home/ec2-user/globalrx/dle/settings.py
