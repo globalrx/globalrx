@@ -21,7 +21,8 @@ import logging
 import random
 import string
 from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.common.by import By
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +71,9 @@ class Command(BaseCommand):
         "keep track of the number of labels processed"
         self.error_urls = {}
         "dictionary to keep track of the urls that have parsing errors; form: {url: True}"
+        self.options = Options()
+        self.options.add_argument("--headless")
+        self.driver = webdriver.Firefox(options=self.options)
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -107,19 +111,14 @@ class Command(BaseCommand):
 
         # Before being able to access the PDFs, we have to accept the access terms
         # Then store the cookies and pass it to the requests
-        chrome_options = Options()
-        chrome_options.add_argument('--no-sandbox')
-        chrome_options.add_argument('--disable-dev-shm-usage')
-        chrome_options.add_argument('--headless')
-        driver = webdriver.Chrome(options=chrome_options)
-        driver.get(TGA_BASE_URL + "/pdf?OpenAgent")
+        self.driver.get(TGA_BASE_URL + "/pdf?OpenAgent")
         time.sleep(1)
         # This is the xpath to the accept button
-        button = driver.find_element_by_xpath('/html/body/form/div[2]/div[3]/div[1]/a[1]')
-        driver.execute_script("arguments[0].click();", button)
+        button = self.driver.find_element(by=By.XPATH, value='/html/body/form/div[2]/div[3]/div[1]/a[1]')
+        self.driver.execute_script("arguments[0].click();", button)
         # Wait a bit for it to load
         time.sleep(5)
-        driver_cookies = driver.get_cookies()
+        driver_cookies = self.driver.get_cookies()
         cookies = {c['name']:c['value'] for c in driver_cookies}
 
         # Iterate all the query URLs
