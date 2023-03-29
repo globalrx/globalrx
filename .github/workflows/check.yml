@@ -23,8 +23,8 @@ jobs:
         run: pip install -r ./dle/requirements-dev.txt
         if: steps.python-cache.outputs.cache-hit != 'true'
       - name: Run isort
-        run: isort dle --check
+        run: isort --settings-path dle/pyproject.toml --check dle/compare dle/data dle/dle dle/search dle/users
       - name: Run black
-        run: black dle --check --diff
+        run: black --check --diff --config dle/pyproject.toml dle/compare dle/data dle/dle dle/search dle/users
       - name: Run flake8
-        run: flake8 dle
+        run: flake8 --config dle/.flake8 dle/compare dle/data dle/dle dle/search dle/users
