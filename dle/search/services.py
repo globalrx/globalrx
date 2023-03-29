@@ -1,18 +1,18 @@
-from typing import List, Tuple, Dict, Optional
 import logging
+from typing import Dict, List, Optional, Tuple
+
+from django.db import connection
+from django.http import QueryDict
 
 import bleach
 
-from .models import SearchRequest, InvalidSearchRequest
-from .search_constants import (
-    MAX_LENGTH_SEARCH_RESULT_DISPLAY,
-    DRUG_LABEL_QUERY_TEMP_TABLE_NAME,
-)
-from data.models import DrugLabel, ProductSection
-from django.http import QueryDict
 from data.constants import LASTEST_DRUG_LABELS_TABLE
-from django.db import connection
+from data.models import DrugLabel, ProductSection
 from users.models import User
+
+from .models import InvalidSearchRequest, SearchRequest
+from .search_constants import DRUG_LABEL_QUERY_TEMP_TABLE_NAME, MAX_LENGTH_SEARCH_RESULT_DISPLAY
+
 
 logger = logging.getLogger(__name__)
 
@@ -26,14 +26,13 @@ def validate_search(request_query_params_dict: QueryDict) -> SearchRequest:
     Returns:
         SearchRequest: Validated search tuple object
     """
-    search_request_object = SearchRequest.from_search_query_dict(
-        request_query_params_dict
-    )
+    search_request_object = SearchRequest.from_search_query_dict(request_query_params_dict)
 
     if search_request_object.search_text is not None:
         return search_request_object
     else:
         raise InvalidSearchRequest("Search request is malformed")
+
 
 def run_dl_query(search_request: SearchRequest, user: Optional[User]):
     search_filter_mapping = {
@@ -81,7 +80,7 @@ def build_match_sql(search_text: str) -> str:
     # else:
     #     mode = "NATURAL LANGUAGE MODE"
     # return f"match(section_text) AGAINST ( %(search_text)s IN {mode})"
-    return f"to_tsvector(section_text) @@ to_tsquery(%(search_text)s)"
+    return f"to_tsvector(section_text) @@ to_tsquery(%(search_text)s)"  # noqa: F541
 
 
 def process_search(search_request: SearchRequest, user: Optional[User] = None) -> List[DrugLabel]:
@@ -94,7 +93,7 @@ def process_search(search_request: SearchRequest, user: Optional[User] = None) -
         "section_name": search_request.select_section,
     }
     sql = f"""
-    SELECT 
+    SELECT
         dl.id,
         dl.source,
         dl.product_name,
@@ -143,9 +142,7 @@ def highlight_text_by_term(text: str, search_term: str) -> Tuple[str, bool]:
     return " ".join(tokens), highlighted
 
 
-def build_search_result(
-    search_result: DrugLabel, search_term: str
-) -> Tuple[DrugLabel, str]:
+def build_search_result(search_result: DrugLabel, search_term: str) -> Tuple[DrugLabel, str]:
     """Returns search result objects with highlighted text
     Args:
         search_result (MockDrugLabel): A fake label that is used until we have a dataset
@@ -183,15 +180,9 @@ def build_search_result(
 
 
 def get_type_ahead_mapping() -> Dict[str, List[str]]:
-    marketers: List[str] = DrugLabel.objects.values_list(
-        "marketer", flat=True
-    ).distinct()
-    generic_names: List[str] = DrugLabel.objects.values_list(
-        "generic_name", flat=True
-    ).distinct()
-    product_names: List[str] = DrugLabel.objects.values_list(
-        "product_name", flat=True
-    ).distinct()
+    marketers: List[str] = DrugLabel.objects.values_list("marketer", flat=True).distinct()
+    generic_names: List[str] = DrugLabel.objects.values_list("generic_name", flat=True).distinct()
+    product_names: List[str] = DrugLabel.objects.values_list("product_name", flat=True).distinct()
     section_names: List[str] = ProductSection.objects.values_list(
         "section_name", flat=True
     ).distinct()

@@ -10,11 +10,14 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 
-from pathlib import Path
 import os
-from django.core.exceptions import ImproperlyConfigured
-import environ
 import ssl
+from pathlib import Path
+
+from django.core.exceptions import ImproperlyConfigured
+
+import environ
+
 
 # can override settings in .env, see .env.example
 env = environ.Env()
@@ -72,7 +75,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "search.apps.SearchConfig",
-    "elasticsearch_django"
+    "elasticsearch_django",
 ]
 
 AUTH_USER_MODEL = "users.User"
@@ -111,10 +114,8 @@ WSGI_APPLICATION = "dle.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-DATABASES = {
-    "default": env.db("DATABASE_URL")
-}
-DATABASES["default"]["ENGINE"] = 'django.db.backends.postgresql',
+DATABASES = {"default": env.db("DATABASE_URL")}
+DATABASES["default"]["ENGINE"] = ("django.db.backends.postgresql",)
 
 # override host for CI process
 if os.environ.get("GITHUB_WORKFLOW"):
@@ -179,44 +180,44 @@ LOGGING = {
 
 # Elasticsearch
 SEARCH_SETTINGS = {
-    'connections': {
+    "connections": {
         # 'default': env.str('ELASTICSEARCH_URL'),
-        'default': {
-            'hosts': env.str('ELASTICSEARCH_URL'),
-            'verify_certs': True,
-            'http_auth': (env.str('ELASTICSEARCH_USER'), env.str('ELASTIC_PASSWORD')),
-            'ssl_version': ssl.TLSVersion.TLSv1_2,
-            'ca_certs': '/usr/share/elasticsearch/config/certs/ca/ca.crt',
-            'timeout': 180,
+        "default": {
+            "hosts": env.str("ELASTICSEARCH_URL"),
+            "verify_certs": True,
+            "http_auth": (env.str("ELASTICSEARCH_USER"), env.str("ELASTIC_PASSWORD")),
+            "ssl_version": ssl.TLSVersion.TLSv1_2,
+            "ca_certs": "/usr/share/elasticsearch/config/certs/ca/ca.crt",
+            "timeout": 180,
         }
     },
-    'indexes': {
-        'druglabel': {
-            'models': [
-                'data.DrugLabel',
+    "indexes": {
+        "druglabel": {
+            "models": [
+                "data.DrugLabel",
             ]
         },
-        'productsection': {
-            'models': [
-                'data.ProductSection',
+        "productsection": {
+            "models": [
+                "data.ProductSection",
             ]
         },
     },
-    'settings': {
+    "settings": {
         # batch size for ES bulk api operations
         # timed out at 500 and 100 and 25 on BERT - was taking ~15 to ~28s per vectorization task so needed 3min timeout and batch size of 5 for that to work
-        'chunk_size': 500,
+        "chunk_size": 500,
         # default page size for search results
-        'page_size': 25,
+        "page_size": 25,
         # set to True to connect post_save/delete signals
         # If this is True, it will automatically try to sync ES with Django as data is loaded; if False, you must manually sync
-        'auto_sync': env.str('ES_AUTO_SYNC', False),
+        "auto_sync": env.str("ES_AUTO_SYNC", False),
         # List of models which will never auto_sync even if auto_sync is True
-        'never_auto_sync': [],
+        "never_auto_sync": [],
         # if true, then indexes must have mapping files
-        'strict_validation': False,
-        'mappings_dir': 'search/mappings',
-    }
+        "strict_validation": False,
+        "mappings_dir": "search/mappings",
+    },
 }
 # if env.str('ELASTIC_CLOUD_ID') and env.str('ELASTIC_CLOUD_PASSWORD'):
 #     SEARCH_SETTINGS['connections']['cloud'] = {

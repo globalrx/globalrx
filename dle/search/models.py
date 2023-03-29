@@ -1,4 +1,5 @@
-from typing import Dict, NamedTuple, Optional
+from typing import NamedTuple, Optional
+
 from django.http import QueryDict
 
 
@@ -27,9 +28,7 @@ class SearchRequest(NamedTuple):
     @classmethod
     def build_url_query(cls, search_request: "SearchRequest") -> str:
         search_request_dict = search_request._asdict()
-        return "".join(
-            [f"&{field}={search_request_dict[field]}" for field in cls._fields]
-        )
+        return "".join([f"&{field}={search_request_dict[field]}" for field in cls._fields])
 
 
 class InvalidSearchRequest(Exception):

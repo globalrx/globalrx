@@ -6,7 +6,7 @@ repos:
       # args are in pyproject.toml so they can be reused by IDE, command line
       - id: isort
         # config is relative to the project's .git folder
-        args: ["--settings-path", "dle/pyproject.toml", "--profile", "black", "--check"]
+        args: ["--settings-path", "dle/pyproject.toml", "--profile", "black"]
   - repo: https://github.com/psf/black
     rev: 23.1.0  # should match requirements-dev.txt
     hooks:
@@ -14,7 +14,7 @@ repos:
       - id: black
         language_version: python3.10
         types: [python]
-        args: [--config=dle/pyproject.toml, --check]
+        args: [--config=dle/pyproject.toml]
         files: dle\/(compare|data|dle|search|users)
         exclude: ^.*\b(migrations)\b.*$
   - repo: https://github.com/pycqa/flake8

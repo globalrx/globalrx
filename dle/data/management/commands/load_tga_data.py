@@ -1,28 +1,29 @@
-from django.core.management.base import BaseCommand, CommandError
-from django.db import IntegrityError
-from requests.exceptions import ChunkedEncodingError
-from data.models import (
-    DrugLabel,
-    LabelProduct,
-    ProductSection,
-)
-from users.models import MyLabel
-from django.core.files.base import ContentFile
-from django.core.files.storage import default_storage
-from django.conf import settings
-import requests
-import fitz  # PyMuPDF
-from bs4 import BeautifulSoup
-import re
 import datetime
-import pandas as pd
-import time
 import logging
 import random
+import re
 import string
+import time
+
+from django.conf import settings
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
+from django.core.management.base import BaseCommand, CommandError
+from django.db import IntegrityError
+
+import fitz  # PyMuPDF
+import requests
+from bs4 import BeautifulSoup
+from requests.exceptions import ChunkedEncodingError
 from selenium import webdriver
-from selenium.webdriver.firefox.options import Options
 from selenium.webdriver.common.by import By
+from selenium.webdriver.firefox.options import Options
+
+from data.models import DrugLabel, LabelProduct, ProductSection
+
+
+# from users.models import MyLabel
+
 
 logger = logging.getLogger(__name__)
 
@@ -34,15 +35,39 @@ EU_FORMATTED_SECTIONS = [
     # look for one or more whitespace characters r"\s+"
     # find any characters (one or more times) r"(.+)" with re.DOTALL flag
     # stop when we find the closing string
-    (r"(4\.1\.?\s+(?:THERAPEUTIC\sINDICATIONS|Therapeutic\s[i|I]ndications)\s)(.+)(\n4\.2\.?\s+(DOSE\sAND\sMETHOD\sOF\sADMINISTRATION|Dose\s[a|A]nd\s[m|M]ethod\s[o|O]f\s[a|A]dministration)\s)", "Indications"),
-    (r"(4\.2\.?\s+(?:DOSE\sAND\sMETHOD\sOF\sADMINISTRATION|Dose\s[a|A]nd\s[m|M]ethod\s[o|O]f\s[a|A]dministration)\s)(.+)(\n4\.3\.?\s+(CONTRAINDICATIONS|Contraindications)\s)", "Posology"),
-    (r"(4\.3\.?\s+(?:CONTRAINDICATIONS|Contraindications)\s)(.+)(\n4\.4\.?\s+(SPECIAL\sWARNINGS\sAND\sPRECAUTIONS\sFOR\sUSE|[s|S]pecial\s[w|W]arnings\s[a|A]nd\s[p|P]recautions\s[f|F]or\s[u|U]se)\s)", "Contraindications"),
-    (r"(4\.4\.?\s+(?:SPECIAL\sWARNINGS\sAND\sPRECAUTIONS\sFOR\sUSE|[s|S]pecial\s[w|W]arnings\s[a|A]nd\s[p|P]recautions\s[f|F]or\s[u|U]se)\s)(.+)(\n4\.5\.?\s+(INTERACTIONS\s+WITH\s+OTHER\s+MEDICINES(?:\s+AND\s+OTHER\s+FORMS\s+OF\s+INTERACTIONS)?|Interations\s+[w|W]ith\s+[o|O]ther\s+[m|M]edicines(?:\s+[a|A]nd\s+[o|O]ther\s+[f|F]orms\s+[o|O]f\s+[i|I]nterations)?)\s)", "Warnings"),
-    (r"(4\.5\.?\s+(?:INTERACTIONS\s+WITH\s+OTHER\s+MEDICINES(?:\s+AND\s+OTHER\s+FORMS\s+OF\s+INTERACTIONS)?|Interations\s+[w|W]ith\s+[o|O]ther\s+[m|M]edicines(?:\s+[a|A]nd\s+[o|O]ther\s+[f|F]orms\s+[o|O]f\s+[i|I]nterations)?)\s)(.+)(\n4\.6\.?\s+(FERTILITY,\s?PREGNANCY,?\s?AND\sLACTATION|[f|F]ertility,\s?[p|P]regnancy\sand\s[l|L]actation)\s)", "Interactions"),
-    (r"(4\.6\.?\s+(?:FERTILITY, PREGNANCY AND LACTATION|[f|F]ertility, [p|P]regnancy and [l|L]actation)\s)(.+)(\n4\.7\.?\s+(EFFECTS\sON\sABILITY\sTO\sDRIVE\sAND\sUSE\sMACHINES|[e|E]ffects [o|O]n [a|A]bility [t|T]o [d|D]rive [a|A]nd [u|U]se [m|M]achines)\s)", "Pregnancy"),
-    (r"(4\.7\.?\s+(?:EFFECTS\sON\sABILITY\sTO\sDRIVE\sAND\sUSE\sMACHINES|[e|E]ffects [o|O]n [a|A]bility [t|T]o [d|D]rive [a|A]nd [u|U]se [m|M]achines)\s)(.+)(\n4\.8\.?\s+(ADVERSE EFFECTS \(UNDESIRABLE EFFECTS\)|[a|A]dverse [e|E]ffects)\s)", "Effects on driving"),
-    (r"(4\.8\.?\s+(?:ADVERSE EFFECTS \(UNDESIRABLE EFFECTS\)|[a|A]dverse [e|E]ffects)\s)(.+)(\n4\.9\.?\s+(OVERDOSE|Overdose)\s)", "Side effects"),
-    (r"(4\.9\.?\s+(?:OVERDOSE|Overdose)\s)(.+)(\n5\.?\s+PHARMACOLOGICAL)", "Overdose")
+    (
+        r"(4\.1\.?\s+(?:THERAPEUTIC\sINDICATIONS|Therapeutic\s[i|I]ndications)\s)(.+)(\n4\.2\.?\s+(DOSE\sAND\sMETHOD\sOF\sADMINISTRATION|Dose\s[a|A]nd\s[m|M]ethod\s[o|O]f\s[a|A]dministration)\s)",
+        "Indications",
+    ),
+    (
+        r"(4\.2\.?\s+(?:DOSE\sAND\sMETHOD\sOF\sADMINISTRATION|Dose\s[a|A]nd\s[m|M]ethod\s[o|O]f\s[a|A]dministration)\s)(.+)(\n4\.3\.?\s+(CONTRAINDICATIONS|Contraindications)\s)",
+        "Posology",
+    ),
+    (
+        r"(4\.3\.?\s+(?:CONTRAINDICATIONS|Contraindications)\s)(.+)(\n4\.4\.?\s+(SPECIAL\sWARNINGS\sAND\sPRECAUTIONS\sFOR\sUSE|[s|S]pecial\s[w|W]arnings\s[a|A]nd\s[p|P]recautions\s[f|F]or\s[u|U]se)\s)",
+        "Contraindications",
+    ),
+    (
+        r"(4\.4\.?\s+(?:SPECIAL\sWARNINGS\sAND\sPRECAUTIONS\sFOR\sUSE|[s|S]pecial\s[w|W]arnings\s[a|A]nd\s[p|P]recautions\s[f|F]or\s[u|U]se)\s)(.+)(\n4\.5\.?\s+(INTERACTIONS\s+WITH\s+OTHER\s+MEDICINES(?:\s+AND\s+OTHER\s+FORMS\s+OF\s+INTERACTIONS)?|Interations\s+[w|W]ith\s+[o|O]ther\s+[m|M]edicines(?:\s+[a|A]nd\s+[o|O]ther\s+[f|F]orms\s+[o|O]f\s+[i|I]nterations)?)\s)",
+        "Warnings",
+    ),
+    (
+        r"(4\.5\.?\s+(?:INTERACTIONS\s+WITH\s+OTHER\s+MEDICINES(?:\s+AND\s+OTHER\s+FORMS\s+OF\s+INTERACTIONS)?|Interations\s+[w|W]ith\s+[o|O]ther\s+[m|M]edicines(?:\s+[a|A]nd\s+[o|O]ther\s+[f|F]orms\s+[o|O]f\s+[i|I]nterations)?)\s)(.+)(\n4\.6\.?\s+(FERTILITY,\s?PREGNANCY,?\s?AND\sLACTATION|[f|F]ertility,\s?[p|P]regnancy\sand\s[l|L]actation)\s)",
+        "Interactions",
+    ),
+    (
+        r"(4\.6\.?\s+(?:FERTILITY, PREGNANCY AND LACTATION|[f|F]ertility, [p|P]regnancy and [l|L]actation)\s)(.+)(\n4\.7\.?\s+(EFFECTS\sON\sABILITY\sTO\sDRIVE\sAND\sUSE\sMACHINES|[e|E]ffects [o|O]n [a|A]bility [t|T]o [d|D]rive [a|A]nd [u|U]se [m|M]achines)\s)",
+        "Pregnancy",
+    ),
+    (
+        r"(4\.7\.?\s+(?:EFFECTS\sON\sABILITY\sTO\sDRIVE\sAND\sUSE\sMACHINES|[e|E]ffects [o|O]n [a|A]bility [t|T]o [d|D]rive [a|A]nd [u|U]se [m|M]achines)\s)(.+)(\n4\.8\.?\s+(ADVERSE EFFECTS \(UNDESIRABLE EFFECTS\)|[a|A]dverse [e|E]ffects)\s)",
+        "Effects on driving",
+    ),
+    (
+        r"(4\.8\.?\s+(?:ADVERSE EFFECTS \(UNDESIRABLE EFFECTS\)|[a|A]dverse [e|E]ffects)\s)(.+)(\n4\.9\.?\s+(OVERDOSE|Overdose)\s)",
+        "Side effects",
+    ),
+    (r"(4\.9\.?\s+(?:OVERDOSE|Overdose)\s)(.+)(\n5\.?\s+PHARMACOLOGICAL)", "Overdose"),
 ]
 
 OTHER_FORMATTED_SECTIONS = [
@@ -51,12 +76,16 @@ OTHER_FORMATTED_SECTIONS = [
     # Pregnancy, Interactions and Effects on driving are all under the PRECAUTIONS section
     (r"(Use in [p|P]regnancy)(.+)(Use in [l|L]actation)", "Pregnancy"),
     (r"(Interactions with other medicines)(.+)(Effects on laboratory tests)", "Interactions"),
-    (r"(Effects on ability to drive and use machines)(.+)(ADVERSE (REACTIONS|EFFECTS))", "Effects on driving"),
+    (
+        r"(Effects on ability to drive and use machines)(.+)(ADVERSE (REACTIONS|EFFECTS))",
+        "Effects on driving",
+    ),
     (r"(PRECAUTIONS)(.+)(ADVERSE (REACTIONS|EFFECTS))", "Warnings"),
     (r"(ADVERSE (?:REACTIONS|EFFECTS))(.+)(DOSAGE AND ADMINISTRATION)", "Side effects"),
     (r"(DOSAGE AND ADMINISTRATION)(.+)(OVERDOSAGE)", "Posology"),
-    (r"(OVERDOSAGE)(.+)(PRESENTATION)", "Overdose")
+    (r"(OVERDOSAGE)(.+)(PRESENTATION)", "Overdose"),
 ]
+
 
 # runs with `python manage.py load_tga_data`
 # add `--type full` to import the full dataset
@@ -86,9 +115,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         import_type = options["type"]
         if import_type not in ["full"]:
-            raise CommandError(
-                "'type' parameter must be 'full'"
-            )
+            raise CommandError("'type' parameter must be 'full'")
 
         # basic logging config is in settings.py
         # verbosity is 1 by default, gives critical, error and warning output
@@ -103,7 +130,7 @@ class Command(BaseCommand):
 
         logger.info(self.style.SUCCESS("start process"))
         logger.info(f"import_type: {import_type}")
-        
+
         # Get list of addresses to query
         urls = self.get_tga_pi_urls()
 
@@ -114,12 +141,14 @@ class Command(BaseCommand):
         self.driver.get(TGA_BASE_URL + "/pdf?OpenAgent")
         time.sleep(1)
         # This is the xpath to the accept button
-        button = self.driver.find_element(by=By.XPATH, value='/html/body/form/div[2]/div[3]/div[1]/a[1]')
+        button = self.driver.find_element(
+            by=By.XPATH, value="/html/body/form/div[2]/div[3]/div[1]/a[1]"
+        )
         self.driver.execute_script("arguments[0].click();", button)
         # Wait a bit for it to load
         time.sleep(5)
         driver_cookies = self.driver.get_cookies()
-        cookies = {c['name']:c['value'] for c in driver_cookies}
+        cookies = {c["name"]: c["value"] for c in driver_cookies}
 
         # Iterate all the query URLs
         for url in urls:
@@ -149,8 +178,8 @@ class Command(BaseCommand):
                     logger.warning(self.style.ERROR(repr(e)))
                 except ValueError as e:
                     logger.warning(self.style.WARNING(repr(e)))
-                #logger.info(f"sleep 1s")
-                #time.sleep(1)
+                # logger.info(f"sleep 1s")
+                # time.sleep(1)
 
             for url in self.error_urls.keys():
                 logger.warning(self.style.WARNING(f"error parsing url: {url}"))
@@ -168,7 +197,9 @@ class Command(BaseCommand):
         dl.product_name = columns[0].text.strip()
         # pdf link is located at the second column
         dl.link = TGA_BASE_URL + columns[1].find("a")["href"]
-        dl.source_product_number = columns[1].find("a")["target"] #TODO: what is this product number?
+        dl.source_product_number = columns[1].find("a")[
+            "target"
+        ]  # TODO: what is this product number?
         # active ingredient(s) at the third column
         dl.generic_name = columns[2].text.strip()
         # get version date from the footer
@@ -213,7 +244,7 @@ class Command(BaseCommand):
             return "unable to download pdf"
 
         filename = default_storage.save(
-            settings.MEDIA_ROOT / f"tga.pdf", ContentFile(response.content)
+            settings.MEDIA_ROOT / "tga.pdf", ContentFile(response.content)
         )
         logger.info(f"saved file to: {filename}")
         tga_file = settings.MEDIA_ROOT / filename
@@ -225,7 +256,7 @@ class Command(BaseCommand):
     def parse_pdf_sections(self, raw_text, lp, pdf_url, section_format):
         start_idx = 0
         num_fails = 0
-        # Start with parsing the labels with the EU format, 
+        # Start with parsing the labels with the EU format,
         #  if it fails to parse (i.e. fail to parse 9 sections), then try the other format
         for section in section_format:
             # Basically search for anything between the start section header until the next section header starts
@@ -238,19 +269,25 @@ class Command(BaseCommand):
                 # Move the start index to the next section
                 if section_format == OTHER_FORMATTED_SECTIONS:
                     # Pregnancy, Interactions and Effects on driving are all under the PRECAUTIONS section, so don't update the index
-                    if section_name != "Pregnancy" and section_name != "Interactions" and section_name != "Effects on driving":
+                    if (
+                        section_name != "Pregnancy"
+                        and section_name != "Interactions"
+                        and section_name != "Effects on driving"
+                    ):
                         start_idx = match.end(2)
                 else:
                     start_idx = match.end(2)
                 section_text = match[2]
             else:
-                logger.error(self.style.ERROR(f"Unable to find section {section_name} from {pdf_url}"))
+                logger.error(
+                    self.style.ERROR(f"Unable to find section {section_name} from {pdf_url}")
+                )
                 self.error_urls[pdf_url] = True
                 num_fails += 1
                 continue
 
             logger.debug(f"found section_name: {section_name}")
-            #logger.debug(f"found section_text: {section_text}")
+            # logger.debug(f"found section_text: {section_text}")
             logger.debug(f"start_idx: {start_idx}")
 
             ps = ProductSection(
@@ -271,7 +308,7 @@ class Command(BaseCommand):
         # If it fails to parse using the EU format, then try to parse it with other format
         if num_fails == len(EU_FORMATTED_SECTIONS):
             self.error_urls[pdf_url] = False
-            logger.error(self.style.ERROR(f"Parsing with other format"))
+            logger.error(self.style.ERROR("Parsing with other format"))
             num_fails = self.parse_pdf_sections(raw_text, lp, pdf_url, OTHER_FORMATTED_SECTIONS)
 
         return raw_text
@@ -282,10 +319,10 @@ class Command(BaseCommand):
         Iterate the query parameter k with 0-9 and A-Z
         """
         URLs = []
-        for i in range(0, 10): # queries 0-9
+        for i in range(0, 10):  # queries 0-9
             base_url = f"https://www.ebs.tga.gov.au/ebs/picmi/picmirepository.nsf/PICMI?OpenForm&t=PI&k={i}&r=/"
             URLs.append(base_url)
-        for c in string.ascii_uppercase: # queries A-Z
+        for c in string.ascii_uppercase:  # queries A-Z
             base_url = f"https://www.ebs.tga.gov.au/ebs/picmi/picmirepository.nsf/PICMI?OpenForm&t=PI&k={c}&r=/"
             URLs.append(base_url)
         return URLs
