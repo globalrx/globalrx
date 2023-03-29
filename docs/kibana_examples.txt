@@ -180,6 +180,15 @@ PUT /productsection/_mapping
       },
       "drug_label_link": {
           "type": "text"
+      },
+      "drug_label_marketer": {
+        "type": "text",
+          "fields": {
+              "keyword": {
+                  "type": "keyword",
+                  "ignore_above": 256
+              }
+          }
       }
   }
 }
