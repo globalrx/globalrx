@@ -20,48 +20,36 @@ fi
 
 if [[ ($INIT_SUPERUSER) && ("$INIT_SUPERUSER" = "True") ]]; then
   # Uses the DJANGO_SUPERUSER_* environment variables to create a superuser
+  # TODO find a way to only run createsuperuser if it doesn't already exist
   echo "Creating superuser"
   python3 manage.py createsuperuser --noinput
 fi
 
 if [[ ($LOAD) && ("$LOAD" = "True") ]]; then
   echo "Beginning the data ingest"
-  echo "Loading EMA data"
+  echo "Loading EMA (EU) data"
   python3 manage.py load_ema_data --type full
-  echo "Finished loading EMA data"
-  echo "Loading FDA data"
+  echo "Finished loading EMA (EU) data"
+  echo "Loading FDA (US) data"
   python3 manage.py load_fda_data --type full
-  echo "Finished loading FDA data"
-  echo "Loading TGA data"
+  echo "Finished loading FDA (US) data"
+  echo "Loading TGA (Australia) data"
   python3 manage.py load_tga_data --type full
-  echo "Finished loading TGA data"
+  echo "Finished loading TGA (Australia) data"
   echo "Updating latest drug labels"
   python3 manage.py update_latest_drug_labels
   echo "Finished updating latest drug labels"
   echo "Ended the data ingest"
 fi
 
-# Trying to run Nginx as separate container
-# If using base Dockerfile which installs Nginx in the Django container, then set this flag to true
-# if [[ ($USE_NGINX) && ("$USE_NGINX" = "True" ) ]]; then
-#   nginx
-# fi
-
-# nginx
-
-# TODO potentially switch the WSGI host to Waitress, which seems faster
-# and more robust than Gunicorn for long running jobs when sitting behind Nginx.
-if [[ (-z "$LOADER") || ("$LOADER" = "False")]]; then
-#   running into "Unknown command: 'waitress'" error
-#   if [[ ($WAITRESS) && ("$WAITRESS" = "True") ]]; then
-#     echo "Bringing up waitress on port 5000 as wsgi host"
-#     python3 /app/manage.py waitress --port=5000 --threads=16
-#   else
-#     python3 /app/manage.py runserver 5000
-#   fi
-    # gunicorn --bind :8000 --workers 3 --threads 16 --timeout 0 dle.wsgi:application
-    # python3 /app/manage.py runserver 8000
-
-    # When in dev use the Django runserver for hot reload
-    python3 manage.py runserver 0.0.0.0:8000
+# In production, use Gunicorn + Nginx
+# TODO maybe reverse this so if nothing is passed the default is Nginx?
+if [[ ($USE_NGINX) && ("$USE_NGINX" = "True" ) ]]; then
+  echo "Nginx proxying requests from :8000 (Django app accessible from http://localhost:8000/)"
+  nginx
+  echo "Using Gunicorn on :5000 as app server / wsgi host"
+  gunicorn --bind :5000 --workers 3 --threads 16 --timeout 0 dle.wsgi:application
+else
+  # When in dev use the Django runserver for hot reload
+  python3 manage.py runserver 0.0.0.0:8000
 fi
