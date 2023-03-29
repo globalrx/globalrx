@@ -32,6 +32,9 @@ if [[ ($LOAD) && ("$LOAD" = "True") ]]; then
   echo "Loading FDA data"
   python3 manage.py load_fda_data --type full
   echo "Finished loading FDA data"
+  echo "Loading TGA data"
+  python3 manage.py load_tga_data --type full
+  echo "Finished loading TGA data"
   echo "Updating latest drug labels"
   python3 manage.py update_latest_drug_labels
   echo "Finished updating latest drug labels"

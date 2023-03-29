@@ -12,13 +12,19 @@
         <option value="">any agency</option>
         {% if search_request_object.select_agency == 'fda' %}
         <option value="ema">ema</option>
+        <option value="tga">tga</option>
+        {% elif search_request_object.select_agency == 'ema' %}
+        <option value="fda">fda</option>
+        <option value="tga">tga</option>
         {% else %}
+        <option value="ema">ema</option>
         <option value="fda">fda</option>
         {% endif %}
     {% else %}
         <option selected value="">any agency</option>
         <option value="fda">fda</option>
         <option value="ema">ema</option>
+        <option value="tga">tga</option>
     {% endif %}
 
     </select>
