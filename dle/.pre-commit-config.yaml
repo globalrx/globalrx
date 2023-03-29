@@ -16,6 +16,7 @@ repos:
         types: [python]
         args: [--config=dle/pyproject.toml, --check]
         files: dle\/(compare|data|dle|search|users)
+        exclude: ^.*\b(migrations)\b.*$
   - repo: https://github.com/pycqa/flake8
     rev: 6.0.0 
     hooks:
@@ -25,7 +26,7 @@ repos:
           - flake8-quotes==3.3.2
         exclude: '(migrations|tests)/.*'
         types: [python]
-        args: [--config=dle/.flake8, --check]
+        args: [--config=dle/.flake8]
         files: dle\/(compare|data|dle|search|users)
 
   - repo: https://github.com/pre-commit/pre-commit-hooks

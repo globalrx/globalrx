@@ -8,11 +8,19 @@ The project is containerized so that it can be run locally or deployed to a clou
 
 ### Setup
 1. Clone the repository
-2. Set environment variables; see [env.example](./env.example) for a list of required variables. Some of these variables control whether setup scripts (e.g. Django migrations) are run.
+
+2. Set up `pre-commit` for linting
+    a. Install `pre-commit` on your local machine using `pip` or `brew`. See: https://pre-commit.com/
+    b. Install the `pre-commit` hook. This runs `black`, `flake8`, and `isort` linting based on configurations in `pyproject.toml` and `.flake8` (there is currently no single config file format that all three linters agree upon). The `pre-commit` config is in `.pre-commit-config.yaml` and will install the hook in `.git/hooks/pre-commit`.
+    c. Potentially, run `pre-commit run --all-files` to run against everything in the repo rather than everything `diffed`. But probably not necessary.
+    d. From now on, the `precommit` hook will try to update all your files before committing them so that your merges pass the linting Action (`.github/workflows/check.yml`).
+
+3. Set environment variables; see [env.example](./env.example) for a list of required variables. Some of these variables control whether setup scripts (e.g. Django migrations) are run.
     a. Copy `env.example` to `.env` and update the values
     b. For a first run, set `MIGRATE`, `LOAD`, and `INIT_SUPERUSER` to `True`
     c. If you are working on BERT model, you will need to start an Elasticsearch trial license; you can either try to set the `LICENSE` variable to `trial`, or POST this to Elasticsearch after it starts up either in Kibana: or via `curl`: `/_license/start_trial?acknowledge=true`
-3. Run `docker compose up` to start the application. This will take a long time the first time. Steps that occur:
+
+4. Run `docker compose up` to start the application. This will take a long time the first time. Steps that occur:
     - Builds the Django container from `Dockerfile.dev`
         - `python:3.10.10-slim-buster` base image
         - Installs some system dependencies
@@ -31,7 +39,8 @@ The project is containerized so that it can be run locally or deployed to a clou
             - Runs EMA (`load_ema_data --type full`) and FDA (`load_fda_data --type full`) data loaders
             - Runs `update_latest_drug_labels`
         - Runs a local webserver for Django on port 8000
-4. Services:
+
+5. Services:
     - Django: http://localhost:8000
     - Elasticsearch: https://localhost:9200
         - you may need to accept the self-signed certificate
@@ -40,7 +49,7 @@ The project is containerized so that it can be run locally or deployed to a clou
         - or use Kibana console to interact with Elasticsearch instead
     - Kibana: http://localhost:5601
 
-5. Load Elasticsearch data
+6. Load Elasticsearch data
     - TODO maybe move this into entrypoint script as an option
     - Once all services are up, enter the Docker container for `django`: `docker compose exec django bash`
     - Create ES indices
