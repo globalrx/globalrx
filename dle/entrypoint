@@ -26,7 +26,7 @@ if [[ ($INIT_SUPERUSER) && ("$INIT_SUPERUSER" = "True") ]]; then
 fi
 
 if [[ ($LOAD) && ("$LOAD" = "True") ]]; then
-  echo "Beginning the data ingest"
+  echo "Beginning the Django data ingest"
   echo "Loading EMA (EU) data"
   python3 manage.py load_ema_data --type full
   echo "Finished loading EMA (EU) data"
@@ -39,7 +39,45 @@ if [[ ($LOAD) && ("$LOAD" = "True") ]]; then
   echo "Updating latest drug labels"
   python3 manage.py update_latest_drug_labels
   echo "Finished updating latest drug labels"
-  echo "Ended the data ingest"
+  echo "Ended the Django data ingest"
+fi
+
+if [[ ($LOAD_DJANGO_TO_ES) && ("$LOAD_DJANGO_TO_ES" = "True")]]; then
+  # TODO ensure ES is available
+  echo "Loading Django data into Elasticsearch"
+  # TODO manually manage ES indexing. Currently, just use ES_AUTO_SYNC, but will need to implement once we have an NLP pipeline
+
+  # see if index exists; otherwise, create it. See https://github.com/yunojuno/elasticsearch-django
+  # See https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-exists.html
+  # python3 manage.py create_search_index productsection
+  # This seems to fail using the elasticsearch-django management command:
+  # 2023-03-29 18:47:34,376 ERROR Unhandled error running Elasticsearch index command
+  # Traceback (most recent call last):
+  #   File "/usr/local/lib/python3.10/site-packages/elasticsearch_django/management/commands/__init__.py", line 48, in handle
+  #     data = self.do_index_command(index, **options)
+  #   File "/usr/local/lib/python3.10/site-packages/elasticsearch_django/management/commands/create_search_index.py", line 18, in do_index_command
+  #     return create_index(index).body
+  #   File "/usr/local/lib/python3.10/site-packages/elasticsearch_django/index.py", line 25, in create_index
+  #     mappings=mapping["mappings"],
+  # KeyError: 'mappings'
+  # Instead create the index manually in Kibana ... need to script this or figure out why that command fails
+
+  # Load the data
+  # python3 manage.py update_search_index productsection
+
+  if [[ ($USE_BERT) && ("$USE_BERT" = "True")]]; then
+    # TODO script NLP pipeline setup
+    if [[ ($LOAD_VECTORS) && ("$LOAD_VECTORS" = "True")]]; then
+      # TODO pre-vectorize section text outside of Elastic and load
+      echo "Loading pre-vectorized texts"
+    fi
+
+    # TODO Create automatic pipeline
+    # TODO Load model
+    # TODO Set pipeline as default ?
+
+    # Do not kick off pipeline! Need to think about how to handle updates ...
+  fi
 fi
 
 # In production, use Gunicorn + Nginx

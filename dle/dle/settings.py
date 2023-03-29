@@ -181,7 +181,6 @@ LOGGING = {
 # Elasticsearch
 SEARCH_SETTINGS = {
     "connections": {
-        # 'default': env.str('ELASTICSEARCH_URL'),
         "default": {
             "hosts": env.str("ELASTICSEARCH_URL"),
             "verify_certs": True,
@@ -192,11 +191,6 @@ SEARCH_SETTINGS = {
         }
     },
     "indexes": {
-        "druglabel": {
-            "models": [
-                "data.DrugLabel",
-            ]
-        },
         "productsection": {
             "models": [
                 "data.ProductSection",
@@ -211,7 +205,7 @@ SEARCH_SETTINGS = {
         "page_size": 25,
         # set to True to connect post_save/delete signals
         # If this is True, it will automatically try to sync ES with Django as data is loaded; if False, you must manually sync
-        "auto_sync": env.str("ES_AUTO_SYNC", False),
+        "auto_sync": env.bool("ES_AUTO_SYNC", False),
         # List of models which will never auto_sync even if auto_sync is True
         "never_auto_sync": [],
         # if true, then indexes must have mapping files
@@ -219,8 +213,3 @@ SEARCH_SETTINGS = {
         "mappings_dir": "search/mappings",
     },
 }
-# if env.str('ELASTIC_CLOUD_ID') and env.str('ELASTIC_CLOUD_PASSWORD'):
-#     SEARCH_SETTINGS['connections']['cloud'] = {
-#             "cloud_id": env.str('ELASTIC_CLOUD_ID'),
-#             "basic_auth": ("elastic", env.str('ELASTIC_CLOUD_PASSWORD'))
-#         }
