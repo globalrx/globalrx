@@ -1,9 +1,31 @@
 [tool.black]
+target_version = ['py310']
+include = '\.pyi?$'
 line-length = 100
-exclude = "migrations/*"
+force-exclude = '''
+/(
+    \.git
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+    | migrations/*
+    | __init__.py
+
+    # The following are specific to Black, you probably don't want those.
+    | blib2to3
+    | tests/data
+    | profiling
+)/
+'''
 
 [tool.isort]
-skip_glob = "**/migrations/*.py"
+profile = "black"
+extend_skip_glob = ["**/migrations/*.py"]
 multi_line_output = 3
 known_django = "django"
 known_djangocontrib =" django.contrib"
@@ -14,3 +36,4 @@ force_grid_wrap = 0
 use_parentheses = true
 ensure_newline_before_comments = true
 line_length = 100
+py_version=310
