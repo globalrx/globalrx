@@ -93,7 +93,6 @@ class ProductSection(SearchDocumentMixin, models.Model):
     label_product = models.ForeignKey(LabelProduct, on_delete=models.CASCADE)
     section_name = models.CharField(max_length=255, db_index=True)
     section_text = models.TextField()
-    clean_section_text = models.TextField(blank=True)
 
     # https://fueled.com/the-cache/posts/backend/django/setup-full-text-search-index-in-django/
     # TODO can remove this once we deprecate PSQL based search
