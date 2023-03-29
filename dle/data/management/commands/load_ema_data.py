@@ -1,24 +1,24 @@
-from django.core.management.base import BaseCommand, CommandError
-from django.db import IntegrityError
-from requests.exceptions import ChunkedEncodingError
-from data.models import (
-    DrugLabel,
-    LabelProduct,
-    ProductSection,
-)
-from users.models import MyLabel
-from django.core.files.base import ContentFile
-from django.core.files.storage import default_storage
-from django.conf import settings
-import requests
-import fitz  # PyMuPDF
-from bs4 import BeautifulSoup
-import re
 import datetime
-import pandas as pd
-import time
 import logging
 import random
+import re
+import time
+
+from django.conf import settings
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
+from django.core.management.base import BaseCommand, CommandError
+from django.db import IntegrityError
+
+import fitz  # PyMuPDF
+import pandas as pd
+import requests
+from bs4 import BeautifulSoup
+from requests.exceptions import ChunkedEncodingError
+
+from data.models import DrugLabel, LabelProduct, ProductSection
+from users.models import MyLabel
+
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +105,7 @@ EMA_PDF_PRODUCT_SECTIONS = [
     ),
 ]
 
+
 # runs with `python manage.py load_ema_data`
 # add `--type full` to import the full dataset
 # add `--type rand_test` to import 3 random records
@@ -138,9 +139,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         import_type = options["type"]
         if import_type not in ["full", "test", "rand_test", "my_label"]:
-            raise CommandError(
-                "'type' parameter must be 'full', 'test', 'rand_test' or 'my_label'"
-            )
+            raise CommandError("'type' parameter must be 'full', 'test', 'rand_test' or 'my_label'")
 
         # basic logging config is in settings.py
         # verbosity is 1 by default, gives critical, error and warning output
@@ -202,13 +201,13 @@ class Command(BaseCommand):
                 dl.raw_text = self.parse_pdf(dl.link, lp)
                 dl.save()
                 self.num_drug_labels_parsed += 1
-            except IntegrityError as e:
+            except IntegrityError as e:  # noqa: F841
                 logger.warning(self.style.WARNING("Label already in db"))
-                logger.debug(e, exc_info=True)
+                # logger.debug(e, exc_info=True)
             except AttributeError as e:
                 logger.warning(self.style.ERROR(repr(e)))
-            logger.info(f"sleep 1s")
-            time.sleep(1)
+            # logger.info(f"sleep 1s")
+            # time.sleep(1)
 
         for url in self.error_urls.keys():
             logger.warning(self.style.WARNING(f"error parsing url: {url}"))
@@ -272,9 +271,7 @@ class Command(BaseCommand):
 
         # marketer -- can be missing / null
         try:
-            cell = tag.find_next(
-                "td", string=re.compile(r"\sMarketing-authorisation holder\s")
-            )
+            cell = tag.find_next("td", string=re.compile(r"\sMarketing-authorisation holder\s"))
             str = cell.find_next_sibling().get_text(strip=True)
             dl.marketer = str
         except AttributeError:
@@ -345,7 +342,6 @@ class Command(BaseCommand):
         return raw_text
 
     def process_ema_file(self, ema_file, lp, pdf_url=""):
-
         # PyMuPDF references
         # ty: https://stackoverflow.com/a/63486976/1807627
         # https://github.com/pymupdf/PyMuPDF-Utilities/blob/master/text-extraction/PDF2Text.py
