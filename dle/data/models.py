@@ -22,18 +22,7 @@ SOURCES = [
 
 
 # DRUG LABEL
-# See: https://github.com/yunojuno/elasticsearch-django/blob/master/tests/models.py
-class DrugLabelQuerySet(SearchResultsQuerySet):
-    pass
-
-
-class DrugLabelModelManager(SearchDocumentManagerMixin, models.Manager):
-    def get_search_queryset(self, index="_all"):
-        return self.all()
-
-
-class DrugLabel(SearchDocumentMixin, models.Model):
-    # class DrugLabel(models.Model):
+class DrugLabel(models.Model):
     """Version-specific document for a medication from EMA, FDA or other source (e.g. user-uploaded)
     - can have multiple versions of the same medication (different version_date's)
     - medication may exist in multiple regions (source's)
@@ -52,8 +41,6 @@ class DrugLabel(SearchDocumentMixin, models.Model):
     "marketer is 'like' the manufacturer, but technically the manufacturer can be different"
     link = models.URLField()
     "link is url to the external data source website"
-
-    objects = DrugLabelModelManager.from_queryset(DrugLabelQuerySet)()
 
     class Meta:
         constraints = [
@@ -74,34 +61,6 @@ class DrugLabel(SearchDocumentMixin, models.Model):
             f"marketer: {self.marketer}"
         )
 
-    def as_search_document(self, index="_all") -> dict:
-        """Converts a DrugLabel into a search document.
-        Returns:
-            dict: Search document
-        """
-        return {
-            "source": self.source,
-            "product_name": self.product_name,
-            "generic_name": self.generic_name,
-            "version_date": self.version_date,
-            "source_product_number": self.source_product_number,
-            "marketer": self.marketer,
-            "link": self.link,
-            "raw_text": self.raw_text,
-        }
-
-    # def as_search_document_update(self, index, update_fields):
-    #     if 'user' in update_fields:
-    #         # remove so that it won't raise a ValueError
-    #         update_fields.remove('user')
-    #         doc = super().as_search_document_update(index, update_fields)
-    #         doc['user'] = self.user.get_full_name()
-    #         return doc
-    #     return super().as_search_document_update(index, update_fields)
-
-    def get_search_queryset(self, index="_all"):
-        return self.get_queryset()
-
 
 # LABEL PRODUCT
 class LabelProduct(models.Model):
@@ -113,6 +72,8 @@ class LabelProduct(models.Model):
 
 
 # PRODUCT SECTION
+# Includes Elasticsearch mapping; some data from DrugLabel is denormalized and added here too
+# See: https://github.com/yunojuno/elasticsearch-django/blob/master/tests/models.py
 class ProductSectionQuerySet(SearchResultsQuerySet):
     pass
 
@@ -135,7 +96,7 @@ class ProductSection(SearchDocumentMixin, models.Model):
     clean_section_text = models.TextField(blank=True)
 
     # https://fueled.com/the-cache/posts/backend/django/setup-full-text-search-index-in-django/
-    # TODO can probably remove this once we deprecate PSQL based search?
+    # TODO can remove this once we deprecate PSQL based search
     search_vector = SearchVectorField(null=True)
 
     objects = ProductSectionModelManager.from_queryset(ProductSectionQuerySet)()
@@ -174,6 +135,16 @@ class ProductSection(SearchDocumentMixin, models.Model):
             "section_text": self.section_text,
             "id": self.id,
         }
+
+    # TODO - implement?
+    # def as_search_document_update(self, index, update_fields):
+    #     if 'user' in update_fields:
+    #         # remove so that it won't raise a ValueError
+    #         update_fields.remove('user')
+    #         doc = super().as_search_document_update(index, update_fields)
+    #         doc['user'] = self.user.get_full_name()
+    #         return doc
+    #     return super().as_search_document_update(index, update_fields)
 
     def get_search_queryset(self, index="_all"):
         return self.get_queryset()
