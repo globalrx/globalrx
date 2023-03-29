@@ -10,15 +10,15 @@ The project is containerized so that it can be run locally or deployed to a clou
 1. Clone the repository
 
 2. Set up `pre-commit` for linting
-    a. Install `pre-commit` on your local machine using `pip` or `brew`. See: https://pre-commit.com/
-    b. Install the `pre-commit` hook. This runs `black`, `flake8`, and `isort` linting based on configurations in `pyproject.toml` and `.flake8` (there is currently no single config file format that all three linters agree upon). The `pre-commit` config is in `.pre-commit-config.yaml` and will install the hook in `.git/hooks/pre-commit`.
-    c. Potentially, run `pre-commit run --all-files` to run against everything in the repo rather than everything `diffed`. But probably not necessary.
-    d. From now on, the `precommit` hook will try to update all your files before committing them so that your merges pass the linting Action (`.github/workflows/check.yml`).
+    - Install `pre-commit` on your local machine using `pip` or `brew`. See: https://pre-commit.com/
+    - Install the `pre-commit` hook. This runs `black`, `flake8`, and `isort` linting based on configurations in `pyproject.toml` and `.flake8` (there is currently no single config file format that all three linters agree upon). The `pre-commit` config is in `.pre-commit-config.yaml` and will install the hook in `.git/hooks/pre-commit`.
+    - Potentially, run `pre-commit run --all-files` to run against everything in the repo rather than everything `diffed`. But probably not necessary.
+    - From now on, the `precommit` hook will try to update all your files before committing them so that your merges pass the linting Action (`.github/workflows/check.yml`).
 
 3. Set environment variables; see [env.example](./env.example) for a list of required variables. Some of these variables control whether setup scripts (e.g. Django migrations) are run.
-    a. Copy `env.example` to `.env` and update the values
-    b. For a first run, set `MIGRATE`, `LOAD`, and `INIT_SUPERUSER` to `True`
-    c. If you are working on BERT model, you will need to start an Elasticsearch trial license; you can either try to set the `LICENSE` variable to `trial`, or POST this to Elasticsearch after it starts up either in Kibana: or via `curl`: `/_license/start_trial?acknowledge=true`
+    - Copy `env.example` to `.env` and update the values
+    - For a first run, set `MIGRATE`, `LOAD`, and `INIT_SUPERUSER` to `True`
+    - If you are working on BERT model, you will need to start an Elasticsearch trial license; you can either try to set the `LICENSE` variable to `trial`, or POST this to Elasticsearch after it starts up either in Kibana: or via `curl`: `/_license/start_trial?acknowledge=true`
 
 4. Run `docker compose up` to start the application. This will take a long time the first time. Steps that occur:
     - Builds the Django container from `Dockerfile.dev`
