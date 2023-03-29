@@ -20,7 +20,7 @@ jobs:
           cache: 'pip'
           cache-dependency-path: '**/dle/requirements.txt'
       - name: Install deps using Pip
-        run: pip install -r requirements-dev.txt
+        run: pip install -r ./dle/requirements-dev.txt
         if: steps.python-cache.outputs.cache-hit != 'true'
       - name: Run isort
         run: isort dle --check
