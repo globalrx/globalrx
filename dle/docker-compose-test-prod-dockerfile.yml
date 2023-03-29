@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+  django:
+    build:
+      dockerfile: Dockerfile
+    image: dle-django-prod
+    depends_on:
+      - postgres
+    links:
+      - postgres
+    env_file:
+      - .env
+    ports:
+      - 80:8000
+    environment:
+      USE_NGINX: "True"
+    volumes:
+      # certs are needed for elasticsearch HTTPS
+      - certs:/usr/share/elasticsearch/config/certs
