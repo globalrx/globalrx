@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     "users.apps.UsersConfig",
     "data.apps.DataConfig",
     "compare.apps.CompareConfig",
+    "api.apps.ApiConfig",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",

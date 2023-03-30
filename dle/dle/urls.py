@@ -35,4 +35,5 @@ urlpatterns = [
     path("", redirect_from_root_view),
     path("search/", include("search.urls")),
     path("compare/", include("compare.urls")),
+    path("api/", include("api.urls")),
 ] + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
