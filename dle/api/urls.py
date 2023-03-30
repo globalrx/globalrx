@@ -6,5 +6,5 @@ from . import views
 app_name = "api"
 
 urlpatterns = [
-    path("v1/searchkit", views.searchkit, name="searchkit"),
+    path("v1/searchkit/_msearch", views.searchkit, name="searchkit"),
 ]
