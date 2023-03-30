@@ -1,7 +1,5 @@
-FROM --platform=linux/amd64 python:3.10.10-slim-buster as python-build
-
+FROM python:3.10.10-slim-buster as python-build
 WORKDIR /app
-
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
@@ -17,15 +15,23 @@ RUN chmod +x /usr/bin/firefox
 # set display port to avoid Selenium crash
 ENV DISPLAY=:99
 
-# Python requirements
-COPY requirements.txt /app
-COPY requirements-dev.txt /app
-RUN pip install -r requirements-dev.txt
+# Nginx setup 
+RUN addgroup --system nginx
+RUN adduser --system nginx
+RUN usermod -a -G nginx nginx
+RUN mkdir -p /run/nginx
 
-# Setup app
-# copying over the whole app is not needed - mounted volume
-COPY entrypoint /app
+RUN mkdir -p /var/log/nginx && \
+    ln -sf /dev/stdout /var/log/nginx/access.log && \
+    ln -sf /dev/stdout /var/log/nginx/error.log
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# Python requirements - requirements.dev shouldn't be needed
+COPY requirements.txt /app
+RUN pip install -r requirements.txt
+
+# Setup
+COPY . /app
 
 EXPOSE 8000 5000
-
 CMD /app/entrypoint

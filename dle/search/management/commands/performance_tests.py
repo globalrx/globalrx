@@ -1,12 +1,14 @@
-from django.core.management.base import BaseCommand
-from django.test import Client
-from django.test.utils import setup_test_environment
-from django.core.files.storage import default_storage
-from django.conf import settings
-import time
 import datetime as dt
 import logging
 import random
+import time
+
+from django.conf import settings
+from django.core.files.storage import default_storage
+from django.core.management.base import BaseCommand
+from django.test import Client
+from django.test.utils import setup_test_environment
+
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +97,6 @@ PRODUCT_NAMES = [
 
 TEST_QUERIES = [
     # select_section=&search_text=&select_agency=&manufacturer_input=&generic_name_input=&brand_name_input=
-
     # one word NLP search
     # - all sections
     # - single section
@@ -169,7 +170,6 @@ TEST_QUERIES = [
         "generic_name_input": random.choice(GENERIC_NAMES),
         "brand_name_input": random.choice(PRODUCT_NAMES),
     },
-
     # two word NLP search
     # - all sections
     # - single section
@@ -243,7 +243,6 @@ TEST_QUERIES = [
         "generic_name_input": random.choice(GENERIC_NAMES),
         "brand_name_input": random.choice(PRODUCT_NAMES),
     },
-
     # three word NLP search
     # - all sections
     # - single section
@@ -255,7 +254,9 @@ TEST_QUERIES = [
     # - single section + 4 inputs
     {
         "select_section": "",
-        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD),
+        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS)
+        + " "
+        + random.choice(SEARCH_TEXTS_ONE_WORD),
         "select_agency": "",
         "manufacturer_input": "",
         "generic_name_input": "",
@@ -263,7 +264,9 @@ TEST_QUERIES = [
     },
     {
         "select_section": random.choice(SECTIONS),
-        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD),
+        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS)
+        + " "
+        + random.choice(SEARCH_TEXTS_ONE_WORD),
         "select_agency": "",
         "manufacturer_input": "",
         "generic_name_input": "",
@@ -271,7 +274,9 @@ TEST_QUERIES = [
     },
     {
         "select_section": "",
-        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD),
+        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS)
+        + " "
+        + random.choice(SEARCH_TEXTS_ONE_WORD),
         "select_agency": "",
         "manufacturer_input": random.choice(MARKETERS),
         "generic_name_input": "",
@@ -279,7 +284,9 @@ TEST_QUERIES = [
     },
     {
         "select_section": random.choice(SECTIONS),
-        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD),
+        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS)
+        + " "
+        + random.choice(SEARCH_TEXTS_ONE_WORD),
         "select_agency": "",
         "manufacturer_input": random.choice(MARKETERS),
         "generic_name_input": "",
@@ -287,7 +294,9 @@ TEST_QUERIES = [
     },
     {
         "select_section": "",
-        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD),
+        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS)
+        + " "
+        + random.choice(SEARCH_TEXTS_ONE_WORD),
         "select_agency": "",
         "manufacturer_input": "",
         "generic_name_input": random.choice(GENERIC_NAMES),
@@ -295,7 +304,9 @@ TEST_QUERIES = [
     },
     {
         "select_section": random.choice(SECTIONS),
-        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD),
+        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS)
+        + " "
+        + random.choice(SEARCH_TEXTS_ONE_WORD),
         "select_agency": "",
         "manufacturer_input": "",
         "generic_name_input": random.choice(GENERIC_NAMES),
@@ -303,7 +314,9 @@ TEST_QUERIES = [
     },
     {
         "select_section": "",
-        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD),
+        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS)
+        + " "
+        + random.choice(SEARCH_TEXTS_ONE_WORD),
         "select_agency": random.choice(AGENCIES),
         "manufacturer_input": random.choice(MARKETERS),
         "generic_name_input": random.choice(GENERIC_NAMES),
@@ -311,13 +324,14 @@ TEST_QUERIES = [
     },
     {
         "select_section": random.choice(SECTIONS),
-        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD),
+        "search_text": random.choice(SEARCH_TEXTS_TWO_WORDS)
+        + " "
+        + random.choice(SEARCH_TEXTS_ONE_WORD),
         "select_agency": random.choice(AGENCIES),
         "manufacturer_input": random.choice(MARKETERS),
         "generic_name_input": random.choice(GENERIC_NAMES),
         "brand_name_input": random.choice(PRODUCT_NAMES),
     },
-
     # two word exact match search
     # - all sections
     # - single section
@@ -391,7 +405,6 @@ TEST_QUERIES = [
         "generic_name_input": random.choice(GENERIC_NAMES),
         "brand_name_input": random.choice(PRODUCT_NAMES),
     },
-
     # three word exact match search
     # - all sections
     # - single section
@@ -403,7 +416,11 @@ TEST_QUERIES = [
     # - single section + 4 inputs
     {
         "select_section": "",
-        "search_text": '"' + random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD) + '"',
+        "search_text": '"'
+        + random.choice(SEARCH_TEXTS_TWO_WORDS)
+        + " "
+        + random.choice(SEARCH_TEXTS_ONE_WORD)
+        + '"',
         "select_agency": "",
         "manufacturer_input": "",
         "generic_name_input": "",
@@ -411,7 +428,11 @@ TEST_QUERIES = [
     },
     {
         "select_section": random.choice(SECTIONS),
-        "search_text": '"' + random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD) + '"',
+        "search_text": '"'
+        + random.choice(SEARCH_TEXTS_TWO_WORDS)
+        + " "
+        + random.choice(SEARCH_TEXTS_ONE_WORD)
+        + '"',
         "select_agency": "",
         "manufacturer_input": "",
         "generic_name_input": "",
@@ -419,7 +440,11 @@ TEST_QUERIES = [
     },
     {
         "select_section": "",
-        "search_text": '"' + random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD) + '"',
+        "search_text": '"'
+        + random.choice(SEARCH_TEXTS_TWO_WORDS)
+        + " "
+        + random.choice(SEARCH_TEXTS_ONE_WORD)
+        + '"',
         "select_agency": "",
         "manufacturer_input": random.choice(MARKETERS),
         "generic_name_input": "",
@@ -427,7 +452,11 @@ TEST_QUERIES = [
     },
     {
         "select_section": random.choice(SECTIONS),
-        "search_text": '"' + random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD) + '"',
+        "search_text": '"'
+        + random.choice(SEARCH_TEXTS_TWO_WORDS)
+        + " "
+        + random.choice(SEARCH_TEXTS_ONE_WORD)
+        + '"',
         "select_agency": "",
         "manufacturer_input": random.choice(MARKETERS),
         "generic_name_input": "",
@@ -435,7 +464,11 @@ TEST_QUERIES = [
     },
     {
         "select_section": "",
-        "search_text": '"' + random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD) + '"',
+        "search_text": '"'
+        + random.choice(SEARCH_TEXTS_TWO_WORDS)
+        + " "
+        + random.choice(SEARCH_TEXTS_ONE_WORD)
+        + '"',
         "select_agency": "",
         "manufacturer_input": "",
         "generic_name_input": random.choice(GENERIC_NAMES),
@@ -443,7 +476,11 @@ TEST_QUERIES = [
     },
     {
         "select_section": random.choice(SECTIONS),
-        "search_text": '"' + random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD) + '"',
+        "search_text": '"'
+        + random.choice(SEARCH_TEXTS_TWO_WORDS)
+        + " "
+        + random.choice(SEARCH_TEXTS_ONE_WORD)
+        + '"',
         "select_agency": "",
         "manufacturer_input": "",
         "generic_name_input": random.choice(GENERIC_NAMES),
@@ -451,7 +488,11 @@ TEST_QUERIES = [
     },
     {
         "select_section": "",
-        "search_text": '"' + random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD) + '"',
+        "search_text": '"'
+        + random.choice(SEARCH_TEXTS_TWO_WORDS)
+        + " "
+        + random.choice(SEARCH_TEXTS_ONE_WORD)
+        + '"',
         "select_agency": random.choice(AGENCIES),
         "manufacturer_input": random.choice(MARKETERS),
         "generic_name_input": random.choice(GENERIC_NAMES),
@@ -459,13 +500,18 @@ TEST_QUERIES = [
     },
     {
         "select_section": random.choice(SECTIONS),
-        "search_text": '"' + random.choice(SEARCH_TEXTS_TWO_WORDS) + " " + random.choice(SEARCH_TEXTS_ONE_WORD) + '"',
+        "search_text": '"'
+        + random.choice(SEARCH_TEXTS_TWO_WORDS)
+        + " "
+        + random.choice(SEARCH_TEXTS_ONE_WORD)
+        + '"',
         "select_agency": random.choice(AGENCIES),
         "manufacturer_input": random.choice(MARKETERS),
         "generic_name_input": random.choice(GENERIC_NAMES),
         "brand_name_input": random.choice(PRODUCT_NAMES),
     },
 ]
+
 
 # runs with `python manage.py performance_tests`
 # e.g. `python manage.py performance_tests --verbosity 2 --num_runs 3`
@@ -483,12 +529,8 @@ class Command(BaseCommand):
         setup_test_environment()
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            "--num_runs", type=int, help="number of test runs", default=2
-        )
-        parser.add_argument(
-            "--make_plot", type=bool, help="set to True to make plot", default=True
-        )
+        parser.add_argument("--num_runs", type=int, help="number of test runs", default=2)
+        parser.add_argument("--make_plot", type=bool, help="set to True to make plot", default=True)
         parser.add_argument(
             "--skip_tests",
             type=bool,
@@ -557,11 +599,9 @@ class Command(BaseCommand):
                 logger.debug(f"response.context: {response.context}")
 
                 try:
-                    logger.info(
-                        f"num search results: {len(response.context['search_results'])}"
-                    )
+                    logger.info(f"num search results: {len(response.context['search_results'])}")
                 except (KeyError, TypeError):
-                    logger.info(f"NO search results found")
+                    logger.info("NO search results found")
 
             query_time_csv_str = ",".join(query_times) + "\n"
             f.write(query_time_csv_str)
@@ -569,8 +609,8 @@ class Command(BaseCommand):
     def make_plot(self):
         logger.info("running make_plot")
         file = settings.MEDIA_ROOT / PERF_TEST_CSV
-        import pandas as pd
         import matplotlib.pyplot as plt
+        import pandas as pd
 
         df = pd.read_csv(file, header=None)
         num_rows = df.shape[0]
@@ -630,8 +670,8 @@ class Command(BaseCommand):
             "single section + 4 inputs": [[], []],
         }
 
-        x = []
-        y = []
+        # x = []
+        # y = []
         x_avg = []
         y_avg = []
         # skip the first column

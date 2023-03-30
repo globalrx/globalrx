@@ -1,8 +1,6 @@
-from datetime import datetime
 import diff_match_patch as dmp_module
-import gensim
 from gensim.parsing.preprocessing import remove_stopwords
-from .models import *
+
 
 # Sorting of FDA sections/subsections as they appear on
 # an FDA Prescribing Information
@@ -42,8 +40,9 @@ SECTIONS_ORDER = [
     "REFERENCES",
     "HOW SUPPLIED",
     "STORAGE AND HANDLING",
-    "PATIENT COUNSELING INFORMATION"
+    "PATIENT COUNSELING INFORMATION",
 ]
+
 
 def get_diff_for_diff_versions(text1, text2):
     dmp = dmp_module.diff_match_patch()
@@ -57,8 +56,9 @@ def get_diff_for_diff_versions(text1, text2):
             diff1.append(tuple)
         if tuple[0] in [0, 1]:
             diff2.append(tuple)
-    
+
     return (diff1, diff2)
+
 
 def get_diff_match_tuples(text_arr, common_index_list, value):
     data = []
@@ -90,23 +90,24 @@ def get_diff_match_tuples(text_arr, common_index_list, value):
     data.append((value if isCommon else 0, arr_text))
     return data
 
+
 def get_diff_for_diff_products(text1, text2):
-    text1_arr = text1.split(' ')
-    text2_arr = text2.split(' ')
+    text1_arr = text1.split(" ")
+    text2_arr = text2.split(" ")
     text1_dict = {value: key for value, key in enumerate(text1_arr)}
     text2_dict = {value: key for value, key in enumerate(text2_arr)}
 
     # texts with stop word removed (swr)
-    text1_swr_arr = remove_stopwords(text1).split(' ')
-    text2_swr_arr = remove_stopwords(text2).split(' ')
+    text1_swr_arr = remove_stopwords(text1).split(" ")
+    text2_swr_arr = remove_stopwords(text2).split(" ")
     common_words = set(text1_swr_arr).intersection(text2_swr_arr)
 
     # get indeces of common words/phrases
     common_phrases1 = []
     common_phrases2 = []
     for word in common_words:
-        listOfKeys1 = [key  for (key, value) in text1_dict.items() if value == word]
-        listOfKeys2 = [key  for (key, value) in text2_dict.items() if value == word]
+        listOfKeys1 = [key for (key, value) in text1_dict.items() if value == word]
+        listOfKeys2 = [key for (key, value) in text2_dict.items() if value == word]
 
         for i in listOfKeys1:
             for j in listOfKeys2:
@@ -123,7 +124,7 @@ def get_diff_for_diff_products(text1, text2):
                         index2 += 1
                     else:
                         break
-                
+
                 index1 = i - 1
                 index2 = j - 1
                 while index1 >= 0 and index2 >= 0:
@@ -134,7 +135,7 @@ def get_diff_for_diff_products(text1, text2):
                         index2 -= 1
                     else:
                         break
-                
+
                 # only append if common phrase is more one word long
                 if len(phrase1) > 1:
                     common_phrases1.append(phrase1)

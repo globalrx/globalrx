@@ -1,10 +1,12 @@
+from django.core import management
 from django.db import IntegrityError
 from django.test import TestCase
+
 from .models import DrugLabel, LabelProduct, ProductSection
-from django.core import management
 
 
 # Create your tests here.
+
 
 # runs with `python manage.py test data`
 class DrugLabelModelTests(TestCase):
@@ -65,13 +67,9 @@ class DrugLabelModelTests(TestCase):
             section_text="Cures cognitive deficit disorder",
         )
         ps.save()
-        ps = ProductSection(
-            label_product=lp, section_name="WARN", section_text="May cause x, y, z"
-        )
+        ps = ProductSection(label_product=lp, section_name="WARN", section_text="May cause x, y, z")
         ps.save()
-        ps = ProductSection(
-            label_product=lp, section_name="PREG", section_text="Good to go"
-        )
+        ps = ProductSection(label_product=lp, section_name="PREG", section_text="Good to go")
         ps.save()
 
         # we added 3 ProductSections
@@ -153,69 +151,69 @@ class DrugLabelModelTests(TestCase):
     #     self.assertEqual(labels.count(), 53)
 
     # def test_ema_data_query_2(self):
-        # see how many matches
-        # from data.models import DrugLabel, LabelProduct, ProductSection
-        # q_marketer = "pfizer"
-        # q_section_name = "INDICATIONS"
-        # q_section_text = 'kidney'
-        # qs = ProductSection.objects \
-        #     .filter(label_product__drug_label__marketer__icontains=q_marketer) \
-        #     .defer("label_product__drug_label__raw_text") \
-        #     .filter(section_text__icontains=q_section_text)\
-        #     .filter(section_name=q_section_name)\
-        #     .all()
-        # # note: count(), doesn't evaluate the queryset
-        # # len() and list() force the queryset to evaluate
-        # num_results = len(qs)
-        # print(f"num_results: {num_results}")
-        # # 5
-        # for ps in qs:
-        #     lp = ps.label_product
-        #     dl = lp.drug_label
-        #     print("")
-        #     print(f"product_name: {dl.product_name}")
-        #     print(f"marketer: {dl.marketer}")
-        #     print(f"version_date: {dl.version_date}")
-        #     print(f"section_text: {ps.section_text[0:200]}")
-        #
-        # # 'reverse' has no underbars in the model-name
-        # qs = DrugLabel.objects \
-        #     .filter(marketer__icontains=q_marketer)\
-        #     .filter(labelproduct__productsection__section_text__icontains=q_section_text)\
-        #     .filter(labelproduct__productsection__section_name=q_section_name) \
-        #     .defer("raw_text")\
-        #     .distinct()\
-        #     .all()
-        # num_results = len(qs)
-        # print(f"num_results: {num_results}")
-        # # 16 ... 12 ... there are duplicate results
-        # for dl in qs:
-        #     lp = dl.labelproduct_set.all()[0]
-        #     ps = lp.productsection_set.all()[0]
-        #     print("")
-        #     print(f"product_name: {dl.product_name}")
-        #     print(f"marketer: {dl.marketer}")
-        #     print(f"version_date: {dl.version_date}")
-        #     print(f"section_text: {ps.section_text[0:200]}")
+    # see how many matches
+    # from data.models import DrugLabel, LabelProduct, ProductSection
+    # q_marketer = "pfizer"
+    # q_section_name = "INDICATIONS"
+    # q_section_text = 'kidney'
+    # qs = ProductSection.objects \
+    #     .filter(label_product__drug_label__marketer__icontains=q_marketer) \
+    #     .defer("label_product__drug_label__raw_text") \
+    #     .filter(section_text__icontains=q_section_text)\
+    #     .filter(section_name=q_section_name)\
+    #     .all()
+    # # note: count(), doesn't evaluate the queryset
+    # # len() and list() force the queryset to evaluate
+    # num_results = len(qs)
+    # print(f"num_results: {num_results}")
+    # # 5
+    # for ps in qs:
+    #     lp = ps.label_product
+    #     dl = lp.drug_label
+    #     print("")
+    #     print(f"product_name: {dl.product_name}")
+    #     print(f"marketer: {dl.marketer}")
+    #     print(f"version_date: {dl.version_date}")
+    #     print(f"section_text: {ps.section_text[0:200]}")
+    #
+    # # 'reverse' has no underbars in the model-name
+    # qs = DrugLabel.objects \
+    #     .filter(marketer__icontains=q_marketer)\
+    #     .filter(labelproduct__productsection__section_text__icontains=q_section_text)\
+    #     .filter(labelproduct__productsection__section_name=q_section_name) \
+    #     .defer("raw_text")\
+    #     .distinct()\
+    #     .all()
+    # num_results = len(qs)
+    # print(f"num_results: {num_results}")
+    # # 16 ... 12 ... there are duplicate results
+    # for dl in qs:
+    #     lp = dl.labelproduct_set.all()[0]
+    #     ps = lp.productsection_set.all()[0]
+    #     print("")
+    #     print(f"product_name: {dl.product_name}")
+    #     print(f"marketer: {dl.marketer}")
+    #     print(f"version_date: {dl.version_date}")
+    #     print(f"section_text: {ps.section_text[0:200]}")
 
-        # from data.models import DrugLabel, LabelProduct, ProductSection
-        # qs = DrugLabel.objects.filter(product_name='Lidorex').all()
-        # num_results = len(qs)
-        # print(f"num_results: {num_results}")
-        # for dl in qs:
-        #     print("")
-        #     print(f"product_name: {dl.product_name}")
-        #     print(f"marketer: {dl.marketer}")
-        #     print(f"version_date: {dl.version_date}")
-        #     try:
-        #         lp = dl.labelproduct_set.all()[0]
-        #         ps = lp.productsection_set.all()[0]
-        #         print(f"section_name: {ps.section_name}")
-        #         print(f"section_text: {ps.section_text[0:200]}")
-        #     except:
-        #         pass
+    # from data.models import DrugLabel, LabelProduct, ProductSection
+    # qs = DrugLabel.objects.filter(product_name='Lidorex').all()
+    # num_results = len(qs)
+    # print(f"num_results: {num_results}")
+    # for dl in qs:
+    #     print("")
+    #     print(f"product_name: {dl.product_name}")
+    #     print(f"marketer: {dl.marketer}")
+    #     print(f"version_date: {dl.version_date}")
+    #     try:
+    #         lp = dl.labelproduct_set.all()[0]
+    #         ps = lp.productsection_set.all()[0]
+    #         print(f"section_name: {ps.section_name}")
+    #         print(f"section_text: {ps.section_text[0:200]}")
+    #     except:
+    #         pass
 
-        # pass
+    # pass
 
     def test_load_fda_data(self):
         num_dl_entries = DrugLabel.objects.count()

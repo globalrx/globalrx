@@ -1,11 +1,14 @@
 from django.db import models
+
 from django.contrib.postgres.indexes import GinIndex
 from django.contrib.postgres.search import SearchVectorField
+
 from elasticsearch_django.models import (
     SearchDocumentManagerMixin,
     SearchDocumentMixin,
     SearchResultsQuerySet,
 )
+
 
 # Create your models here. Then run:
 # `python manage.py makemigrations`
@@ -17,17 +20,9 @@ SOURCES = [
     ("TGA", "AU - Therapeutic Goods Administration"),
 ]
 
-### DRUG LABEL ###
-# See: https://github.com/yunojuno/elasticsearch-django/blob/master/tests/models.py
-class DrugLabelQuerySet(SearchResultsQuerySet):
-    pass
 
-class DrugLabelModelManager(SearchDocumentManagerMixin, models.Manager):
-    def get_search_queryset(self, index="_all"):
-        return self.all()
-
-class DrugLabel(SearchDocumentMixin,models.Model):
-# class DrugLabel(models.Model):
+# DRUG LABEL
+class DrugLabel(models.Model):
     """Version-specific document for a medication from EMA, FDA or other source (e.g. user-uploaded)
     - can have multiple versions of the same medication (different version_date's)
     - medication may exist in multiple regions (source's)
@@ -47,8 +42,6 @@ class DrugLabel(SearchDocumentMixin,models.Model):
     link = models.URLField()
     "link is url to the external data source website"
 
-    objects = DrugLabelModelManager.from_queryset(DrugLabelQuerySet)()
-
     class Meta:
         constraints = [
             # add a unique constraint to prevent duplicate entries
@@ -67,36 +60,9 @@ class DrugLabel(SearchDocumentMixin,models.Model):
             f"source_product_number: {self.source_product_number}, "
             f"marketer: {self.marketer}"
         )
-    
-    def as_search_document(self, index="_all") -> dict:
-        """Converts a DrugLabel into a search document.
-        Returns:
-            dict: Search document
-        """
-        return {
-            "source": self.source,
-            "product_name": self.product_name,
-            "generic_name": self.generic_name,
-            "version_date": self.version_date,
-            "source_product_number": self.source_product_number,
-            "marketer": self.marketer,
-            "link": self.link,
-            "raw_text": self.raw_text,
-        }
-    
-    # def as_search_document_update(self, index, update_fields):
-    #     if 'user' in update_fields:
-    #         # remove so that it won't raise a ValueError
-    #         update_fields.remove('user')
-    #         doc = super().as_search_document_update(index, update_fields)
-    #         doc['user'] = self.user.get_full_name()
-    #         return doc
-    #     return super().as_search_document_update(index, update_fields)
 
-    def get_search_queryset(self, index='_all'):
-        return self.get_queryset()
 
-#### LABEL PRODUCT ####
+# LABEL PRODUCT
 class LabelProduct(models.Model):
     """A `DrugLabel` may have multiple `LabelProduct`s.
     These are typically for different routes of administration for the medication.
@@ -104,13 +70,18 @@ class LabelProduct(models.Model):
 
     drug_label = models.ForeignKey(DrugLabel, on_delete=models.CASCADE)
 
-### PRODUCT SECTION ###
+
+# PRODUCT SECTION
+# Includes Elasticsearch mapping; some data from DrugLabel is denormalized and added here too
+# See: https://github.com/yunojuno/elasticsearch-django/blob/master/tests/models.py
 class ProductSectionQuerySet(SearchResultsQuerySet):
     pass
+
 
 class ProductSectionModelManager(SearchDocumentManagerMixin, models.Manager):
     def get_search_queryset(self, index="_all"):
         return self.all()
+
 
 # class ProductSection(models.Model):
 class ProductSection(SearchDocumentMixin, models.Model):
@@ -124,14 +95,14 @@ class ProductSection(SearchDocumentMixin, models.Model):
     section_text = models.TextField()
 
     # https://fueled.com/the-cache/posts/backend/django/setup-full-text-search-index-in-django/
-    # TODO can probably remove this once we deprecate PSQL based search?
+    # TODO can remove this once we deprecate PSQL based search
     search_vector = SearchVectorField(null=True)
 
     objects = ProductSectionModelManager.from_queryset(ProductSectionQuerySet)()
 
     class Meta:
         indexes = (GinIndex(fields=["search_vector"]),)
-    
+
     def as_search_document(self, index="_all") -> dict:
         """Converts a ProductSection into a Elasticsearch document.
         Includes many fields from the related DrugLabel.
@@ -142,17 +113,37 @@ class ProductSection(SearchDocumentMixin, models.Model):
         return {
             "label_product_id": self.label_product.id,
             "drug_label_id": self.label_product.drug_label.id,
-            "drug_label_product_name": DrugLabel.objects.get(id=self.label_product.drug_label.id).product_name,
+            "drug_label_product_name": DrugLabel.objects.get(
+                id=self.label_product.drug_label.id
+            ).product_name,
             "drug_label_source": DrugLabel.objects.get(id=self.label_product.drug_label.id).source,
-            "drug_label_generic_name": DrugLabel.objects.get(id=self.label_product.drug_label.id).generic_name,
-            "drug_label_version_date": DrugLabel.objects.get(id=self.label_product.drug_label.id).version_date,
-            "drug_label_source_product_number": DrugLabel.objects.get(id=self.label_product.drug_label.id).source_product_number,
-            "drug_label_marketer": DrugLabel.objects.get(id=self.label_product.drug_label.id).marketer,
+            "drug_label_generic_name": DrugLabel.objects.get(
+                id=self.label_product.drug_label.id
+            ).generic_name,
+            "drug_label_version_date": DrugLabel.objects.get(
+                id=self.label_product.drug_label.id
+            ).version_date,
+            "drug_label_source_product_number": DrugLabel.objects.get(
+                id=self.label_product.drug_label.id
+            ).source_product_number,
+            "drug_label_marketer": DrugLabel.objects.get(
+                id=self.label_product.drug_label.id
+            ).marketer,
             "drug_label_link": DrugLabel.objects.get(id=self.label_product.drug_label.id).link,
             "section_name": self.section_name,
             "section_text": self.section_text,
             "id": self.id,
         }
-    
-    def get_search_queryset(self, index='_all'):
+
+    # TODO - implement?
+    # def as_search_document_update(self, index, update_fields):
+    #     if 'user' in update_fields:
+    #         # remove so that it won't raise a ValueError
+    #         update_fields.remove('user')
+    #         doc = super().as_search_document_update(index, update_fields)
+    #         doc['user'] = self.user.get_full_name()
+    #         return doc
+    #     return super().as_search_document_update(index, update_fields)
+
+    def get_search_queryset(self, index="_all"):
         return self.get_queryset()

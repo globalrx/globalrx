@@ -1,7 +1,10 @@
-from django.core.management.base import BaseCommand
 import logging
-from data.constants import LASTEST_DRUG_LABELS_TABLE
+
+from django.core.management.base import BaseCommand
 from django.db import connection
+
+from data.constants import LASTEST_DRUG_LABELS_TABLE
+
 
 logger = logging.getLogger(__name__)
 
@@ -11,6 +14,7 @@ logger = logging.getLogger(__name__)
 # add `--verbosity 3` for debug output
 class Command(BaseCommand):
     """Run after loading the data to maintain a latest_drug_labels table"""
+
     help = "Loads data from EMA"
 
     def set_log_verbosity(self, verbosity):
@@ -36,7 +40,7 @@ class Command(BaseCommand):
 
         sql_1 = f"DROP TABLE IF EXISTS {LASTEST_DRUG_LABELS_TABLE}"
 
-        sql_2 = f"""
+        sql_2 = """
         CREATE TEMPORARY TABLE latest_dl_versions_temp AS
         SELECT source, source_product_number, max(version_date) AS version_date
         FROM data_druglabel

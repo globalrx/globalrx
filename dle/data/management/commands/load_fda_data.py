@@ -1,23 +1,26 @@
-from bs4 import BeautifulSoup
-from contextlib import closing
-from datetime import datetime, timedelta
 import logging
+import os
 import re
 import shutil
 import urllib.request as request
-import os
-from zipfile import ZipFile
+from contextlib import closing
+from datetime import datetime, timedelta
 from distutils.util import strtobool
+from zipfile import ZipFile
 
-from django.core.management.base import BaseCommand, CommandError
 from django.conf import settings
+from django.core.management.base import BaseCommand, CommandError
 from django.db.utils import IntegrityError, OperationalError
 
+from bs4 import BeautifulSoup
+
+from data.constants import FDA_SECTION_NAME_MAP
 from data.models import DrugLabel, LabelProduct, ProductSection
 from users.models import MyLabel
-from data.constants import FDA_SECTION_NAME_MAP
+
 
 logger = logging.getLogger(__name__)
+
 
 # python manage.py load_fda_data --type test --cleanup False --insert False --count_titles True
 # python manage.py load_fda_data --type my_label --my_label_id 9 --cleanup False --insert False
@@ -39,17 +42,16 @@ class Command(BaseCommand):
         parser.add_argument(
             "--type", type=str, help="full, monthly, test or my_label", default="monthly"
         )
-        parser.add_argument(
-            "--insert", type=strtobool, help="Set to connect to DB", default=True
-        )
-        parser.add_argument(
-            "--cleanup", type=strtobool, help="Set to cleanup files", default=False
-        )
+        parser.add_argument("--insert", type=strtobool, help="Set to connect to DB", default=True)
+        parser.add_argument("--cleanup", type=strtobool, help="Set to cleanup files", default=False)
         parser.add_argument(
             "--my_label_id", type=int, help="set my_label_id for --type my_label", default=None
         )
         parser.add_argument(
-            "--count_titles", type=strtobool, help="output counts of the section_names", default=False
+            "--count_titles",
+            type=strtobool,
+            help="output counts of the section_names",
+            default=False,
         )
 
     """
@@ -106,7 +108,7 @@ class Command(BaseCommand):
                                 unapproved_bool = True
                 except Exception as e:
                     print(e)
-                    exception_count +=1
+                    exception_count += 1
                 if unapproved_bool:
                     unapproved_count += 1
                     print(f"{product_name:50}\t{generic_name:50}\t{str(xml_file).split('/')[-1]}")
@@ -135,9 +137,13 @@ class Command(BaseCommand):
             archive_url = f"ftp://public.nlm.nih.gov/nlmdata/.dailymed/dm_spl_monthly_update_{month}{year}.zip"
             records.append(self.download_single_zip(archive_url, file_dir))
         elif import_type == "test":
-            archive_url = f"ftp://public.nlm.nih.gov/nlmdata/.dailymed/dm_spl_daily_update_10262021.zip"
+            archive_url = (
+                "ftp://public.nlm.nih.gov/nlmdata/.dailymed/dm_spl_daily_update_10262021.zip"
+            )
             records.append(self.download_single_zip(archive_url, file_dir))
-            archive_url = f"ftp://public.nlm.nih.gov/nlmdata/.dailymed/dm_spl_daily_update_10182021.zip"
+            archive_url = (
+                "ftp://public.nlm.nih.gov/nlmdata/.dailymed/dm_spl_daily_update_10182021.zip"
+            )
             records.append(self.download_single_zip(archive_url, file_dir))
         else:
             raise CommandError("Type must be one of 'full', 'monthly', or 'test'")
@@ -179,9 +185,7 @@ class Command(BaseCommand):
                         outfile = file_dir / os.path.basename(file_info.filename)
                         file_info.filename = os.path.basename(file_info.filename)
                         if os.path.exists(outfile):
-                            logger.info(
-                                f"Record Zip already exists: {outfile}. Skipping."
-                            )
+                            logger.info(f"Record Zip already exists: {outfile}. Skipping.")
                         else:
                             logger.info(f"Creating Record Zip {outfile}")
                             zip_file_object.extract(file_info, file_dir)
@@ -218,12 +222,10 @@ class Command(BaseCommand):
                         # the structuredbody component is the parent that contains everything, skip it
                         structured_body = section.find_next("structuredbody")
                         if structured_body is not None:
-                            logger.debug(f"SKIPPING: structuredbody")
+                            logger.debug("SKIPPING: structuredbody")
                             continue
 
-                        code = section.find(
-                            "code", attrs={"codesystem": "2.16.840.1.113883.6.1"}
-                        )
+                        code = section.find("code", attrs={"codesystem": "2.16.840.1.113883.6.1"})
                         if code is None:
                             continue
                         title = str(code.get("displayname")).upper()
@@ -275,7 +277,6 @@ class Command(BaseCommand):
                     logger.error(str(e))
                     continue
 
-
     def process_xml_file(self, xml_file, insert, dl, my_label_id=None):
         logger.debug(f"insert: {insert}")
         with open(xml_file) as f:
@@ -309,10 +310,14 @@ class Command(BaseCommand):
                 dl.marketer = ""
 
             # Ensure always selecting the same ndc code if multiple
-            ndc_codes = [ndc_code.get("code") for ndc_code in content.find_all("code", attrs={"codesystem": "2.16.840.1.113883.6.69"})]
+            ndc_codes = [
+                ndc_code.get("code")
+                for ndc_code in content.find_all(
+                    "code", attrs={"codesystem": "2.16.840.1.113883.6.69"}
+                )
+            ]
             dl.source_product_number = sorted(ndc_codes)[0]
-            
-            
+
             if my_label_id is not None:
                 dl.source_product_number = f"my_label_{my_label_id}" + dl.source_product_number
 
@@ -336,7 +341,7 @@ class Command(BaseCommand):
             try:
                 if insert:
                     lp.save()
-                    logger.info(f"Saving new label product")
+                    logger.info("Saving new label product")
             except IntegrityError as e:
                 logger.error(str(e))
                 return
@@ -349,13 +354,11 @@ class Command(BaseCommand):
                 # the structuredbody component is the parent that contains everything, skip it
                 structured_body = section.find_next("structuredbody")
                 if structured_body is not None:
-                    logger.debug(f"SKIPPING: structuredbody")
+                    logger.debug("SKIPPING: structuredbody")
                     continue
                 logger.debug(f"section: {repr(section)}")
 
-                code = section.find(
-                    "code", attrs={"codesystem": "2.16.840.1.113883.6.1"}
-                )
+                code = section.find("code", attrs={"codesystem": "2.16.840.1.113883.6.1"})
                 if code is None:
                     continue
 
@@ -393,13 +396,9 @@ class Command(BaseCommand):
                     section_map[section_name] = section_texts
                 else:
                     if section_name != "OTHER":
-                        logger.debug(
-                            f"Found another section: {section_name}\twith title\t{title}"
-                        )
+                        logger.debug(f"Found another section: {section_name}\twith title\t{title}")
                     section_map[section_name] = (
-                            section_map[section_name]
-                            + f"<br>{title}<br>"
-                            + section_texts
+                        section_map[section_name] + f"<br>{title}<br>" + section_texts
                     )
 
             # Now that the sections have been parsed, save them

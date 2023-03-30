@@ -8,11 +8,20 @@ The project is containerized so that it can be run locally or deployed to a clou
 
 ### Setup
 1. Clone the repository
-2. Set environment variables; see [env.example](./env.example) for a list of required variables. Some of these variables control whether setup scripts (e.g. Django migrations) are run.
-    a. Copy `env.example` to `.env` and update the values
-    b. For a first run, set `MIGRATE`, `LOAD`, and `INIT_SUPERUSER` to `True`
-    c. If you are working on BERT model, you will need to start an Elasticsearch trial license; you can either try to set the `LICENSE` variable to `trial`, or POST this to Elasticsearch after it starts up either in Kibana: or via `curl`: `/_license/start_trial?acknowledge=true`
-3. Run `docker compose up` to start the application. This will take a long time the first time. Steps that occur:
+
+2. Set up `pre-commit` for linting
+    - Install `pre-commit` on your local machine using `pip` or `brew`. See: https://pre-commit.com/
+    - Install the `pre-commit` hook. This runs `black`, `flake8`, and `isort` linting based on configurations in `pyproject.toml` and `.flake8` (there is currently no single config file format that all three linters agree upon). The `pre-commit` config is in `.pre-commit-config.yaml` and will install the hook in `.git/hooks/pre-commit`.
+    - Potentially, run `pre-commit run --all-files` to run against everything in the repo rather than everything `diffed`. But probably not necessary.
+    - From now on, the `precommit` hook will try to update all your files before committing them so that your merges pass the linting Action (`.github/workflows/check.yml`).
+
+3. Set environment variables; see [env.example](./env.example) for a list of required variables. Some of these variables control whether setup scripts (e.g. Django migrations) are run.
+    - Copy `env.example` to `.env` and update the values
+    - For a first run, set `MIGRATE`, `LOAD`, and `INIT_SUPERUSER` to `True`
+    - After data is loaded, set `LOAD` and `INIT_SUPERUSER` to `False`
+    - If you are working on BERT model, you will need to start an Elasticsearch trial license; you can either try to set the `LICENSE` variable to `trial`, or POST this to Elasticsearch after it starts up either in Kibana: or via `curl`: `/_license/start_trial?acknowledge=true`
+
+4. Run `docker compose up` to start the application. This will take a long time the first time. Steps that occur:
     - Builds the Django container from `Dockerfile.dev`
         - `python:3.10.10-slim-buster` base image
         - Installs some system dependencies
@@ -31,7 +40,8 @@ The project is containerized so that it can be run locally or deployed to a clou
             - Runs EMA (`load_ema_data --type full`) and FDA (`load_fda_data --type full`) data loaders
             - Runs `update_latest_drug_labels`
         - Runs a local webserver for Django on port 8000
-4. Services:
+
+5. Services:
     - Django: http://localhost:8000
     - Elasticsearch: https://localhost:9200
         - you may need to accept the self-signed certificate
@@ -40,40 +50,81 @@ The project is containerized so that it can be run locally or deployed to a clou
         - or use Kibana console to interact with Elasticsearch instead
     - Kibana: http://localhost:5601
 
-5. Load Elasticsearch data
+6. Load Elasticsearch data
     - TODO maybe move this into entrypoint script as an option
     - Once all services are up, enter the Docker container for `django`: `docker compose exec django bash`
     - Create ES indices
+        - If you have `ES_AUTO_SYNC=True` this might just work out of the box. I tried replicating and it didn't, not sure why.
         - The `elasticsearch-django` library supposedly has a CLI command to do this but I have not been able to get it to work (`python3 manage.py create_search_index <INDEX_NAME>`)
         - Instead I have been using Kibana console to create indices
-            - `PUT druglabel`
             - `PUT productsection`
-            - The mappings are defined in `search/mappings.py`; otherwise you can post dummy documents like so:
+            - The mappings are defined in `search/mappings.py`; PUT the mappings like so:
                 ```
-                POST druglabel/_doc/1
+                PUT /productsection/_mapping
                 {
-                    "source": "test",
-                    "product_name": "name",
-                    "generic_name": "generic name",
-                    "version_date": "version date",
-                    "source_product_number": "123456789",
-                    "raw_text": "a long lot of text will go here",
-                    "marketer": "a marketer",
-                    "link": "https://fakeurl.com"
+                "properties": {
+                    "id": {
+                        "type": "long"
+                    },
+                    "label_product_id": {
+                        "type": "long"
+                    },
+                    "section_name": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    },
+                    "section_text": {
+                        "type": "text"
+                    },
+                    "drug_label_id": {
+                        "type": "long"
+                    },
+                    "drug_label_product_name": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    },
+                    "drug_label_source": {
+                        "type": "keyword"
+                    },
+                    "drug_label_generic_name": {
+                        "type": "text",
+                        "fields": {
+                            "keyword": {
+                                "type": "keyword",
+                                "ignore_above": 256
+                            }
+                        }
+                    },
+                    "drug_label_version_date": {
+                        "type": "date"
+                    },
+                    "drug_label_source_product_number": {
+                        "type": "text"
+                    },
+                    "drug_label_link": {
+                        "type": "text"
+                    }
+                }
                 }
                 ```
-                ```
-                POST productsection/_doc/1
-                {
-                    "label_product": "product",
-                    "section_name": "name",
-                    "section_text": "text field here to be indexed",
-                    "id": 3243
-                }
-                ```
-    - Set up BERT pipeline (requires Elasticsearch trial license and ML features enabled; may not work well locally due to resource constraints)
+    - Optional: Set up BERT pipeline
+        - Gotchas:
+            - Requires Elasticsearch trial license and ML features enabled
+            - May not work well locally due to resource constraints
+            - We are working to vectorize externally and then import the vectors. Trying to vectorize with ES will take ages.
+            - Currently not scripted
         - See https://www.elastic.co/blog/how-to-deploy-nlp-text-embeddings-and-vector-search
-        - Most likely model: [`pritamdeka/S-PubMedBert-MS-MARCO`](https://huggingface.co/pritamdeka/S-PubMedBert-MS-MARCO)
+        - Model: [`pritamdeka/S-PubMedBert-MS-MARCO`](https://huggingface.co/pritamdeka/S-PubMedBert-MS-MARCO)
         - From the `Django` service, run `eland_import_hub_model --ca-certs /usr/share/elasticsearch/config/certs/ca/ca.crt --url https://elastic:<YOUR PASSWORD>@es01:9200/ --hub-model-id <MODELID> --task-type text_embedding --start`
         - For Elastic Cloud: `eland_import_hub_model --cloud-id <CLOUDID> --hub-model-id <MODELID> --task-type text_embedding --start`
         - In Kibana, create the pipeline:

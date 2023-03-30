@@ -1,8 +1,9 @@
 from django.db import IntegrityError
-from django.test import TestCase
-from django.test import Client
-from .models import MyLabel, User
+from django.test import Client, TestCase
+
 from data.models import DrugLabel
+
+from .models import MyLabel, User
 
 
 class UserTests(TestCase):

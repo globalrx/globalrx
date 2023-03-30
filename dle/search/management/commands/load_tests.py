@@ -1,19 +1,22 @@
-from django.core.management.base import BaseCommand
-from django.test import Client
-from django.test.utils import setup_test_environment
-import time
 import logging
 import random
 import threading
+import time
+
+from django.core.management.base import BaseCommand
+from django.test import Client
+from django.test.utils import setup_test_environment
+
 from .performance_tests import (
-    SECTIONS,
+    AGENCIES,
+    GENERIC_NAMES,
+    MARKETERS,
+    PRODUCT_NAMES,
     SEARCH_TEXTS_ONE_WORD,
     SEARCH_TEXTS_TWO_WORDS,
-    AGENCIES,
-    MARKETERS,
-    GENERIC_NAMES,
-    PRODUCT_NAMES,
+    SECTIONS,
 )
+
 
 logger = logging.getLogger(__name__)
 
@@ -34,9 +37,7 @@ class Command(BaseCommand):
         root_logger.setLevel(logging.INFO)
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            "--num_threads", type=int, help="number of test threads", default=7
-        )
+        parser.add_argument("--num_threads", type=int, help="number of test threads", default=7)
 
     def set_log_verbosity(self, verbosity):
         """
@@ -71,11 +72,9 @@ class Command(BaseCommand):
         query_time = end_time - start_time
 
         try:
-            logger.info(
-                f"num search results: {len(response.context['search_results'])}"
-            )
+            logger.info(f"num search results: {len(response.context['search_results'])}")
         except (KeyError, TypeError):
-            logger.info(f"NO search results found")
+            logger.info("NO search results found")
 
         logger.info(f"query_time: {str(round(query_time, 3))}")
 

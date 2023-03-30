@@ -1,3 +1,3 @@
-from django.db import models
+# from django.db import models
 
-from data.models import *
+# from data.models import *
