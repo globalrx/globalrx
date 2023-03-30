@@ -1,0 +1,10 @@
+pandas
+pdfplumber
+requests
+beautifulsoup4
+tqdm
+Levenshtein
+numpy
+sentence_transformers
+matplotlib
+jupyterlab
