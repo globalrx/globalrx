@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 import random
 import re
@@ -12,16 +13,14 @@ from django.db import IntegrityError
 
 import fitz  # PyMuPDF
 import pandas as pd
+import pdfplumber
 import requests
 from bs4 import BeautifulSoup
+from Levenshtein import distance as levdistance
 from requests.exceptions import ChunkedEncodingError
 
 from data.models import DrugLabel, LabelProduct, ProductSection
 from users.models import MyLabel
-
-import pdfplumber
-from Levenshtein import distance as levdistance
-import json
 
 logger = logging.getLogger(__name__)
 
