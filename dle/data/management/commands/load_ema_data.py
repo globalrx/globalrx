@@ -11,7 +11,6 @@ from django.core.files.storage import default_storage
 from django.core.management.base import BaseCommand, CommandError
 from django.db import IntegrityError
 
-import fitz  # PyMuPDF
 import pandas as pd
 import pdfplumber
 import requests
@@ -22,9 +21,11 @@ from requests.exceptions import ChunkedEncodingError
 from data.models import DrugLabel, LabelProduct, ProductSection
 from users.models import MyLabel
 
+
 logger = logging.getLogger(__name__)
 
 EMA_EPAR_EXCEL_URL = "https://www.ema.europa.eu/sites/default/files/Medicines_output_european_public_assessment_reports.xlsx"
+
 
 # runs with `python manage.py load_ema_data`
 # add `--type full` to import the full dataset
@@ -34,7 +35,7 @@ EMA_EPAR_EXCEL_URL = "https://www.ema.europa.eu/sites/default/files/Medicines_ou
 # support for my_labels with: --type my_label --my_label_id ml.id
 class Command(BaseCommand):
     help = "Loads data from EMA"
-    
+
     records = {}
     df = []
 
@@ -64,6 +65,7 @@ class Command(BaseCommand):
             help="Dump all parsed outputs to a json file",
             default=False,
         )
+
     def handle(self, *args, **options):
         import_type = options["type"]
         if import_type not in ["full", "test", "rand_test", "my_label"]:
@@ -146,9 +148,9 @@ class Command(BaseCommand):
         logger.info(f"num_drug_labels_parsed: {self.num_drug_labels_parsed}")
         logger.info(self.style.SUCCESS("process complete"))
 
-        if(options["dump_json"] == True):
+        if options["dump_json"] is True:
             logger.info(self.style.SUCCESS("Outputing parsed data to human-rx-drug-ema.json"))
-            with open('human-rx-drug-ema.json', 'w') as f:
+            with open("human-rx-drug-ema.json", "w") as f:
                 json.dump(self.records, f, indent=4)
 
         return
@@ -279,37 +281,37 @@ class Command(BaseCommand):
         return raw_text
 
     centers = [
-        'Clinical Particulars',
-        'Contraindications',
-        'Date Of First Authorisation/Renewal Of The Authorisation',
-        'Date Of Revision Of The Text',
-        'Effects On Ability To Drive And Use Machines',
-        'Fertility, Pregnancy And Lactation',
-        'Incompatibilities',
-        'Interaction With Other Medicinal Products And Other Forms Of Interaction',
-        'List Of Excipients',
-        'Marketing Authorisation Holder',
-        'Marketing Authorisation Number',
-        'Name Of The Medicinal Product',
-        'Nature And Contents Of Container',
-        'Overdose',
-        'Pharmaceutical Form',
-        'Pharmaceutical Particulars',
-        'Pharmacodynamic Properties',
-        'Pharmacokinetic Properties',
-        'Pharmacological Properties',
-        'Posology And Method Of Administration',
-        'Preclinical Safety Data',
-        'Pregnancy And Lactation',
-        'Qualitative And Quantitative Composition',
-        'Shelf Life',
-        'Special Precautions For Disposal',
-        'Special Precautions For Disposal And Other Handling',
-        'Special Precautions For Storage',
-        'Special Warnings And Precautions For Use',
-        'Therapeutic Indications',
-        'Undesirable Effects'
-        ]
+        "Clinical Particulars",
+        "Contraindications",
+        "Date Of First Authorisation/Renewal Of The Authorisation",
+        "Date Of Revision Of The Text",
+        "Effects On Ability To Drive And Use Machines",
+        "Fertility, Pregnancy And Lactation",
+        "Incompatibilities",
+        "Interaction With Other Medicinal Products And Other Forms Of Interaction",
+        "List Of Excipients",
+        "Marketing Authorisation Holder",
+        "Marketing Authorisation Number",
+        "Name Of The Medicinal Product",
+        "Nature And Contents Of Container",
+        "Overdose",
+        "Pharmaceutical Form",
+        "Pharmaceutical Particulars",
+        "Pharmacodynamic Properties",
+        "Pharmacokinetic Properties",
+        "Pharmacological Properties",
+        "Posology And Method Of Administration",
+        "Preclinical Safety Data",
+        "Pregnancy And Lactation",
+        "Qualitative And Quantitative Composition",
+        "Shelf Life",
+        "Special Precautions For Disposal",
+        "Special Precautions For Disposal And Other Handling",
+        "Special Precautions For Storage",
+        "Special Warnings And Precautions For Use",
+        "Therapeutic Indications",
+        "Undesirable Effects",
+    ]
     # note: maybe we should manually merge these pairs:
     #   FERTILITY, PREGNANCY AND LACTATION
     #   PREGNANCY AND LACTATION
@@ -319,12 +321,12 @@ class Command(BaseCommand):
 
     # improved initial text parsing step so this clustering problem wasn't so messy
     def get_fixed_header(self, text):
-        # return center with the lowest edit distance, 
+        # return center with the lowest edit distance,
         #   or placeholder (last entry) if no there's good match
-        dists = [levdistance(text.lower(),c.lower()) for c in self.centers]
-        #ix = np.argmin(dists)
+        dists = [levdistance(text.lower(), c.lower()) for c in self.centers]
+        # ix = np.argmin(dists)
         ix = dists.index(min(dists))
-        if dists[ix] > 0.6*len(text):
+        if dists[ix] > 0.6 * len(text):
             return None
         else:
             return self.centers[ix]
@@ -332,58 +334,58 @@ class Command(BaseCommand):
     # function: input text, output list of section headers and content
     def get_smpc_sections(self, text):
         idx, headers, sections = [], [], []
-        for i,line in enumerate(text):
-            if re.match('^[0-9]+\.[0-9]*\s+.*[A-Z].*', line):
+        for i, line in enumerate(text):
+            if re.match(r"^[0-9]+\.[0-9]*\s+.*[A-Z].*", line):
                 idx += [i]
                 headers += [line.strip()]
-        
+
         # in headers, must increment or restart, and not end in punctuation
         idx_valid, headers_valid = [idx[0]], [headers[0]]
-        for n in range(1,len(headers)):
-            prev = float(headers[n-1].split()[0])
+        for n in range(1, len(headers)):
+            prev = float(headers[n - 1].split()[0])
             curr = float(headers[n].split()[0])
             lastchar = headers[n].strip()[-1].lower()
-            valid = (prev < curr <= prev+1) or (curr==1)
-            valid = valid and (lastchar in 'qwertyuiopasdfghjklzxcvbnm()')
+            valid = (prev < curr <= prev + 1) or (curr == 1)
+            valid = valid and (lastchar in "qwertyuiopasdfghjklzxcvbnm()")
             if valid:
                 idx_valid.append(idx[n])
                 headers_valid.append(headers[n])
         idx, headers = idx_valid, headers_valid
-        
-        for n,h in enumerate(headers):
-            if (n+1)<len(headers):
-                contents = text[idx[n]+1:idx[n+1]]
+
+        for n, h in enumerate(headers):
+            if (n + 1) < len(headers):
+                contents = text[idx[n] + 1 : idx[n + 1]]
             else:
-                contents = text[idx[n]+1:]
-            sections += ['\n'.join(contents)]
-        
+                contents = text[idx[n] + 1 :]
+            sections += ["\n".join(contents)]
+
         return headers, sections
 
     # helper function for pdfplumber
     def remove_tables(self, page):
         ts = {"vertical_strategy": "lines", "horizontal_strategy": "lines"}
         bboxes = [table.bbox for table in page.find_tables(table_settings=ts)]
-        
+
         def not_within_bboxes(obj):
-            #Check if the object is in any of the table's bbox.
+            # Check if the object is in any of the table's bbox.
             def obj_in_bbox(_bbox):
-                #See https://github.com/jsvine/pdfplumber/blob/stable/pdfplumber/table.py#L404
+                # See https://github.com/jsvine/pdfplumber/blob/stable/pdfplumber/table.py#L404
                 v_mid = (obj["top"] + obj["bottom"]) / 2
                 h_mid = (obj["x0"] + obj["x1"]) / 2
                 x0, top, x1, bottom = _bbox
                 return (h_mid >= x0) and (h_mid < x1) and (v_mid >= top) and (v_mid < bottom)
+
             return not any(obj_in_bbox(__bbox) for __bbox in bboxes)
-        
+
         return page.filter(not_within_bboxes)
 
-    # helper function for pdfplumber    
+    # helper function for pdfplumber
     def remove_margins(self, page, dpi=72, size=0.7):
         # strip 0.7 inches from top and bottom (page numbers, header text if any), A4 is 8.25 x 11.75
         # syntax is page.crop((x0, top, x1, bottom))
-        w = float(page.width)/dpi
-        h = float(page.height)/dpi
-        return page.crop((0, (size)*dpi, w*dpi, (h-size)*dpi))
-
+        w = float(page.width) / dpi
+        h = float(page.height) / dpi
+        return page.crop((0, (size) * dpi, w * dpi, (h - size) * dpi))
 
     # function: input file, output text of annex 1
     def read_smpc(self, filename, no_blanks=False, no_tables=False):
@@ -391,47 +393,52 @@ class Command(BaseCommand):
         with pdfplumber.open(filename) as pdf:
             for page in pdf.pages:
                 page = self.remove_margins(page)
-                
+
                 if no_tables:
                     page = self.remove_tables(page)
-                    
-                page_text = page.extract_text().split('\n')
+
+                page_text = page.extract_text().split("\n")
                 text += page_text
 
-        annex_lines = [re.match('.*ANNEX\s+I.*', line) is not None for line in text]
-        annex_index = [i for i,v in enumerate(annex_lines) if v]
-        
-        text = text[annex_index[0]:annex_index[1]]
+        annex_lines = [re.match(r".*ANNEX\s+I.*", line) is not None for line in text]
+        annex_index = [i for i, v in enumerate(annex_lines) if v]
+
+        text = text[annex_index[0] : annex_index[1]]
         if no_blanks:
             text = [line for line in text if not line.isspace()]
-        
+
         return text
 
     def process_ema_file(self, ema_file, lp, pdf_url=""):
         text = self.read_smpc(ema_file)
-        
+
         try:
             info = {}
             product_code = lp.drug_label.source_product_number
             row = self.df[self.df["Product number"] == product_code]
-            info['metadata'] = row.iloc[0].apply(str).to_dict()
-            
-            label_text = {} # next level = product page w/ metadata
+            info["metadata"] = row.iloc[0].apply(str).to_dict()
+
+            label_text = {}  # next level = product page w/ metadata
             headers, sections = self.get_smpc_sections(text)
 
-            for h,s in zip(headers,sections):
+            for h, s in zip(headers, sections):
                 header = self.get_fixed_header(h)
-                if (header is not None) and (len(s)>0):
+                if (header is not None) and (len(s) > 0):
                     if header not in label_text.keys():
                         label_text[header] = [s]
-                        ps = ProductSection(
-                            label_product=lp, section_name=header, section_text=s
-                        )
-                        ps.save()
                     else:
                         label_text[header].append(s)
-            info['Label Text'] = label_text
-            self.records[row['Product number'].iloc[0]] = info
+
+            for index, key in enumerate(label_text):
+                text_block = ""
+                # label_text[key] is an array of text. Convert it to a block of text
+                for s in label_text[key]:
+                    text_block += s
+                ps = ProductSection(label_product=lp, section_name=key, section_text=text_block)
+                ps.save()
+
+            info["Label Text"] = label_text
+            self.records[row["Product number"].iloc[0]] = info
         except:
             logger.error(self.style.ERROR(f"Failed to process {ema_file}, url = {pdf_url}"))
             self.error_urls[pdf_url] = True
@@ -457,6 +464,6 @@ class Command(BaseCommand):
         self.df = self.df[self.df["Category"] == "Human"]
         # TODO verify we only want "Authorised" medicines
         self.df = self.df[self.df["Authorisation status"] == "Authorised"]
-        
+
     def get_ema_epar_urls(self):
         return self.df["URL"]
