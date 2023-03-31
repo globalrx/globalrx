@@ -19,92 +19,13 @@ from requests.exceptions import ChunkedEncodingError
 from data.models import DrugLabel, LabelProduct, ProductSection
 from users.models import MyLabel
 
+import pdfplumber
+from Levenshtein import distance as levdistance
+import json
 
 logger = logging.getLogger(__name__)
 
 EMA_EPAR_EXCEL_URL = "https://www.ema.europa.eu/sites/default/files/Medicines_output_european_public_assessment_reports.xlsx"
-
-
-class EmaSectionRe:
-    """Use regular expressions to parse the Sections from the text"""
-
-    def __init__(self, pattern, name):
-        """
-        Args:
-            pattern: re pattern to use to match a section
-            name: section_name for inserting into the db
-        """
-        self.prog = re.compile(pattern, re.DOTALL)
-        self.name = name
-        self.end_idx = -1
-
-    def find_match(self, text, start_idx):
-        """
-        Args:
-            text: the string to search
-            start_idx: the start index for where to start the search
-
-        Returns: The section_text matched or None
-        """
-        match = self.prog.search(text, start_idx)
-        if match:
-            self.end_idx = match.end(2)
-            return match[2]
-        else:
-            return None
-
-    def get_end_idx(self):
-        """
-        Returns: The end index for the match. Or -1 if there was no match.
-        """
-        return self.end_idx
-
-
-# these should be in order of how they appear in the pdf
-EMA_PDF_PRODUCT_SECTIONS = [
-    # notes for the re pattern:
-    # escape the period we want to match e.g. "1.0" => r"1\.0"
-    # look for one or more whitespace characters r"\s+"
-    # find any characters (one or more times) r"(.+)" with re.DOTALL flag
-    # stop when we find the closing string
-    EmaSectionRe(
-        r"(4\.1\s+Therapeutic indications)(.+)(4\.2\s+Posology and method of administration)",
-        "Indications",
-    ),
-    EmaSectionRe(
-        r"(4\.2\s+Posology and method of administration)(.+)(4\.3\s+Contraindications)",
-        "Posology",
-    ),
-    EmaSectionRe(
-        r"(4\.3\s+Contraindications)(.+)(4\.4\s+Special warnings and precautions for use)",
-        "Contraindications",
-    ),
-    EmaSectionRe(
-        r"(4\.4\s+Special warnings and precautions for use)(.+)(4\.5\s+Interaction with other medicinal products and other forms of interaction)",
-        "Warnings",
-    ),
-    EmaSectionRe(
-        r"(4\.5\s+Interaction with other medicinal products and other forms of interaction)(.+)(4\.6\s+Fertility, pregnancy and lactation)",
-        "Interactions",
-    ),
-    EmaSectionRe(
-        r"(4\.6\s+Fertility, pregnancy and lactation)(.+)(4\.7\s+Effects on ability to drive and use machines)",
-        "Pregnancy",
-    ),
-    EmaSectionRe(
-        r"(4\.7\s+Effects on ability to drive and use machines)(.+)(4\.8\s+Undesirable effects)",
-        "Effects on driving",
-    ),
-    EmaSectionRe(
-        r"(4\.8\s+Undesirable effects)(.+)(4\.9\s+Overdose)",
-        "Side effects",
-    ),
-    EmaSectionRe(
-        r"(4\.9\s+Overdose)(.+)(5\.\s+PHARMACOLOGICAL PROPERTIES)",
-        "Overdose",
-    ),
-]
-
 
 # runs with `python manage.py load_ema_data`
 # add `--type full` to import the full dataset
@@ -114,6 +35,9 @@ EMA_PDF_PRODUCT_SECTIONS = [
 # support for my_labels with: --type my_label --my_label_id ml.id
 class Command(BaseCommand):
     help = "Loads data from EMA"
+    
+    records = {}
+    df = []
 
     def __init__(self, stdout=None, stderr=None, no_color=False, force_color=False):
         super().__init__(stdout, stderr, no_color, force_color)
@@ -135,7 +59,12 @@ class Command(BaseCommand):
             help="set my_label_id for --type my_label",
             default=None,
         )
-
+        parser.add_argument(
+            "--dump_json",
+            type=bool,
+            help="Dump all parsed outputs to a json file",
+            default=False,
+        )
     def handle(self, *args, **options):
         import_type = options["type"]
         if import_type not in ["full", "test", "rand_test", "my_label"]:
@@ -154,6 +83,9 @@ class Command(BaseCommand):
 
         logger.info(self.style.SUCCESS("start process"))
         logger.info(f"import_type: {import_type}")
+
+        # Read ema excel into df
+        self.read_ema_excel()
 
         if import_type == "test":
             urls = [
@@ -214,6 +146,12 @@ class Command(BaseCommand):
 
         logger.info(f"num_drug_labels_parsed: {self.num_drug_labels_parsed}")
         logger.info(self.style.SUCCESS("process complete"))
+
+        if(options["dump_json"] == True):
+            logger.info(self.style.SUCCESS("Outputing parsed data to human-rx-drug-ema.json"))
+            with open('human-rx-drug-ema.json', 'w') as f:
+                json.dump(self.records, f, indent=4)
+
         return
 
     def get_drug_label_from_url(self, url):
@@ -341,65 +279,185 @@ class Command(BaseCommand):
         default_storage.delete(filename)
         return raw_text
 
+    centers = [
+        'Clinical Particulars',
+        'Contraindications',
+        'Date Of First Authorisation/Renewal Of The Authorisation',
+        'Date Of Revision Of The Text',
+        'Effects On Ability To Drive And Use Machines',
+        'Fertility, Pregnancy And Lactation',
+        'Incompatibilities',
+        'Interaction With Other Medicinal Products And Other Forms Of Interaction',
+        'List Of Excipients',
+        'Marketing Authorisation Holder',
+        'Marketing Authorisation Number',
+        'Name Of The Medicinal Product',
+        'Nature And Contents Of Container',
+        'Overdose',
+        'Pharmaceutical Form',
+        'Pharmaceutical Particulars',
+        'Pharmacodynamic Properties',
+        'Pharmacokinetic Properties',
+        'Pharmacological Properties',
+        'Posology And Method Of Administration',
+        'Preclinical Safety Data',
+        'Pregnancy And Lactation',
+        'Qualitative And Quantitative Composition',
+        'Shelf Life',
+        'Special Precautions For Disposal',
+        'Special Precautions For Disposal And Other Handling',
+        'Special Precautions For Storage',
+        'Special Warnings And Precautions For Use',
+        'Therapeutic Indications',
+        'Undesirable Effects'
+        ]
+    # note: maybe we should manually merge these pairs:
+    #   FERTILITY, PREGNANCY AND LACTATION
+    #   PREGNANCY AND LACTATION
+    #   SPECIAL PRECAUTIONS FOR DISPOSAL AND OTHER HANDLING
+    #   SPECIAL PRECAUTIONS FOR DISPOSAL
+    # but not doing so lets the similarity computation do its thing
+
+    # improved initial text parsing step so this clustering problem wasn't so messy
+    def get_fixed_header(self, text):
+        # return center with the lowest edit distance, 
+        #   or placeholder (last entry) if no there's good match
+        dists = [levdistance(text.lower(),c.lower()) for c in self.centers]
+        #ix = np.argmin(dists)
+        ix = dists.index(min(dists))
+        if dists[ix] > 0.6*len(text):
+            return None
+        else:
+            return self.centers[ix]
+
+    # function: input text, output list of section headers and content
+    def get_smpc_sections(self, text):
+        idx, headers, sections = [], [], []
+        for i,line in enumerate(text):
+            if re.match('^[0-9]+\.[0-9]*\s+.*[A-Z].*', line):
+                idx += [i]
+                headers += [line.strip()]
+        
+        # in headers, must increment or restart, and not end in punctuation
+        idx_valid, headers_valid = [idx[0]], [headers[0]]
+        for n in range(1,len(headers)):
+            prev = float(headers[n-1].split()[0])
+            curr = float(headers[n].split()[0])
+            lastchar = headers[n].strip()[-1].lower()
+            valid = (prev < curr <= prev+1) or (curr==1)
+            valid = valid and (lastchar in 'qwertyuiopasdfghjklzxcvbnm()')
+            if valid:
+                idx_valid.append(idx[n])
+                headers_valid.append(headers[n])
+        idx, headers = idx_valid, headers_valid
+        
+        for n,h in enumerate(headers):
+            if (n+1)<len(headers):
+                contents = text[idx[n]+1:idx[n+1]]
+            else:
+                contents = text[idx[n]+1:]
+            sections += ['\n'.join(contents)]
+        
+        return headers, sections
+
+    # helper function for pdfplumber
+    def remove_tables(self, page):
+        ts = {"vertical_strategy": "lines", "horizontal_strategy": "lines"}
+        bboxes = [table.bbox for table in page.find_tables(table_settings=ts)]
+        
+        def not_within_bboxes(obj):
+            #Check if the object is in any of the table's bbox.
+            def obj_in_bbox(_bbox):
+                #See https://github.com/jsvine/pdfplumber/blob/stable/pdfplumber/table.py#L404
+                v_mid = (obj["top"] + obj["bottom"]) / 2
+                h_mid = (obj["x0"] + obj["x1"]) / 2
+                x0, top, x1, bottom = _bbox
+                return (h_mid >= x0) and (h_mid < x1) and (v_mid >= top) and (v_mid < bottom)
+            return not any(obj_in_bbox(__bbox) for __bbox in bboxes)
+        
+        return page.filter(not_within_bboxes)
+
+    # helper function for pdfplumber    
+    def remove_margins(self, page, dpi=72, size=0.7):
+        # strip 0.7 inches from top and bottom (page numbers, header text if any), A4 is 8.25 x 11.75
+        # syntax is page.crop((x0, top, x1, bottom))
+        w = float(page.width)/dpi
+        h = float(page.height)/dpi
+        return page.crop((0, (size)*dpi, w*dpi, (h-size)*dpi))
+
+
+    # function: input file, output text of annex 1
+    def read_smpc(self, filename, no_blanks=False, no_tables=False):
+        text = []
+        with pdfplumber.open(filename) as pdf:
+            for page in pdf.pages:
+                page = self.remove_margins(page)
+                
+                if no_tables:
+                    page = self.remove_tables(page)
+                    
+                page_text = page.extract_text().split('\n')
+                text += page_text
+
+        annex_lines = [re.match('.*ANNEX\s+I.*', line) is not None for line in text]
+        annex_index = [i for i,v in enumerate(annex_lines) if v]
+        
+        text = text[annex_index[0]:annex_index[1]]
+        if no_blanks:
+            text = [line for line in text if not line.isspace()]
+        
+        return text
+
     def process_ema_file(self, ema_file, lp, pdf_url=""):
-        # PyMuPDF references
-        # ty: https://stackoverflow.com/a/63486976/1807627
-        # https://github.com/pymupdf/PyMuPDF-Utilities/blob/master/text-extraction/PDF2Text.py
-        # https://github.com/pymupdf/PyMuPDF/blob/master/fitz/fitz.i
+        text = self.read_smpc(ema_file)
+        
+        try:
+            info = {}
+            product_code = lp.drug_label.source_product_number
+            row = self.df[self.df["Product number"] == product_code]
+            info['metadata'] = row.iloc[0].apply(str).to_dict()
+            
+            label_text = {} # next level = product page w/ metadata
+            headers, sections = self.get_smpc_sections(text)
 
-        # populate raw_text with the contents of the pdf
-
-        raw_text = ""
-        with fitz.open(ema_file) as pdf_doc:
-            for page in pdf_doc:
-                raw_text += page.get_text()
-
-        # the sections are in order
-        # so keep track of where to start the search in each iteration
-        start_idx = 0
-        for section in EMA_PDF_PRODUCT_SECTIONS:
-            logger.info(f"section.name: {section.name}")
-
-            section_text = section.find_match(raw_text, start_idx)
-            end_idx = section.get_end_idx()
-
-            if not section_text:
-                logger.error(self.style.ERROR("Unable to find section_text"))
-                self.error_urls[pdf_url] = True
-                continue
-
-            logger.debug(f"found section_text: {section_text}")
-            logger.debug(f"end_idx: {end_idx}")
-
-            ps = ProductSection(
-                label_product=lp, section_name=section.name, section_text=section_text
-            )
-            ps.save()
-
-            # start search for next section after the end_idx of this section
-            start_idx = end_idx
-
-        # logger.debug(f"raw_text: {repr(raw_text)}")
+            for h,s in zip(headers,sections):
+                header = self.get_fixed_header(h)
+                if (header is not None) and (len(s)>0):
+                    if header not in label_text.keys():
+                        label_text[header] = [s]
+                        ps = ProductSection(
+                            label_product=lp, section_name=header, section_text=s
+                        )
+                        ps.save()
+                    else:
+                        label_text[header].append(s)
+            info['Label Text'] = label_text
+            self.records[row['Product number'].iloc[0]] = info
+        except:
+            logger.error(self.style.ERROR(f"Failed to process {ema_file}, url = {pdf_url}"))
+            self.error_urls[pdf_url] = True
 
         logger.info("Success")
-        return raw_text
+        return text
 
-    def get_ema_epar_urls(self):
+    def read_ema_excel(self):
         """Download the EMA provided Excel file and grab the urls from there"""
         # return a list of the epar urls, e.g. ["https://www.ema.europa.eu/en/medicines/human/EPAR/lyrica"]
         # load excel file into pandas, directly from url
         # there are some header rows to skip
         # only load the columns we are interested in
-        df = pd.read_excel(
+        self.df = pd.read_excel(
             EMA_EPAR_EXCEL_URL,
             skiprows=8,
-            usecols=["Category", "Authorisation status", "URL"],
+            usecols=["Category", "Authorisation status", "Product number", "URL"],
             engine="openpyxl",
         )
         # filter results by:
         # "Category" == "Human"
         # "Authorisation status" == "Authorised"
-        df = df[df["Category"] == "Human"]
+        self.df = self.df[self.df["Category"] == "Human"]
         # TODO verify we only want "Authorised" medicines
-        df = df[df["Authorisation status"] == "Authorised"]
-        return df["URL"]
+        self.df = self.df[self.df["Authorisation status"] == "Authorised"]
+        
+    def get_ema_epar_urls(self):
+        return self.df["URL"]
