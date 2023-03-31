@@ -140,7 +140,7 @@ class Command(BaseCommand):
                 # logger.debug(e, exc_info=True)
             except AttributeError as e:
                 logger.warning(self.style.ERROR(repr(e)))
-            # logger.info(f"sleep 1s")
+            logger.info(f"Done parsing {url}")
             # time.sleep(1)
 
         for url in self.error_urls.keys():
@@ -261,11 +261,11 @@ class Command(BaseCommand):
                 break  # no Exception means we were successful
             except (ValueError, ChunkedEncodingError) as e:
                 logger.error(self.style.ERROR(f"caught error: {e.__class__.__name__}"))
-                logger.warning(self.style.WARNING("Unable to read url, may continue"))
+                logger.warning(self.style.WARNING(f"Unable to read url {pdf_url}, may continue"))
                 response = None
 
         if not response:
-            logger.error(self.style.ERROR("unable to grab url contents"))
+            logger.error(self.style.ERROR(f"unable to grab url contents ({pdf_url})"))
             self.error_urls[pdf_url] = True
             return "unable to download pdf"
 
@@ -333,9 +333,10 @@ class Command(BaseCommand):
             return self.centers[ix]
 
     def process_ema_file(self, ema_file, lp, pdf_url=""):
-        text = read_pdf(ema_file)
+        text = []
 
         try:
+            text = read_pdf(ema_file)
             info = {}
             product_code = lp.drug_label.source_product_number
             row = self.df[self.df["Product number"] == product_code]
@@ -362,7 +363,8 @@ class Command(BaseCommand):
 
             info["Label Text"] = label_text
             self.records[row["Product number"].iloc[0]] = info
-        except:
+        except Exception as e:
+            logger.error(self.style.ERROR(repr(e)))
             logger.error(self.style.ERROR(f"Failed to process {ema_file}, url = {pdf_url}"))
             self.error_urls[pdf_url] = True
 
