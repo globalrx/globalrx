@@ -17,17 +17,19 @@ RUN chmod +x /usr/bin/firefox
 # set display port to avoid Selenium crash
 ENV DISPLAY=:99
 
+
+ADD ../../* /app/
 # Python requirements
-COPY requirements.txt /app
+#COPY ../../requirements.txt /app
 RUN pip install -r requirements.txt
 
 # Setup app
 # copying over the whole app is not needed - mounted volume
-COPY entrypoint /app
+#COPY entrypoint /app
 
 EXPOSE 8000 5000
 
-ADD ../../* /app/
+#ADD ../../* /app/
 
 CMD /app/entrypoint
 #ADD dle /app/dle
