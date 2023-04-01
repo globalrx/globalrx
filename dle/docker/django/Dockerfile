@@ -31,4 +31,3 @@ ADD ../../* /app/
 
 CMD /app/entrypoint
 #ADD dle /app/dle
-#ADD * /app/
