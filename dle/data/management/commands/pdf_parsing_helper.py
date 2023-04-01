@@ -4,25 +4,26 @@ import pdfplumber
 
 
 # function: input text, output list of section headers and content
-def get_pdf_sections(text, pattern):
+def get_pdf_sections(text, pattern, headers_filter=False):
     idx, headers, sections = [], [], []
     for i, line in enumerate(text):
         if re.match(pattern, line):
             idx += [i]
             headers += [line.strip()]
 
-    # in headers, must increment or restart, and not end in punctuation
-    idx_valid, headers_valid = [idx[0]], [headers[0]]
-    for n in range(1, len(headers)):
-        prev = float(headers[n - 1].split()[0])
-        curr = float(headers[n].split()[0])
-        lastchar = headers[n].strip()[-1].lower()
-        valid = (prev < curr <= prev + 1) or (curr == 1)
-        valid = valid and (lastchar in "qwertyuiopasdfghjklzxcvbnm()")
-        if valid:
-            idx_valid.append(idx[n])
-            headers_valid.append(headers[n])
-    idx, headers = idx_valid, headers_valid
+    if headers_filter:
+        # in headers, must increment or restart, and not end in punctuation
+        idx_valid, headers_valid = [idx[0]], [headers[0]]
+        for n in range(1, len(headers)):
+            prev = float(headers[n - 1].split()[0])
+            curr = float(headers[n].split()[0])
+            lastchar = headers[n].strip()[-1].lower()
+            valid = (prev < curr <= prev + 1) or (curr == 1)
+            valid = valid and (lastchar in "qwertyuiopasdfghjklzxcvbnm()")
+            if valid:
+                idx_valid.append(idx[n])
+                headers_valid.append(headers[n])
+        idx, headers = idx_valid, headers_valid
 
     for n, h in enumerate(headers):
         if (n + 1) < len(headers):
@@ -63,7 +64,7 @@ def remove_margins(page, dpi=72, size=0.7):
 
 
 # function: input file, output text of annex 1
-def read_pdf(filename, no_blanks=False, no_tables=False):
+def read_pdf(filename, no_blanks=False, no_tables=False, no_annex=True):
     text = []
     with pdfplumber.open(filename) as pdf:
         for page in pdf.pages:
@@ -75,10 +76,11 @@ def read_pdf(filename, no_blanks=False, no_tables=False):
             page_text = page.extract_text().split("\n")
             text += page_text
 
-    annex_lines = [re.match(r".*ANNEX\s+I.*", line) is not None for line in text]
-    annex_index = [i for i, v in enumerate(annex_lines) if v]
+    if no_annex:
+        annex_lines = [re.match(r".*ANNEX\s+I.*", line) is not None for line in text]
+        annex_index = [i for i, v in enumerate(annex_lines) if v]
+        text = text[annex_index[0] : annex_index[1]]
 
-    text = text[annex_index[0] : annex_index[1]]
     if no_blanks:
         text = [line for line in text if not line.isspace()]
 

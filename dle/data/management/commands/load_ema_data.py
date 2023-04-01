@@ -273,12 +273,14 @@ class Command(BaseCommand):
         filename = default_storage.save(
             settings.MEDIA_ROOT / "ema.pdf", ContentFile(response.content)
         )
-        logger.info(f"saved file to: {filename}")
+        logger.info(f"saved {pdf_url} file to {filename}")
 
-        ema_file = settings.MEDIA_ROOT / "ema.pdf"
+        ema_file = settings.MEDIA_ROOT / filename
         raw_text = self.process_ema_file(ema_file, lp, pdf_url)
         # delete the file when done
         default_storage.delete(filename)
+
+        logger.info(f"Parsed {pdf_url}")
         return raw_text
 
     centers = [
@@ -348,6 +350,7 @@ class Command(BaseCommand):
             for h, s in zip(headers, sections):
                 header = self.get_fixed_header(h)
                 if (header is not None) and (len(s) > 0):
+                    logger.info(f"Found original header ({h}) fixed to {header}")
                     if header not in label_text.keys():
                         label_text[header] = [s]
                     else:
@@ -368,7 +371,6 @@ class Command(BaseCommand):
             logger.error(self.style.ERROR(f"Failed to process {ema_file}, url = {pdf_url}"))
             self.error_urls[pdf_url] = True
 
-        logger.info("Success")
         return text
 
     def read_ema_excel(self):

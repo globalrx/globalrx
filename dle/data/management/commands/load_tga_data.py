@@ -11,15 +11,17 @@ from django.core.files.storage import default_storage
 from django.core.management.base import BaseCommand, CommandError
 from django.db import IntegrityError
 
-import fitz  # PyMuPDF
 import requests
 from bs4 import BeautifulSoup
+from Levenshtein import distance as levdistance
 from requests.exceptions import ChunkedEncodingError
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 
 from data.models import DrugLabel, LabelProduct, ProductSection
+
+from .pdf_parsing_helper import get_pdf_sections, read_pdf
 
 
 # from users.models import MyLabel
@@ -29,61 +31,22 @@ logger = logging.getLogger(__name__)
 
 TGA_BASE_URL = "https://www.ebs.tga.gov.au/ebs/picmi/picmirepository.nsf/"
 
-EU_FORMATTED_SECTIONS = [
-    # notes for the re pattern:
-    # escape the period we want to match e.g. "1.0" => r"1\.0"
-    # look for one or more whitespace characters r"\s+"
-    # find any characters (one or more times) r"(.+)" with re.DOTALL flag
-    # stop when we find the closing string
-    (
-        r"(4\.1\.?\s+(?:THERAPEUTIC\sINDICATIONS|Therapeutic\s[i|I]ndications)\s)(.+)(\n4\.2\.?\s+(DOSE\sAND\sMETHOD\sOF\sADMINISTRATION|Dose\s[a|A]nd\s[m|M]ethod\s[o|O]f\s[a|A]dministration)\s)",
-        "Indications",
-    ),
-    (
-        r"(4\.2\.?\s+(?:DOSE\sAND\sMETHOD\sOF\sADMINISTRATION|Dose\s[a|A]nd\s[m|M]ethod\s[o|O]f\s[a|A]dministration)\s)(.+)(\n4\.3\.?\s+(CONTRAINDICATIONS|Contraindications)\s)",
-        "Posology",
-    ),
-    (
-        r"(4\.3\.?\s+(?:CONTRAINDICATIONS|Contraindications)\s)(.+)(\n4\.4\.?\s+(SPECIAL\sWARNINGS\sAND\sPRECAUTIONS\sFOR\sUSE|[s|S]pecial\s[w|W]arnings\s[a|A]nd\s[p|P]recautions\s[f|F]or\s[u|U]se)\s)",
-        "Contraindications",
-    ),
-    (
-        r"(4\.4\.?\s+(?:SPECIAL\sWARNINGS\sAND\sPRECAUTIONS\sFOR\sUSE|[s|S]pecial\s[w|W]arnings\s[a|A]nd\s[p|P]recautions\s[f|F]or\s[u|U]se)\s)(.+)(\n4\.5\.?\s+(INTERACTIONS\s+WITH\s+OTHER\s+MEDICINES(?:\s+AND\s+OTHER\s+FORMS\s+OF\s+INTERACTIONS)?|Interations\s+[w|W]ith\s+[o|O]ther\s+[m|M]edicines(?:\s+[a|A]nd\s+[o|O]ther\s+[f|F]orms\s+[o|O]f\s+[i|I]nterations)?)\s)",
-        "Warnings",
-    ),
-    (
-        r"(4\.5\.?\s+(?:INTERACTIONS\s+WITH\s+OTHER\s+MEDICINES(?:\s+AND\s+OTHER\s+FORMS\s+OF\s+INTERACTIONS)?|Interations\s+[w|W]ith\s+[o|O]ther\s+[m|M]edicines(?:\s+[a|A]nd\s+[o|O]ther\s+[f|F]orms\s+[o|O]f\s+[i|I]nterations)?)\s)(.+)(\n4\.6\.?\s+(FERTILITY,\s?PREGNANCY,?\s?AND\sLACTATION|[f|F]ertility,\s?[p|P]regnancy\sand\s[l|L]actation)\s)",
-        "Interactions",
-    ),
-    (
-        r"(4\.6\.?\s+(?:FERTILITY, PREGNANCY AND LACTATION|[f|F]ertility, [p|P]regnancy and [l|L]actation)\s)(.+)(\n4\.7\.?\s+(EFFECTS\sON\sABILITY\sTO\sDRIVE\sAND\sUSE\sMACHINES|[e|E]ffects [o|O]n [a|A]bility [t|T]o [d|D]rive [a|A]nd [u|U]se [m|M]achines)\s)",
-        "Pregnancy",
-    ),
-    (
-        r"(4\.7\.?\s+(?:EFFECTS\sON\sABILITY\sTO\sDRIVE\sAND\sUSE\sMACHINES|[e|E]ffects [o|O]n [a|A]bility [t|T]o [d|D]rive [a|A]nd [u|U]se [m|M]achines)\s)(.+)(\n4\.8\.?\s+(ADVERSE EFFECTS \(UNDESIRABLE EFFECTS\)|[a|A]dverse [e|E]ffects)\s)",
-        "Effects on driving",
-    ),
-    (
-        r"(4\.8\.?\s+(?:ADVERSE EFFECTS \(UNDESIRABLE EFFECTS\)|[a|A]dverse [e|E]ffects)\s)(.+)(\n4\.9\.?\s+(OVERDOSE|Overdose)\s)",
-        "Side effects",
-    ),
-    (r"(4\.9\.?\s+(?:OVERDOSE|Overdose)\s)(.+)(\n5\.?\s+PHARMACOLOGICAL)", "Overdose"),
-]
-
 OTHER_FORMATTED_SECTIONS = [
-    (r"(INDICATIONS)(.+)(CONTRAINDICATIONS)", "Indications"),
-    (r"(CONTRAINDICATIONS)(.+)(PRECAUTIONS)", "Contraindications"),
-    # Pregnancy, Interactions and Effects on driving are all under the PRECAUTIONS section
-    (r"(Use in [p|P]regnancy)(.+)(Use in [l|L]actation)", "Pregnancy"),
-    (r"(Interactions with other medicines)(.+)(Effects on laboratory tests)", "Interactions"),
-    (
-        r"(Effects on ability to drive and use machines)(.+)(ADVERSE (REACTIONS|EFFECTS))",
-        "Effects on driving",
-    ),
-    (r"(PRECAUTIONS)(.+)(ADVERSE (REACTIONS|EFFECTS))", "Warnings"),
-    (r"(ADVERSE (?:REACTIONS|EFFECTS))(.+)(DOSAGE AND ADMINISTRATION)", "Side effects"),
-    (r"(DOSAGE AND ADMINISTRATION)(.+)(OVERDOSAGE)", "Posology"),
-    (r"(OVERDOSAGE)(.+)(PRESENTATION)", "Overdose"),
+    r"^NAME OF THE MEDICINE",
+    r"^DESCRIPTION",
+    r"^PHARMACOLOGY",
+    r"^CLINICAL TRIALS",
+    r"^INDICATIONS",
+    r"^CONTRAINDICATIONS",
+    r"^PRECAUTIONS",
+    r"^(?:INTERACTIONS WITH OTHER MEDICINES|Interactions with other medicines)",
+    r"^ADVERSE (?:REACTIONS|EFFECTS)",
+    r"^DOSAGE AND ADMINISTRATION",
+    r"^OVERDOSAGE",
+    r"^PRESENTATION AND STORAGE CONDITIONS",
+    r"^NAME AND ADDRESS OF THE SPONSOR",
+    r"^POISON SCHEDULE OF THE MEDICINE",
+    r"^.*INCLUSION IN THE AUSTRALIAN.*",
 ]
 
 
@@ -93,6 +56,8 @@ OTHER_FORMATTED_SECTIONS = [
 # add `--verbosity 3` for debug output
 class Command(BaseCommand):
     help = "Loads data from TGA"
+
+    records = {}
 
     def __init__(self, stdout=None, stderr=None, no_color=False, force_color=False):
         super().__init__(stdout, stderr, no_color, force_color)
@@ -108,14 +73,14 @@ class Command(BaseCommand):
         parser.add_argument(
             "--type",
             type=str,
-            help="'full'",
-            default="full",
+            help="'full', 'test'",
+            default="test",
         )
 
     def handle(self, *args, **options):
         import_type = options["type"]
-        if import_type not in ["full"]:
-            raise CommandError("'type' parameter must be 'full'")
+        if import_type not in ["full", "test"]:
+            raise CommandError("'type' parameter must be 'full' or 'test'")
 
         # basic logging config is in settings.py
         # verbosity is 1 by default, gives critical, error and warning output
@@ -131,8 +96,15 @@ class Command(BaseCommand):
         logger.info(self.style.SUCCESS("start process"))
         logger.info(f"import_type: {import_type}")
 
-        # Get list of addresses to query
-        urls = self.get_tga_pi_urls()
+        if import_type == "test":
+            urls = [
+                "https://www.ebs.tga.gov.au/ebs/picmi/picmirepository.nsf/PICMI?OpenForm&t=PI&k=0&r=/",
+                "https://www.ebs.tga.gov.au/ebs/picmi/picmirepository.nsf/PICMI?OpenForm&t=PI&k=5&r=/",
+                "https://www.ebs.tga.gov.au/ebs/picmi/picmirepository.nsf/PICMI?OpenForm&t=PI&k=Y&r=/",
+            ]
+        else:
+            # Get full list of addresses to query
+            urls = self.get_tga_pi_urls()
 
         logger.info(f"total urls to process: {len(urls)}")
 
@@ -178,8 +150,6 @@ class Command(BaseCommand):
                     logger.warning(self.style.ERROR(repr(e)))
                 except ValueError as e:
                     logger.warning(self.style.WARNING(repr(e)))
-                # logger.info(f"sleep 1s")
-                # time.sleep(1)
 
             for url in self.error_urls.keys():
                 logger.warning(self.style.WARNING(f"error parsing url: {url}"))
@@ -246,72 +216,142 @@ class Command(BaseCommand):
         filename = default_storage.save(
             settings.MEDIA_ROOT / "tga.pdf", ContentFile(response.content)
         )
-        logger.info(f"saved file to: {filename}")
+        logger.info(f"saved {pdf_url} file to: {filename}")
         tga_file = settings.MEDIA_ROOT / filename
         raw_text = self.process_tga_pdf_file(tga_file, lp, pdf_url)
         # delete the file when done
         default_storage.delete(filename)
+
+        logger.info(f"Parsed {pdf_url}")
+
         return raw_text
 
-    def parse_pdf_sections(self, raw_text, lp, pdf_url, section_format):
+    def get_pdf_sections_with_format(self, text, section_format):
+        idx, headers, sections = [], [], []
         start_idx = 0
-        num_fails = 0
-        # Start with parsing the labels with the EU format,
-        #  if it fails to parse (i.e. fail to parse 9 sections), then try the other format
         for section in section_format:
-            # Basically search for anything between the start section header until the next section header starts
-            pattern = section[0]
-            regex = re.compile(pattern, re.DOTALL)
-            match = regex.search(raw_text, start_idx)
-            section_text = ""
-            section_name = section[1]
-            if match:
-                # Move the start index to the next section
-                if section_format == OTHER_FORMATTED_SECTIONS:
-                    # Pregnancy, Interactions and Effects on driving are all under the PRECAUTIONS section, so don't update the index
-                    if (
-                        section_name != "Pregnancy"
-                        and section_name != "Interactions"
-                        and section_name != "Effects on driving"
-                    ):
-                        start_idx = match.end(2)
-                else:
-                    start_idx = match.end(2)
-                section_text = match[2]
+            for i, line in enumerate(text[start_idx:], start=start_idx):
+                if re.match(section, line):
+                    start_idx = i + 1  # +1 to start at next line
+                    idx += [i]
+                    headers += [line.strip()]
+
+        for n, h in enumerate(headers):
+            if (n + 1) < len(headers):
+                contents = text[idx[n] + 1 : idx[n + 1]]
             else:
-                logger.error(
-                    self.style.ERROR(f"Unable to find section {section_name} from {pdf_url}")
-                )
-                self.error_urls[pdf_url] = True
-                num_fails += 1
-                continue
+                contents = text[idx[n] + 1 :]
+            sections += ["\n".join(contents)]
 
-            logger.debug(f"found section_name: {section_name}")
-            # logger.debug(f"found section_text: {section_text}")
-            logger.debug(f"start_idx: {start_idx}")
+        return headers, sections
 
-            ps = ProductSection(
-                label_product=lp, section_name=section_name, section_text=section_text
-            )
-            ps.save()
-        return num_fails
+    centers = [
+        "Clinical Particulars",
+        "Contraindications",
+        "Date Of First Authorisation/Renewal Of The Authorisation",
+        "Date Of Revision Of The Text",
+        "Effects On Ability To Drive And Use Machines",
+        "Fertility, Pregnancy And Lactation",
+        "Incompatibilities",
+        "Interaction With Other Medicinal Products And Other Forms Of Interaction",
+        "List Of Excipients",
+        "Marketing Authorisation Holder",
+        "Marketing Authorisation Number",
+        "Name Of The Medicinal Product",
+        "Nature And Contents Of Container",
+        "Overdose",
+        "Pharmaceutical Form",
+        "Pharmaceutical Particulars",
+        "Pharmacodynamic Properties",
+        "Pharmacokinetic Properties",
+        "Pharmacological Properties",
+        "Posology And Method Of Administration",
+        "Preclinical Safety Data",
+        "Pregnancy And Lactation",
+        "Qualitative And Quantitative Composition",
+        "Shelf Life",
+        "Special Precautions For Disposal",
+        "Special Precautions For Disposal And Other Handling",
+        "Special Precautions For Storage",
+        "Special Warnings And Precautions For Use",
+        "Therapeutic Indications",
+        "Undesirable Effects",
+        "Description",
+        "Pharmacology",
+        "Indications",
+        "Precautions",
+        "Interaction With Other Medicines",
+        "Name and address of the sponsor",
+        "Correction to the Medicine Schedule",
+    ]
+    # note: maybe we should manually merge these pairs:
+    #   FERTILITY, PREGNANCY AND LACTATION
+    #   PREGNANCY AND LACTATION
+    #   SPECIAL PRECAUTIONS FOR DISPOSAL AND OTHER HANDLING
+    #   SPECIAL PRECAUTIONS FOR DISPOSAL
+    # but not doing so lets the similarity computation do its thing
+
+    # improved initial text parsing step so this clustering problem wasn't so messy
+    def get_fixed_header(self, text):
+        # return center with the lowest edit distance,
+        #   or placeholder (last entry) if no there's good match
+        dists = [levdistance(text.lower(), c.lower()) for c in self.centers]
+        # ix = np.argmin(dists)
+        ix = dists.index(min(dists))
+        if dists[ix] > 0.6 * len(text):
+            return None
+        else:
+            return self.centers[ix]
 
     def process_tga_pdf_file(self, tga_file, lp, pdf_url=""):
-        raw_text = ""
-        with fitz.open(tga_file) as pdf_doc:
-            for page in pdf_doc:
-                raw_text += page.get_text()
+        text = []
 
-        num_fails = 0
-        # Start with parsing the labels with the EU format
-        num_fails = self.parse_pdf_sections(raw_text, lp, pdf_url, EU_FORMATTED_SECTIONS)
-        # If it fails to parse using the EU format, then try to parse it with other format
-        if num_fails == len(EU_FORMATTED_SECTIONS):
-            self.error_urls[pdf_url] = False
-            logger.error(self.style.ERROR("Parsing with other format"))
-            num_fails = self.parse_pdf_sections(raw_text, lp, pdf_url, OTHER_FORMATTED_SECTIONS)
+        try:
+            text = read_pdf(tga_file, no_annex=False)
+            info = {}
+            product_code = lp.drug_label.source_product_number
+            # row = self.df[self.df["Product number"] == product_code]
+            # info["metadata"] = row.iloc[0].apply(str).to_dict()
 
-        return raw_text
+            label_text = {}  # next level = product page w/ metadata
+            headers, sections = [], []
+
+            headers, sections = get_pdf_sections(text, pattern=r"^[0-9]+\.?[0-9]*\s+[A-Z].*")
+
+            # With the above method, it should at least find 20 sections, if less than that,
+            #  then parse it with other method
+            if len(headers) < 20:
+                logger.info("Failed to parse. Using another method...")
+                headers, sections = self.get_pdf_sections_with_format(
+                    text, OTHER_FORMATTED_SECTIONS
+                )
+                if len(headers) == 0:
+                    raise Exception("Failed to parse pdf with both methods")
+            for h, s in zip(headers, sections):
+                header = self.get_fixed_header(h)
+                if (header is not None) and (len(s) > 0):
+                    logger.info(f"Found original header ({h}) fixed to {header}")
+                    if header not in label_text.keys():
+                        label_text[header] = [s]
+                    else:
+                        label_text[header].append(s)
+
+            for index, key in enumerate(label_text):
+                text_block = ""
+                # label_text[key] is an array of text. Convert it to a block of text
+                for s in label_text[key]:
+                    text_block += s
+                ps = ProductSection(label_product=lp, section_name=key, section_text=text_block)
+                ps.save()
+
+            info["Label Text"] = label_text
+            self.records[product_code] = info
+        except Exception as e:
+            logger.error(self.style.ERROR(repr(e)))
+            logger.error(self.style.ERROR(f"Failed to process {tga_file}, url = {pdf_url}"))
+            self.error_urls[pdf_url] = True
+
+        return text
 
     def get_tga_pi_urls(self):
         """
