@@ -33,7 +33,7 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: 'us-east-1'
         continue-on-error: true
-        
+
       - name: Login to Amazon ECR  # adapted from https://towardsaws.com/build-push-docker-image-to-aws-ecr-using-github-actions-8396888a8f9e
         if: contains(github.event.head_commit.message, 'push_django')
         id: login-ecr
@@ -46,6 +46,7 @@ jobs:
           ECR_REPOSITORY: django
           IMAGE_TAG: latest
         run: |
+          cd dle
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
