@@ -6,7 +6,7 @@ Parameters:
       - t2.micro
       - m5.small
       - m6i.large
-    Description: Default is t2.micro.
+    Description: Default is m6i.large.
   ImageIDParameter:
     Type: String
     Default: "ami-005f9685cb30f234b"
@@ -31,6 +31,14 @@ Parameters:
   DBEndpointParameter:
     Type: String
     Default: "asdf-globalrxdb-axodhrci4xgh.cj9gkkj3it4b.us-east-1.rds.amazonaws.com"
+    Description: DB Endpoint
+  AccessKeyParameter:
+    Type: String
+    Default: ""
+    Description: DB Endpoint
+  SecretAccessKeyParameter:
+    Type: String
+    Default: ""
     Description: DB Endpoint
 
 Resources:
@@ -78,59 +86,16 @@ Resources:
             cd /home/ec2-user
             git clone https://github.com/globalrx/globalrx.git
             cd /home/ec2-user/globalrx/dle
-            git checkout alex
-            mv /home/ec2-user/globalrx/dle/cfn/env_file .env
-            EMAIL=${EmailParameter}
-            sed "s/DJANGO_SUPERUSER_EMAIL.*/DJANGO_SUPERUSER_EMAIL="$EMAIL"/g" -i /home/ec2-user/globalrx/dle/.env
+            git checkout master
 
-            IP=$(dig +short txt ch whoami.cloudflare @1.0.0.1  | tr -d '"')
-            sed "s/ALLOWED_HOSTS = \[/ALLOWED_HOSTS = \["\"$IP\"",/g" -i /home/ec2-user/globalrx/dle/dle/settings.py
-            DB_ENDPOINT=${DBEndpointParameter}
-            sed "s/DATABASE_URL.*/DATABASE_URL=postgres:\/\/postgres:fghyucvsafd@$DB_ENDPOINT:5432\/postgres/g" -i /home/ec2-user/globalrx/dle/.env
+
+            export AWS_ACCESS_KEY=${AccessKeyParameter}
+            export AWS_SECRET_KEY=${SecretAccessKeyParameter}
             
-            cd /home/ec2-user
-            echo "#!/bin/sh" > start_script.sh
-            echo "cd /home/ec2-user/globalrx/dle" >> start_script.sh
-            echo "/usr/local/bin/docker-compose up" >> start_script.sh
-            chmod 755 start_script.sh
-            nohup ./start_script.sh > output & 
-
-#curl -L https://raw.githubusercontent.com/docker/compose-cli/main/scripts/install/install_linux.sh | sh
-
-
-#nohup ./start_script.sh > output &
-#sed "s/DATABASE_URL.*/DATABASE_URL=test-nestedstackrds-15n6nr35w3r0n-globalrxdb-gd0s0nru6f80.cj9gkkj3it4b.us-east-1.rds.amazonaws.com" -i /home/ec2-user/globalrx/dle/settings.py
-#            sed 's/LOAD=False/LOAD=True/g' -i /home/ec2-user/globalrx/dle/.env
-
-
-#- admin_email: !Ref EmailParameter
-#- db_endpoint: !Ref DBEndpointParameter 
-
-
-
-
-
-
-
-
-#sed 's/LOAD=False/LOAD=True/g' -i /home/ec2-user/globalrx/dle/.env
- 
-#/usr/local/bin/docker-compose up 
-
-#docker exec -it dle-django-1 'python /app/manage.py load_ema_data'
-#docker exec -it dle-django-1 'python /app/manage.py load_fda_data'
-
-#docker commit dle-django-1 300423063901.dkr.ecr.us-east-1.amazonaws.com/django:latest
-#docker commit dle-postgres-1 300423063901.dkr.ecr.us-east-1.amazonaws.com/postgres:latest
-#docker commit dle-kibana-1 300423063901.dkr.ecr.us-east-1.amazonaws.com/kibana:latest
-#docker commit dle-es01-1 300423063901.dkr.ecr.us-east-1.amazonaws.com/elasticsearch:latest
-
-#aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 300423063901.dkr.ecr.us-east-1.amazonaws.com
-
-#docker push 300423063901.dkr.ecr.us-east-1.amazonaws.com/django:latest
-#docker push 300423063901.dkr.ecr.us-east-1.amazonaws.com/postgres:latest
-#docker push 300423063901.dkr.ecr.us-east-1.amazonaws.com/kibana:latest
-#docker push 300423063901.dkr.ecr.us-east-1.amazonaws.com/elasticsearch:latest
+            cd /home/ec2-user/globalrx/dle
+            IP=$(dig +short txt ch whoami.cloudflare @1.0.0.1  | tr -d '"')
+            aws cloudformation create-stack --stack-name myteststack --capabilities CAPABILITY_IAM --template-body file://cfn/deploy_django.yml --parameters ElasticIPAddress=$IP
+            docker-compose -f elastic_compose.yml up
 
 
 

@@ -1,0 +1,34 @@
+FROM --platform=linux/amd64 python:3.10.10-slim-buster as python-build
+
+WORKDIR /app
+
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+# g++ for Pillow
+RUN apt-get update --fix-missing \
+    && apt-get install -y nginx python-psycopg2 postgresql \
+    libpq-dev gcc g++ firefox-esr unzip curl
+
+# Install geckodriver for Firefox Selenium
+# Compatibility chart: https://firefox-source-docs.mozilla.org/testing/geckodriver/Support.html
+RUN curl -L https://github.com/mozilla/geckodriver/releases/download/v0.32.2/geckodriver-v0.32.2-linux64.tar.gz | tar xz -C /usr/local/bin
+RUN chmod +x /usr/bin/firefox
+# set display port to avoid Selenium crash
+ENV DISPLAY=:99
+
+# Python requirements
+COPY requirements.txt /app
+RUN pip install -r requirements.txt
+
+# Setup app
+# copying over the whole app is not needed - mounted volume
+COPY entrypoint /app
+
+EXPOSE 8000 5000
+
+ADD ../../* /app/
+
+CMD /app/entrypoint
+#ADD dle /app/dle
+#ADD * /app/

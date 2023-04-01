@@ -1,0 +1,283 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  ElasticIPAddress:
+    Type: String
+    Default: "44.197.203.81"
+    Description: IP address of EC2 instance where Elastic-kibana are located
+
+Resources:
+  CloudMap:
+    Properties:
+      Description: Service Map for Docker Compose project dle
+      Name: dle.local
+      Vpc: vpc-23074059
+    Type: AWS::ServiceDiscovery::PrivateDnsNamespace
+  Cluster:
+    Properties:
+      ClusterName: dle
+      Tags:
+      - Key: com.docker.compose.project
+        Value: dle
+    Type: AWS::ECS::Cluster
+  Default8000Ingress:
+    Properties:
+      CidrIp: 0.0.0.0/0
+      Description: django:8000/tcp on default network
+      FromPort: 8000
+      GroupId:
+        Ref: DefaultNetwork
+      IpProtocol: TCP
+      ToPort: 8000
+    Type: AWS::EC2::SecurityGroupIngress
+  DefaultNetwork:
+    Properties:
+      GroupDescription: dle Security Group for default network
+      Tags:
+      - Key: com.docker.compose.project
+        Value: dle
+      - Key: com.docker.compose.network
+        Value: dle_default
+      VpcId: vpc-23074059
+    Type: AWS::EC2::SecurityGroup
+  DefaultNetworkIngress:
+    Properties:
+      Description: Allow communication within network default
+      GroupId:
+        Ref: DefaultNetwork
+      IpProtocol: "-1"
+      SourceSecurityGroupId:
+        Ref: DefaultNetwork
+    Type: AWS::EC2::SecurityGroupIngress
+  DjangoService:
+    DependsOn:
+    - DjangoTCP8000Listener
+    Properties:
+      Cluster:
+        Fn::GetAtt:
+        - Cluster
+        - Arn
+      DeploymentConfiguration:
+        MaximumPercent: 200
+        MinimumHealthyPercent: 100
+      DeploymentController:
+        Type: ECS
+      DesiredCount: 1
+      LaunchType: FARGATE
+      LoadBalancers:
+      - ContainerName: django
+        ContainerPort: 8000
+        TargetGroupArn:
+          Ref: DjangoTCP8000TargetGroup
+      NetworkConfiguration:
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          SecurityGroups:
+          - Ref: DefaultNetwork
+          Subnets:
+          - subnet-6e6c4709
+          - subnet-48c83305
+          - subnet-1efec830
+          - subnet-eda0dfd3
+          - subnet-01f4190f
+          - subnet-0df7c351
+      PlatformVersion: 1.4.0
+      PropagateTags: SERVICE
+      SchedulingStrategy: REPLICA
+      ServiceRegistries:
+      - RegistryArn:
+          Fn::GetAtt:
+          - DjangoServiceDiscoveryEntry
+          - Arn
+      Tags:
+      - Key: com.docker.compose.project
+        Value: dle
+      - Key: com.docker.compose.service
+        Value: django
+      TaskDefinition:
+        Ref: DjangoTaskDefinition
+    Type: AWS::ECS::Service
+  DjangoServiceDiscoveryEntry:
+    Properties:
+      Description: '"django" service discovery entry in Cloud Map'
+      DnsConfig:
+        DnsRecords:
+        - TTL: 60
+          Type: A
+        RoutingPolicy: MULTIVALUE
+      HealthCheckCustomConfig:
+        FailureThreshold: 1
+      Name: django
+      NamespaceId:
+        Ref: CloudMap
+    Type: AWS::ServiceDiscovery::Service
+  DjangoTCP8000Listener:
+    Properties:
+      DefaultActions:
+      - ForwardConfig:
+          TargetGroups:
+          - TargetGroupArn:
+              Ref: DjangoTCP8000TargetGroup
+        Type: forward
+      LoadBalancerArn:
+        Ref: LoadBalancer
+      Port: 8000
+      Protocol: TCP
+    Type: AWS::ElasticLoadBalancingV2::Listener
+  DjangoTCP8000TargetGroup:
+    Properties:
+      Port: 8000
+      Protocol: TCP
+      Tags:
+      - Key: com.docker.compose.project
+        Value: dle
+      TargetType: ip
+      VpcId: vpc-23074059
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+  DjangoTaskDefinition:
+    Properties:
+      ContainerDefinitions:
+      - Command:
+        - us-east-1.compute.internal
+        - dle.local
+        Essential: false
+        Image: docker/ecs-searchdomain-sidecar:1.0
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group:
+              Ref: LogGroup
+            awslogs-region:
+              Ref: AWS::Region
+            awslogs-stream-prefix: dle
+        Name: Django_ResolvConf_InitContainer
+      - DependsOn:
+        - Condition: SUCCESS
+          ContainerName: Django_ResolvConf_InitContainer
+        Environment:
+        - Name: ALLOWED_HOSTS
+          Value: '[*]'
+        - Name: CLUSTER_NAME
+          Value: dle-elastic-cluster
+        - Name: COMPOSE_PROJECT_NAME
+          Value: dle
+        - Name: DATABASE_URL
+          Value: postgres://postgres:fghyucvsafd@asdf-globalrxdb-axodhrci4xgh.cj9gkkj3it4b.us-east-1.rds.amazonaws.com:5432/postgres
+        - Name: DEBUG
+          Value: "True"
+        - Name: DJANGO_SUPERUSER_EMAIL
+          Value: aeg224@g.harvard.edu
+        - Name: DJANGO_SUPERUSER_PASSWORD
+          Value: Wtb8qbY0kH54bF
+        - Name: DJANGO_SUPERUSER_USERNAME
+          Value: admin
+        - Name: ELASTICSEARCH_URL
+          Value: !Join ["", ["https://", Ref: ElasticIPAddress, ":9200"]]
+        - Name: ELASTICSEARCH_USER
+          Value: elastic
+        - Name: ELASTIC_CLOUD_ID
+          Value: AppName:longRaNd0MStringofChars
+        - Name: ELASTIC_CLOUD_PASSWORD
+          Value: RandomGenPWD
+        - Name: ELASTIC_PASSWORD
+          Value: dKnaSVB4bTkRzL
+        - Name: ES_AUTO_SYNC
+          Value: "False"
+        - Name: ES_PORT
+          Value: "9200"
+        - Name: INIT_SUPERUSER
+          Value: "False"
+        - Name: KIBANA_MEM_LIMIT
+          Value: '1073741824 # 1 GB'
+        - Name: KIBANA_PASSWORD
+          Value: DU5z8Hsl792jTN
+        - Name: KIBANA_PORT
+          Value: "5601"
+        - Name: LICENSE
+          Value: trial
+        - Name: LOAD
+          Value: "False"
+        - Name: MEM_LIMIT
+          Value: '4294967296 # 4 GB or more may be needed for ML features'
+        - Name: MIGRATE
+          Value: "True"
+        - Name: POSTGRES_DB
+          Value: postgres
+        - Name: POSTGRES_HOST
+          Value: postgres
+        - Name: POSTGRES_PASSWORD
+          Value: fghyucvsafd
+        - Name: POSTGRES_PORT
+          Value: "5432"
+        - Name: POSTGRES_USER
+          Value: postgres
+        - Name: SECRET_KEY
+          Value: secretdoesntmatter!whenindev
+        - Name: STACK_VERSION
+          Value: 8.5.0
+        Essential: true
+        Image: 300423063901.dkr.ecr.us-east-1.amazonaws.com/dle-django:latest@sha256:113181aa619e554ab12d81dcac60881f68fffd9ee0d430cf727708b2aff23b4b
+        LinuxParameters: {}
+        LogConfiguration:
+          LogDriver: awslogs
+          Options:
+            awslogs-group:
+              Ref: LogGroup
+            awslogs-region:
+              Ref: AWS::Region
+            awslogs-stream-prefix: dle
+        Name: django
+        PortMappings:
+        - ContainerPort: 8000
+          HostPort: 8000
+          Protocol: tcp
+      Cpu: "256"
+      ExecutionRoleArn:
+        Ref: DjangoTaskExecutionRole
+      Family: dle-django
+      Memory: "512"
+      NetworkMode: awsvpc
+      RequiresCompatibilities:
+      - FARGATE
+    Type: AWS::ECS::TaskDefinition
+  DjangoTaskExecutionRole:
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action:
+          - sts:AssumeRole
+          Condition: {}
+          Effect: Allow
+          Principal:
+            Service: ecs-tasks.amazonaws.com
+        Version: 2012-10-17
+      ManagedPolicyArns:
+      - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
+      - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+      Tags:
+      - Key: com.docker.compose.project
+        Value: dle
+      - Key: com.docker.compose.service
+        Value: django
+    Type: AWS::IAM::Role
+  LoadBalancer:
+    Properties:
+      LoadBalancerAttributes:
+      - Key: load_balancing.cross_zone.enabled
+        Value: "true"
+      Scheme: internet-facing
+      Subnets:
+      - subnet-6e6c4709
+      - subnet-48c83305
+      - subnet-1efec830
+      - subnet-eda0dfd3
+      - subnet-01f4190f
+      - subnet-0df7c351
+      Tags:
+      - Key: com.docker.compose.project
+        Value: dle
+      Type: network
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+  LogGroup:
+    Properties:
+      LogGroupName: /docker-compose/dle
+    Type: AWS::Logs::LogGroup
