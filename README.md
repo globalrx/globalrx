@@ -1,18 +1,18 @@
-# GlobalRx
+# Global Drug Label Explorer (GDLE)
 
 ## Overview
 
-GlobalRx is a tool for searching drug labels, created as part of the Harvard University Extension School Software Engineering Capstone course 2023. It builds upon the [Drug Label Explorer (DLE)](https://github.com/DrugLabelExplorer/dle) created by the 2022 course and extends that project to include additional label regions and new features.
+Global Drug Label Explorer (GDLE) is a tool for searching drug labels, created as part of the Harvard University Extension School Software Engineering Capstone course 2023. It builds upon the [Drug Label Explorer (DLE)](https://github.com/DrugLabelExplorer/dle) created by the 2022 course and extends that project to include additional label regions and new features.
 
 ### Data
-GlobalRx currently includes labels from the following sources:
+The Global Drug Label Explorer currently includes labels from the following sources:
 - [FDA - USA](https://labels.fda.gov/)
 - [EMA - EU](https://www.ema.europa.eu/en/medicines)
 These labels are parsed and stored in a Postgres database using Django models, then indexed into Elasticsearch for faster and more accurate search leveraging semantic and vector search capabilities.
 
 ### Features
 
-Main features of GlobalRx include:
+Main features of GDLE include:
 
 - The ability to search drug labels from multiple sources
 - The ability to compare different drug labels
@@ -20,11 +20,11 @@ Main features of GlobalRx include:
 
 ### System
 
-GlobalRx is a web app written in Python using the [Django](https://www.djangoproject.com/) framework. The backend uses Postgres and Elasticsearch for data storage and search. The frontend uses Django templates. The application is containerized using Docker for easy deployment and development.
+The Global Drug Label Explorer (GDLE) is a web app written in Python using the [Django](https://www.djangoproject.com/) framework. The backend uses Postgres and Elasticsearch for data storage and search. The frontend uses Django templates. The application is containerized using Docker for easy deployment and development.
 
 ### Setup
 
-For GlobalRx setup instructions see: [Setup](./docs/readme.md)
+For GDLE setup instructions see: [Setup](./docs/readme.md)
 The current database structure is avaiable via [DBVisualizer export](./docs/dbvisualizer.png)
 
 #### DLE 2022

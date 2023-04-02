@@ -1,4 +1,4 @@
-# GlobalRx Setup
+# GDLE Setup
 
 ## Local Development
 The project is containerized so that it can be run locally or deployed to a cloud environment.
