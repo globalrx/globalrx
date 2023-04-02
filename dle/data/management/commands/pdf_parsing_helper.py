@@ -22,7 +22,10 @@ def get_pdf_sections(text, pattern, headers_filter=True):
             # 4. "safe dose" is not a header
             valid = (
                 (lastchar in "qwertyuiopasdfghjklzxcvbnm()")
-                and (len(headers[n].split()) and headers[n].split()[0].count(".") == headers[n].strip().count("."))
+                and (
+                    len(headers[n].split())
+                    and headers[n].split()[0].count(".") == headers[n].strip().count(".")
+                )
                 and (headers[n].strip().lower().find("see") == -1)
                 and ("safe dose" not in headers[n].strip().lower())
             )
