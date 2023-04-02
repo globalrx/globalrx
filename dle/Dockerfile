@@ -18,7 +18,7 @@ RUN chmod +x /usr/bin/firefox
 ENV DISPLAY=:99
 
 
-ADD * /app/
+ADD . /app/
 # Python requirements
 #COPY ../../requirements.txt /app
 RUN pip install -r requirements.txt
