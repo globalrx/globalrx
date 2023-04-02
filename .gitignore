@@ -118,6 +118,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+docs/section-matching/caleb-data-scripts-venv/
 
 # Spyder project settings
 .spyderproject
