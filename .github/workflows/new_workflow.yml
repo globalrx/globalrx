@@ -5,8 +5,8 @@ name: CI
 on:
   push:
     branches: [ "alex" ]
-   # paths:
-   #   - globalrx/dle/**
+    paths:
+      - globalrx/dle/**
 jobs:
   build:
     runs-on: ubuntu-latest
