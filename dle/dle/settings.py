@@ -19,12 +19,12 @@ from django.core.exceptions import ImproperlyConfigured
 import environ
 
 
-# can override settings in .env, see .env.example
-env = environ.Env()
-environ.Env.read_env()
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# can override settings in .env, see .env.example
+env = environ.Env()
+environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 
 STATIC_ROOT = os.path.join(BASE_DIR, "static/")
 
@@ -77,6 +77,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "search.apps.SearchConfig",
     "elasticsearch_django",
+    "django_extensions",
 ]
 
 AUTH_USER_MODEL = "users.User"
