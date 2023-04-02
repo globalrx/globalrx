@@ -11,7 +11,7 @@ def get_pdf_sections(text, pattern, headers_filter=True):
             idx += [i]
             headers += [line.strip()]
 
-    if headers_filter:
+    if headers_filter and len(headers) != 0:
         # in headers, must increment or restart, and not end in punctuation
         idx_valid, headers_valid = [idx[0]], [headers[0]]
         for n in range(1, len(headers)):
@@ -22,7 +22,7 @@ def get_pdf_sections(text, pattern, headers_filter=True):
             # 4. "safe dose" is not a header
             valid = (
                 (lastchar in "qwertyuiopasdfghjklzxcvbnm()")
-                and (headers[n].split()[0].count(".") == headers[n].strip().count("."))
+                and (len(headers[n].split()) and headers[n].split()[0].count(".") == headers[n].strip().count("."))
                 and (headers[n].strip().lower().find("see") == -1)
                 and ("safe dose" not in headers[n].strip().lower())
             )
