@@ -4,7 +4,7 @@ import pdfplumber
 
 
 # function: input text, output list of section headers and content
-def get_pdf_sections(text, pattern, headers_filter=False):
+def get_pdf_sections(text, pattern, headers_filter=True):
     idx, headers, sections = [], [], []
     for i, line in enumerate(text):
         if re.match(pattern, line):
@@ -15,11 +15,17 @@ def get_pdf_sections(text, pattern, headers_filter=False):
         # in headers, must increment or restart, and not end in punctuation
         idx_valid, headers_valid = [idx[0]], [headers[0]]
         for n in range(1, len(headers)):
-            prev = float(headers[n - 1].split()[0])
-            curr = float(headers[n].split()[0])
             lastchar = headers[n].strip()[-1].lower()
-            valid = (prev < curr <= prev + 1) or (curr == 1)
-            valid = valid and (lastchar in "qwertyuiopasdfghjklzxcvbnm()")
+            # 1. Headers must not end in punctuation
+            # 2. All the dots ('.') must be from the section numbers
+            # 3. The word "see" must not be in the headers
+            # 4. "safe dose" is not a header
+            valid = (
+                (lastchar in "qwertyuiopasdfghjklzxcvbnm()")
+                and (headers[n].split()[0].count(".") == headers[n].strip().count("."))
+                and (headers[n].strip().lower().find("see") == -1)
+                and ("safe dose" not in headers[n].strip().lower())
+            )
             if valid:
                 idx_valid.append(idx[n])
                 headers_valid.append(headers[n])
