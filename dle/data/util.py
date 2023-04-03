@@ -95,7 +95,7 @@ def magnitude(vector):
     return math.sqrt(sum(pow(element, 2) for element in vector))
 
 
-def compute_section_embedding(text: str, model, word_count=256, normalize=True) -> np.ndarray:
+def compute_section_embedding(text: str, model, word_count=256, normalize=True) -> list[float]:
     n_segments = 1 + len(text.split()) // word_count
     vecs = np.zeros((n_segments, 768))
     for i in range(n_segments):
