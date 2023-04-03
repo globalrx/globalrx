@@ -63,6 +63,23 @@ class Command(BaseCommand):
         logger.info(self.style.SUCCESS("start vectorizing"))
         logger.info(f"Agency: {agency}")
 
+        # TODO finish
+        if vector_filename:
+            """Load the vectors from file to PSQL via Django ORM"""
+            print(f"Opening {vector_filename}")
+            with open(vector_filename, "r") as f:
+                vectors = json.load(f)
+            for source_product_id in vectors.keys():
+                version = vectors[source_product_id]
+                for sec in vectors[source_product_id][version]:
+                    vector = json.loads(sec)
+                    section = ProductSection.get(
+                        source_product_id=source_product_id,
+                        version_date=datetime.strptime(version, "%Y/%m/%d"),
+                    )
+                    section.bert_vector = vector
+                    section.save()
+
         # Get QuerySet of ProductSections to process
         # If QuerySet is too large, may need to use iterator() to disable QuerySet caching
         if vectorize_in_docker:
@@ -86,20 +103,14 @@ class Command(BaseCommand):
                 f"------------- computed {subset.count()} sections { int(elapsed.total_seconds()) } seconds"
             )
 
-        # TODO finish
-        if vector_filename:
-            print(f"Opening {vector_filename}")
-            with open(vector_filename) as json_file:
-                vectors = json_file.read()
-            print(vectors)
-
         # Only try to do this if we haven't already imported vectors from the file
         # TODO use bulk API for ingest
-        if not vector_filename and elasticingest:
+        if (vector_filename or vectorize_in_docker) and elasticingest:
             es = get_client()
             # Only ingest ProductSections with existing vector representations
+            # TODO handle all agencies case
             sections_w_vectors = ProductSection.objects.filter(
-                label_product__drug_label__source="TGA"
+                label_product__drug_label__source=agency
             ).filter(bert_vector__isnull=False)
             for section in sections_w_vectors:
                 es.index(index="productsection", document=section.as_search_document, id=section.id)

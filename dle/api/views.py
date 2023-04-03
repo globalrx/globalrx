@@ -1,7 +1,12 @@
+import json
+
 from django.http import HttpRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
 from elasticsearch_django.settings import get_client
+from sentence_transformers import SentenceTransformer
+
+from data.util import compute_section_embedding
 
 
 #TODO figure out how to use CSRF in the template
@@ -12,3 +17,21 @@ def searchkit(request: HttpRequest) -> JsonResponse:
     res = es.msearch(searches=request.body)
     # res is returned as an elastic_transport.ObjectApiResponse
     return JsonResponse(dict(res))
+
+@csrf_exempt
+def vectorize(request: HttpRequest) -> JsonResponse:
+    """Vectorize a search query"""
+    data = json.loads(request.body)
+    query = data.get("query", "")
+    status = "Failed"
+    res = {
+        "query": query
+    }
+    if query:
+        pubmedbert_model = SentenceTransformer("pritamdeka/S-PubMedBert-MS-MARCO")
+        vector = compute_section_embedding(text=query, model=pubmedbert_model)
+        if len(vector) == 768:
+            status = "Success"
+            res["vector"] = json.dumps(vector)
+    res["status"] = status
+    return JsonResponse(res)
