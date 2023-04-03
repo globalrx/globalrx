@@ -71,15 +71,30 @@ class Command(BaseCommand):
                 vectors = json.load(f)
             logger.info("Vectors JSON loaded. Ingesting vectors into Django.")
             for source_product_id in tqdm(vectors.keys()):
-                version = vectors[source_product_id]
-                for sec in vectors[source_product_id][version]:
-                    vector = json.loads(sec)
-                    section = ProductSection.get(
-                        source_product_id=source_product_id,
-                        version_date=datetime.strptime(version, "%Y/%m/%d"),
-                    )
-                    section.bert_vector = vector
-                    section.save()
+                versions = vectors[source_product_id]
+                for version in versions.keys():
+                    # logger.info(f"{source_product_id} - {version}")
+                    for section_name in vectors[source_product_id][version]:
+                        # logger.info(f"{source_product_id} - {version} - {section_name}")
+                        vector = json.loads(vectors[source_product_id][version][section_name])
+                        try:
+                            section = ProductSection.objects.get(
+                                section_name=section_name,
+                                label_product__drug_label__source_product_number=source_product_id,
+                                label_product__drug_label__version_date=datetime.strptime(
+                                    version, "%Y/%m/%d"
+                                ),
+                            )
+                            section.bert_vector = vector
+                            section.save()
+                        except ProductSection.DoesNotExist:
+                            logger.error(
+                                f"Could not find ProductSection based on: section_name={section_name}, label_product__drug_label__source_product_number={source_product_id}, and label_product__drug_label__version_date={datetime.strptime(version, '%Y/%m/%d')} "
+                            )
+                        except ProductSection.MultipleObjectsReturned:
+                            logger.error(
+                                f"Found multiple ProductSections based on: section_name={section_name}, label_product__drug_label__source_product_number={source_product_id}, and label_product__drug_label__version_date={datetime.strptime(version, '%Y/%m/%d')} "
+                            )
 
         # Get QuerySet of ProductSections to process
         # If QuerySet is too large, may need to use iterator() to disable QuerySet caching
@@ -113,7 +128,9 @@ class Command(BaseCommand):
                 label_product__drug_label__source=agency
             ).filter(bert_vector__isnull=False)
             for section in tqdm(sections_w_vectors):
-                es.index(index="productsection", document=section.as_search_document, id=section.id)
+                es.index(
+                    index="productsection", document=section.as_search_document(), id=section.id
+                )
 
         # Results - not parallelized - containerized with 6CPU / 16GB RAM, 4GB for ES and 1GB for Kibana so ~11GB for Django ...
         # Ridiculously long. Like ~7.5 minutes to do a single section, without saving to DB
