@@ -8,6 +8,8 @@ from sentence_transformers import SentenceTransformer
 
 from data.util import compute_section_embedding
 
+from .apps import ApiConfig
+
 
 #TODO figure out how to use CSRF in the template
 @csrf_exempt
@@ -28,8 +30,7 @@ def vectorize(request: HttpRequest) -> JsonResponse:
         "query": query
     }
     if query:
-        pubmedbert_model = SentenceTransformer("pritamdeka/S-PubMedBert-MS-MARCO")
-        vector = compute_section_embedding(text=query, model=pubmedbert_model)
+        vector = compute_section_embedding(text=query, model=ApiConfig.pubmedbert_model)
         if len(vector) == 768:
             status = "Success"
             res["vector"] = json.dumps(vector)

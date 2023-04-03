@@ -7,13 +7,11 @@ from django.core.management.base import BaseCommand, CommandError
 
 from elasticsearch import logger as es_logger
 from elasticsearch_django.settings import get_client
-from sentence_transformers import SentenceTransformer
 
 from data.models import ProductSection
 from data.util import compute_section_embedding
 
-
-# from tqdm import tqdm
+from ....api.apps import ApiConfig
 
 
 es_logger.setLevel(logging.WARNING)
@@ -25,7 +23,7 @@ class Command(BaseCommand):
 
     def __init__(self, stdout=None, stderr=None, no_color=False, force_color=False):
         super().__init__(stdout, stderr, no_color, force_color)
-        self.model = SentenceTransformer("pritamdeka/S-PubMedBert-MS-MARCO")
+        self.model = ApiConfig.pubmedbert_model
 
     def add_arguments(self, parser):
         parser.add_argument(
