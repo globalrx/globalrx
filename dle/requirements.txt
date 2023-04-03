@@ -45,3 +45,5 @@ tomli==2.0.1
 typing-extensions==4.1.1
 urllib3==1.26.9
 webencodings==0.5.1
+pdfplumber==0.8.0
+Levenshtein==0.20.9

@@ -1,4 +1,5 @@
 import datetime
+import json
 import logging
 import random
 import re
@@ -10,100 +11,21 @@ from django.core.files.storage import default_storage
 from django.core.management.base import BaseCommand, CommandError
 from django.db import IntegrityError
 
-import fitz  # PyMuPDF
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
+from Levenshtein import distance as levdistance
 from requests.exceptions import ChunkedEncodingError
 
 from data.models import DrugLabel, LabelProduct, ProductSection
 from users.models import MyLabel
 
+from .pdf_parsing_helper import get_pdf_sections, read_pdf
+
 
 logger = logging.getLogger(__name__)
 
 EMA_EPAR_EXCEL_URL = "https://www.ema.europa.eu/sites/default/files/Medicines_output_european_public_assessment_reports.xlsx"
-
-
-class EmaSectionRe:
-    """Use regular expressions to parse the Sections from the text"""
-
-    def __init__(self, pattern, name):
-        """
-        Args:
-            pattern: re pattern to use to match a section
-            name: section_name for inserting into the db
-        """
-        self.prog = re.compile(pattern, re.DOTALL)
-        self.name = name
-        self.end_idx = -1
-
-    def find_match(self, text, start_idx):
-        """
-        Args:
-            text: the string to search
-            start_idx: the start index for where to start the search
-
-        Returns: The section_text matched or None
-        """
-        match = self.prog.search(text, start_idx)
-        if match:
-            self.end_idx = match.end(2)
-            return match[2]
-        else:
-            return None
-
-    def get_end_idx(self):
-        """
-        Returns: The end index for the match. Or -1 if there was no match.
-        """
-        return self.end_idx
-
-
-# these should be in order of how they appear in the pdf
-EMA_PDF_PRODUCT_SECTIONS = [
-    # notes for the re pattern:
-    # escape the period we want to match e.g. "1.0" => r"1\.0"
-    # look for one or more whitespace characters r"\s+"
-    # find any characters (one or more times) r"(.+)" with re.DOTALL flag
-    # stop when we find the closing string
-    EmaSectionRe(
-        r"(4\.1\s+Therapeutic indications)(.+)(4\.2\s+Posology and method of administration)",
-        "Indications",
-    ),
-    EmaSectionRe(
-        r"(4\.2\s+Posology and method of administration)(.+)(4\.3\s+Contraindications)",
-        "Posology",
-    ),
-    EmaSectionRe(
-        r"(4\.3\s+Contraindications)(.+)(4\.4\s+Special warnings and precautions for use)",
-        "Contraindications",
-    ),
-    EmaSectionRe(
-        r"(4\.4\s+Special warnings and precautions for use)(.+)(4\.5\s+Interaction with other medicinal products and other forms of interaction)",
-        "Warnings",
-    ),
-    EmaSectionRe(
-        r"(4\.5\s+Interaction with other medicinal products and other forms of interaction)(.+)(4\.6\s+Fertility, pregnancy and lactation)",
-        "Interactions",
-    ),
-    EmaSectionRe(
-        r"(4\.6\s+Fertility, pregnancy and lactation)(.+)(4\.7\s+Effects on ability to drive and use machines)",
-        "Pregnancy",
-    ),
-    EmaSectionRe(
-        r"(4\.7\s+Effects on ability to drive and use machines)(.+)(4\.8\s+Undesirable effects)",
-        "Effects on driving",
-    ),
-    EmaSectionRe(
-        r"(4\.8\s+Undesirable effects)(.+)(4\.9\s+Overdose)",
-        "Side effects",
-    ),
-    EmaSectionRe(
-        r"(4\.9\s+Overdose)(.+)(5\.\s+PHARMACOLOGICAL PROPERTIES)",
-        "Overdose",
-    ),
-]
 
 
 # runs with `python manage.py load_ema_data`
@@ -114,6 +36,9 @@ EMA_PDF_PRODUCT_SECTIONS = [
 # support for my_labels with: --type my_label --my_label_id ml.id
 class Command(BaseCommand):
     help = "Loads data from EMA"
+
+    records = {}
+    df = []
 
     def __init__(self, stdout=None, stderr=None, no_color=False, force_color=False):
         super().__init__(stdout, stderr, no_color, force_color)
@@ -135,6 +60,12 @@ class Command(BaseCommand):
             help="set my_label_id for --type my_label",
             default=None,
         )
+        parser.add_argument(
+            "--dump_json",
+            type=bool,
+            help="Dump all parsed outputs to a json file",
+            default=False,
+        )
 
     def handle(self, *args, **options):
         import_type = options["type"]
@@ -154,6 +85,9 @@ class Command(BaseCommand):
 
         logger.info(self.style.SUCCESS("start process"))
         logger.info(f"import_type: {import_type}")
+
+        # Read ema excel into df
+        self.read_ema_excel()
 
         if import_type == "test":
             urls = [
@@ -206,7 +140,7 @@ class Command(BaseCommand):
                 # logger.debug(e, exc_info=True)
             except AttributeError as e:
                 logger.warning(self.style.ERROR(repr(e)))
-            # logger.info(f"sleep 1s")
+            logger.info(f"Done parsing {url}")
             # time.sleep(1)
 
         for url in self.error_urls.keys():
@@ -214,6 +148,12 @@ class Command(BaseCommand):
 
         logger.info(f"num_drug_labels_parsed: {self.num_drug_labels_parsed}")
         logger.info(self.style.SUCCESS("process complete"))
+
+        if options["dump_json"] is True:
+            logger.info(self.style.SUCCESS("Outputing parsed data to human-rx-drug-ema.json"))
+            with open("human-rx-drug-ema.json", "w") as f:
+                json.dump(self.records, f, indent=4)
+
         return
 
     def get_drug_label_from_url(self, url):
@@ -321,11 +261,11 @@ class Command(BaseCommand):
                 break  # no Exception means we were successful
             except (ValueError, ChunkedEncodingError) as e:
                 logger.error(self.style.ERROR(f"caught error: {e.__class__.__name__}"))
-                logger.warning(self.style.WARNING("Unable to read url, may continue"))
+                logger.warning(self.style.WARNING(f"Unable to read url {pdf_url}, may continue"))
                 response = None
 
         if not response:
-            logger.error(self.style.ERROR("unable to grab url contents"))
+            logger.error(self.style.ERROR(f"unable to grab url contents ({pdf_url})"))
             self.error_urls[pdf_url] = True
             return "unable to download pdf"
 
@@ -333,73 +273,124 @@ class Command(BaseCommand):
         filename = default_storage.save(
             settings.MEDIA_ROOT / "ema.pdf", ContentFile(response.content)
         )
-        logger.info(f"saved file to: {filename}")
+        logger.info(f"saved {pdf_url} file to {filename}")
 
-        ema_file = settings.MEDIA_ROOT / "ema.pdf"
+        ema_file = settings.MEDIA_ROOT / filename
         raw_text = self.process_ema_file(ema_file, lp, pdf_url)
         # delete the file when done
         default_storage.delete(filename)
+
+        logger.info(f"Parsed {pdf_url}")
         return raw_text
+
+    centers = [
+        "Clinical Particulars",
+        "Contraindications",
+        "Date Of First Authorisation/Renewal Of The Authorisation",
+        "Date Of Revision Of The Text",
+        "Effects On Ability To Drive And Use Machines",
+        "Fertility, Pregnancy And Lactation",
+        "Incompatibilities",
+        "Interaction With Other Medicinal Products And Other Forms Of Interaction",
+        "List Of Excipients",
+        "Marketing Authorisation Holder",
+        "Marketing Authorisation Number",
+        "Name Of The Medicinal Product",
+        "Nature And Contents Of Container",
+        "Overdose",
+        "Pharmaceutical Form",
+        "Pharmaceutical Particulars",
+        "Pharmacodynamic Properties",
+        "Pharmacokinetic Properties",
+        "Pharmacological Properties",
+        "Posology And Method Of Administration",
+        "Preclinical Safety Data",
+        "Pregnancy And Lactation",
+        "Qualitative And Quantitative Composition",
+        "Shelf Life",
+        "Special Precautions For Disposal",
+        "Special Precautions For Disposal And Other Handling",
+        "Special Precautions For Storage",
+        "Special Warnings And Precautions For Use",
+        "Therapeutic Indications",
+        "Undesirable Effects",
+    ]
+    # note: maybe we should manually merge these pairs:
+    #   FERTILITY, PREGNANCY AND LACTATION
+    #   PREGNANCY AND LACTATION
+    #   SPECIAL PRECAUTIONS FOR DISPOSAL AND OTHER HANDLING
+    #   SPECIAL PRECAUTIONS FOR DISPOSAL
+    # but not doing so lets the similarity computation do its thing
+
+    # improved initial text parsing step so this clustering problem wasn't so messy
+    def get_fixed_header(self, text):
+        # return center with the lowest edit distance,
+        #   or placeholder (last entry) if no there's good match
+        dists = [levdistance(text.lower(), c.lower()) for c in self.centers]
+        # ix = np.argmin(dists)
+        ix = dists.index(min(dists))
+        if dists[ix] > 0.6 * len(text):
+            return None
+        else:
+            return self.centers[ix]
 
     def process_ema_file(self, ema_file, lp, pdf_url=""):
-        # PyMuPDF references
-        # ty: https://stackoverflow.com/a/63486976/1807627
-        # https://github.com/pymupdf/PyMuPDF-Utilities/blob/master/text-extraction/PDF2Text.py
-        # https://github.com/pymupdf/PyMuPDF/blob/master/fitz/fitz.i
+        text = []
 
-        # populate raw_text with the contents of the pdf
+        try:
+            text = read_pdf(ema_file)
+            info = {}
+            product_code = lp.drug_label.source_product_number
+            row = self.df[self.df["Product number"] == product_code]
+            info["metadata"] = row.iloc[0].apply(str).to_dict()
 
-        raw_text = ""
-        with fitz.open(ema_file) as pdf_doc:
-            for page in pdf_doc:
-                raw_text += page.get_text()
+            label_text = {}  # next level = product page w/ metadata
+            headers, sections = get_pdf_sections(text, pattern=r"^[0-9]+\.[0-9]*\s+.*[A-Z].*")
 
-        # the sections are in order
-        # so keep track of where to start the search in each iteration
-        start_idx = 0
-        for section in EMA_PDF_PRODUCT_SECTIONS:
-            logger.info(f"section.name: {section.name}")
+            for h, s in zip(headers, sections):
+                header = self.get_fixed_header(h)
+                if (header is not None) and (len(s) > 0):
+                    logger.info(f"Found original header ({h}) fixed to {header}")
+                    if header not in label_text.keys():
+                        label_text[header] = [s]
+                    else:
+                        label_text[header].append(s)
 
-            section_text = section.find_match(raw_text, start_idx)
-            end_idx = section.get_end_idx()
+            for index, key in enumerate(label_text):
+                text_block = ""
+                # label_text[key] is an array of text. Convert it to a block of text
+                for s in label_text[key]:
+                    text_block += s
+                ps = ProductSection(label_product=lp, section_name=key, section_text=text_block)
+                ps.save()
 
-            if not section_text:
-                logger.error(self.style.ERROR("Unable to find section_text"))
-                self.error_urls[pdf_url] = True
-                continue
+            info["Label Text"] = label_text
+            self.records[row["Product number"].iloc[0]] = info
+        except Exception as e:
+            logger.error(self.style.ERROR(repr(e)))
+            logger.error(self.style.ERROR(f"Failed to process {ema_file}, url = {pdf_url}"))
+            self.error_urls[pdf_url] = True
 
-            logger.debug(f"found section_text: {section_text}")
-            logger.debug(f"end_idx: {end_idx}")
+        return text
 
-            ps = ProductSection(
-                label_product=lp, section_name=section.name, section_text=section_text
-            )
-            ps.save()
-
-            # start search for next section after the end_idx of this section
-            start_idx = end_idx
-
-        # logger.debug(f"raw_text: {repr(raw_text)}")
-
-        logger.info("Success")
-        return raw_text
-
-    def get_ema_epar_urls(self):
+    def read_ema_excel(self):
         """Download the EMA provided Excel file and grab the urls from there"""
         # return a list of the epar urls, e.g. ["https://www.ema.europa.eu/en/medicines/human/EPAR/lyrica"]
         # load excel file into pandas, directly from url
         # there are some header rows to skip
         # only load the columns we are interested in
-        df = pd.read_excel(
+        self.df = pd.read_excel(
             EMA_EPAR_EXCEL_URL,
             skiprows=8,
-            usecols=["Category", "Authorisation status", "URL"],
+            usecols=["Category", "Authorisation status", "Product number", "URL"],
             engine="openpyxl",
         )
         # filter results by:
         # "Category" == "Human"
         # "Authorisation status" == "Authorised"
-        df = df[df["Category"] == "Human"]
+        self.df = self.df[self.df["Category"] == "Human"]
         # TODO verify we only want "Authorised" medicines
-        df = df[df["Authorisation status"] == "Authorised"]
-        return df["URL"]
+        self.df = self.df[self.df["Authorisation status"] == "Authorised"]
+
+    def get_ema_epar_urls(self):
+        return self.df["URL"]
