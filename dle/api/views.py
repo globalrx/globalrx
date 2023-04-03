@@ -33,6 +33,6 @@ def vectorize(request: HttpRequest) -> JsonResponse:
         vector = compute_section_embedding(text=query, model=ApiConfig.pubmedbert_model)
         if len(vector) == 768:
             status = "Success"
-            res["vector"] = json.dumps(vector)
+            res["vector"] = vector
     res["status"] = status
     return JsonResponse(res)
