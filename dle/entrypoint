@@ -66,6 +66,9 @@ if [[ ($LOAD_DJANGO_TO_ES) && ("$LOAD_DJANGO_TO_ES" = "True")]]; then
   # python3 manage.py update_search_index productsection
 
   if [[ ($USE_BERT) && ("$USE_BERT" = "True")]]; then
+    # Load the BERT model if it doesn't already exist
+    python3 manage.py load_bert_model
+
     # TODO script NLP pipeline setup
     if [[ ($LOAD_VECTORS) && ("$LOAD_VECTORS" = "True")]]; then
       # TODO pre-vectorize section text outside of Elastic and load
