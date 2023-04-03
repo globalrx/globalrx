@@ -22,7 +22,7 @@ POSTGRES_PORT=5432
 POSTGRES_DB=postgres
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=fghyucvsafd
-DATABASE_URL=postgres://postgres:fghyucvsafd@postgres:5432/postgres
+DATABASE_URL=postgres://postgres:fghyucvsafd@. __RDSENDPOINT__ :5432/postgres
 
 # Elasticsearch
 # ------------------------------------------------------------------------------
