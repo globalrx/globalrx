@@ -93,6 +93,7 @@ ul.nav li {
   }**/
   
   .ais-Hits-item {
+    width: 95% !important;
     margin-bottom: 1em;
   }
   
