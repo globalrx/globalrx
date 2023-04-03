@@ -159,14 +159,14 @@ class Command(BaseCommand):
         return
 
     def convert_date_string(self, date_string):
-        converted_string = ""
-        for date_format in ("%d %B %Y", "%d/%m/%Y"):
+        for date_format in ("%d %B %Y", "%d %b %Y", "%d/%m/%Y"):
             try:
                 dt_obj = datetime.datetime.strptime(date_string, date_format)
                 converted_string = dt_obj.strftime("%Y-%m-%d")
+                return converted_string
             except ValueError:
                 pass
-        return converted_string
+        return ""
 
     def get_drug_label_from_row(self, soup, row, cookies):
         dl = DrugLabel()  # empty object to populate as we go
@@ -184,6 +184,7 @@ class Command(BaseCommand):
         # get version date from the pdf
         dl.raw_text, label_text = self.get_and_parse_pdf(dl.link, dl.source_product_number, cookies)
         dl.version_date = ""
+        date_string = ""
         # First to look for date of revision, if it exists and contains a valid date, then store that date
         # Otherwise look for date of first approval, and store that date if it's available
         if "Date Of Revision" in label_text.keys():
