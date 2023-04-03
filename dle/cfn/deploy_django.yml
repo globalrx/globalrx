@@ -156,6 +156,8 @@ Resources:
         Environment:
         - Name: ALLOWED_HOSTS
           Value: '[*]'
+        - Name: APPLICATION_IP
+          Value: !Ref ElasticIPAddress
         - Name: CLUSTER_NAME
           Value: dle-elastic-cluster
         - Name: COMPOSE_PROJECT_NAME
