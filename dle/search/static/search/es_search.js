@@ -1,4 +1,4 @@
-    /* global instantsearch algoliasearch */
+/* global instantsearch algoliasearch */
 
     // Basic auth with username/password is not supported - bug: see https://github.com/searchkit/searchkit/issues/1235
     var globalSearchTerm = '';
