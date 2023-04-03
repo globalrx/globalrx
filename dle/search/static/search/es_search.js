@@ -1,6 +1,7 @@
     /* global instantsearch algoliasearch */
 
     // Basic auth with username/password is not supported - bug: see https://github.com/searchkit/searchkit/issues/1235
+    var globalSearchTerm = '';
     const sk = new Searchkit({
         connection: {
           host: "http://localhost:8000/api/v1/searchkit", // TODO remove hardcoding for deployment
@@ -36,6 +37,9 @@
   
       search.addWidgets([
           instantsearch.widgets.searchBox({
+              queryHook(query, search) {
+                  globalSearchTerm = query;
+              },
               container: "#searchbox"
           }),
           instantsearch.widgets.currentRefinements({
@@ -69,7 +73,7 @@
                           ${components.Highlight({ attribute: 'drug_label_product_name', hit })}
                       </h2>
                       <h3>
-                          Generic Name: ${components.Highlight({ attribute: 'drug_label_generic_name', hit })}
+                          Generic Name: <a href="../data/single_label_view/${hit.label_product_id}, ${globalSearchTerm}">${components.Highlight({ attribute: 'drug_label_generic_name', hit })}</a>
                       </h3>
                       <h3>
                           Section: ${components.Highlight({ attribute: 'section_name', hit })}
