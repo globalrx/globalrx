@@ -141,3 +141,5 @@ dmypy.json
 # Data and notebooks
 docs/section-matching/data
 *caleb-data-scripts-venv*
+dle/api/bert_models/*
+!dle/api/bert_models/.keep

@@ -35,6 +35,8 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 STATIC_URL = "/static/"
 
+NLP_MODELS = os.path.join(BASE_DIR, "api/bert_models")
+
 # Hosts and CIDR (AWS subnets)
 try:
     ALLOWED_HOSTS = [
