@@ -7,11 +7,11 @@ from django.core.management.base import BaseCommand, CommandError
 
 from elasticsearch import logger as es_logger
 from elasticsearch_django.settings import get_client
+from tqdm import tqdm
 
+from api.apps import ApiConfig
 from data.models import ProductSection
 from data.util import compute_section_embedding
-
-from ....api.apps import ApiConfig
 
 
 es_logger.setLevel(logging.WARNING)
@@ -24,12 +24,14 @@ class Command(BaseCommand):
     def __init__(self, stdout=None, stderr=None, no_color=False, force_color=False):
         super().__init__(stdout, stderr, no_color, force_color)
         self.model = ApiConfig.pubmedbert_model
+        root_logger = logging.getLogger("")
+        root_logger.setLevel(logging.INFO)
 
     def add_arguments(self, parser):
         parser.add_argument(
             "--agency",
             type=str,
-            help="'TGA', 'FDA', 'EMA', 'all'",
+            help="'TGA', 'FDA', 'EMA'",
         )
         parser.add_argument(
             "--elasticingest",
@@ -55,19 +57,20 @@ class Command(BaseCommand):
         vectorize_in_docker = options["vectorize_in_docker"]
         vector_filename = options["vector_file"]
 
-        if agency not in ["EMA", "FMA", "TGA", "all"]:
+        if agency not in ["EMA", "FMA", "TGA"]:
             raise CommandError("'agency' parameter must be an agency")
 
         logger.info(self.style.SUCCESS("start vectorizing"))
         logger.info(f"Agency: {agency}")
 
-        # TODO finish
+        # TODO finish and test
         if vector_filename:
             """Load the vectors from file to PSQL via Django ORM"""
-            print(f"Opening {vector_filename}")
+            logger.info(f"Opening {vector_filename}")
             with open(vector_filename, "r") as f:
                 vectors = json.load(f)
-            for source_product_id in vectors.keys():
+            logger.info("Vectors JSON loaded. Ingesting vectors into Django.")
+            for source_product_id in tqdm(vectors.keys()):
                 version = vectors[source_product_id]
                 for sec in vectors[source_product_id][version]:
                     vector = json.loads(sec)
@@ -81,7 +84,6 @@ class Command(BaseCommand):
         # Get QuerySet of ProductSections to process
         # If QuerySet is too large, may need to use iterator() to disable QuerySet caching
         if vectorize_in_docker:
-            # TODO handle if agency = "all"
             sections = ProductSection.objects.filter(label_product__drug_label__source=agency).all()
             self.total_sections = sections.count()
 
@@ -104,13 +106,13 @@ class Command(BaseCommand):
         # Only try to do this if we haven't already imported vectors from the file
         # TODO use bulk API for ingest
         if (vector_filename or vectorize_in_docker) and elasticingest:
+            logger.info("Ingesting vectors into Elasticsearch")
             es = get_client()
             # Only ingest ProductSections with existing vector representations
-            # TODO handle all agencies case
             sections_w_vectors = ProductSection.objects.filter(
                 label_product__drug_label__source=agency
             ).filter(bert_vector__isnull=False)
-            for section in sections_w_vectors:
+            for section in tqdm(sections_w_vectors):
                 es.index(index="productsection", document=section.as_search_document, id=section.id)
 
         # Results - not parallelized - containerized with 6CPU / 16GB RAM, 4GB for ES and 1GB for Kibana so ~11GB for Django ...
