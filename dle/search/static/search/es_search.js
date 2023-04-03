@@ -29,23 +29,6 @@ const sk = new Searchkit({
     },
     }, { debug: true })
 
-//   const res = await request
-//     .query("rash")
-//     .execute({
-//         facets: true,
-//         hits: {
-//             size: 10,
-//             from: 0
-//         }
-//     })
-
-client = SearchkitInstantsearchClient(sk)
-
-const search = instantsearch({
-    indexName: "productsection",
-    searchClient: client
-});
-
 async function vectorizeText(query){
     const response = await fetch("http://localhost:8000/api/v1/vectorize", {
         method: "POST",
@@ -58,36 +41,59 @@ async function vectorizeText(query){
     return vector;
 }
 
-// const results = await client.handleRequest(req.body, {
-//     hooks: {
-//         beforeSearch: async (searchRequests) => {
-//         const [uiRequest, ...restRequests] = searchRequests
-    
-//         // get an image embedding from the query text
-//         // const imageEmbedding = await getImageEmbeddingFromQueryText(uiRequest.params.query)
-//         const textVector = await vectorizeText(uiRequest.params.query)
-    
-//         // extends the query to do a hybrid search with KNN search and text search
-//         // https://www.elastic.co/guide/en/elasticsearch/reference/current/knn-search.html
-//         return [
-//             {
-//             ...uiRequest,
-//             body: {
-//                 ...uiRequest.body,
-//                 "knn": {
-//                 "field": "image-vector",
-//                 "query_vector": textVector,
-//                 "k": 10,
-//                 "num_candidates": 100
-//                 },
-//             },
-//             },
-//             restRequests,
-//         ];
+// client = SearchkitInstantsearchClient(sk);
+client = SearchkitInstantsearchClient(sk, {
+    hooks: {
+        beforeSearch: async (searchRequests) => {
+            const [uiRequest, ...restRequests] = searchRequests
+            console.log(searchRequests)
+            console.log(uiRequest.body)
+            console.log(uiRequest.request.params.query)
+            console.log(restRequests)
+
+            res = [
+                {
+                    ...uiRequest,
+                    body: {
+                        ...uiRequest.body,
+                    },
+                }
+            ];
+
+            if(restRequests.length > 0){
+                res.push(restRequests)
+            }
         
-//         },
-//     }
-// });
+            // extends the query to do a hybrid search with KNN search and text search
+            // https://www.elastic.co/guide/en/elasticsearch/reference/current/knn-search.html
+            // if there's a query, get an embedding for it from the vectorize API endpoint
+            if(uiRequest.request.params.query){
+                console.log("vectorizing");
+                const textVector = await vectorizeText(uiRequest.request.params.query);
+                // console.log(textVector)
+                if(textVector.status=="Success"){
+                    // Add KNN to request
+                    console.log(typeof(textVector.vector));
+                    res[0].body["knn"] = {
+                        "field": "text_embedding",
+                        "query_vector": textVector.vector,
+                        "k": 10,
+                        "num_candidates": 100
+                    }
+                } else {
+                    console.log("vectorization failed, proceeding without KNN")
+                }
+            }
+
+            return res;
+        }
+    }
+})
+
+const search = instantsearch({
+    indexName: "productsection",
+    searchClient: client
+});
 
 search.addWidgets([
     instantsearch.widgets.searchBox({
