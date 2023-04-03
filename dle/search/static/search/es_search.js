@@ -39,6 +39,7 @@
           instantsearch.widgets.searchBox({
               queryHook(query, search) {
                   globalSearchTerm = query;
+                  search(query);
               },
               container: "#searchbox"
           }),
@@ -68,12 +69,19 @@
               container: "#hits",
               templates: {
                   item(hit, { html, components }) {
+                      var singleItemUrl = '';
+                      if (globalSearchTerm == '') {
+                        // no search term, no highlighting or we will error
+                        singleItemUrl = `../data/single_label_view/${hit.label_product_id}`;
+                      } else {
+                        singleItemUrl = `../data/single_label_view/${hit.label_product_id}, ${globalSearchTerm}`;
+                      }
                       return html`
                       <h2>
                           ${components.Highlight({ attribute: 'drug_label_product_name', hit })}
                       </h2>
                       <h3>
-                          Generic Name: <a href="../data/single_label_view/${hit.label_product_id}, ${globalSearchTerm}">${components.Highlight({ attribute: 'drug_label_generic_name', hit })}</a>
+                          Generic Name: <a href="${singleItemUrl}">${components.Highlight({ attribute: 'drug_label_generic_name', hit })}</a>
                       </h3>
                       <h3>
                           Section: ${components.Highlight({ attribute: 'section_name', hit })}
