@@ -35,6 +35,7 @@ STATIC_URL = "/static/"
 # Hosts and CIDR (AWS subnets)
 try:
     ALLOWED_HOSTS = [
+        "*",
         "druglabelexplorer.org",
         "www.druglabelexplorer.org",
         "127.0.0.1",
@@ -42,7 +43,7 @@ try:
         "testserver",
     ] + env.list("ALLOWED_HOSTS")
 except ImproperlyConfigured:
-    ALLOWED_HOSTS = ["localhost", "0.0.0.0", "127.0.0.1"]
+    ALLOWED_HOSTS = ["*", "localhost", "0.0.0.0", "127.0.0.1"]
 try:
     ALLOWED_CIDR_NETS = env.list("ALLOWED_CIDR_NETS")
     print(f"ALLOWED_CIDR_NETS: {ALLOWED_CIDR_NETS}")
