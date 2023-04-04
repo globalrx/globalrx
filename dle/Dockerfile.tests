@@ -23,7 +23,15 @@ COPY requirements-dev.txt /app
 RUN pip install -r requirements-dev.txt
 
 # Setup app
-COPY entrypoint /app
+# Previously was using a volume like local dev since we already checked out the whole repo,
+# but tests were crashing (ValueError: Path /github_workspace/api/bert_models/S-PubMedBert-MS-MARCO not found)
+# For some reason it was hitting the Django setup before the entrypoint ran, or the entrypoint was not running.
+# Now copying everything and trying to load the model within the Dockerfile
+COPY . /app
+# Can't use Django management commands because they require .env
+# Maybe we eventually split out settings into settings/base.py, settings/test.py etc
+# For now, separate script for this ...
+RUN python3 /app/api/bert_models/load.py
 
 EXPOSE 8000 5000
 

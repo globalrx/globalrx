@@ -26,11 +26,8 @@ services:
       ELASTIC_PASSWORD: fakethisisrequiredfordjangotostart
       ELASTICSEARCH_USER: elastic_also_required
       USE_BERT: "True"
-
     ports:
       - "8000:8000"
-    volumes:
-      - .:/app
 
   postgres:
     hostname: postgres
