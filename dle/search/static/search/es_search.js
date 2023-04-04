@@ -73,7 +73,8 @@ client = SearchkitInstantsearchClient(sk, {
 
 const search = instantsearch({
     indexName: "productsection",
-    searchClient: client
+    searchClient: client,
+    routing: true
 });
 
 search.addWidgets([
