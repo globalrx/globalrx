@@ -26,6 +26,7 @@ services:
       ELASTIC_PASSWORD: fakethisisrequiredfordjangotostart
       ELASTICSEARCH_USER: elastic_also_required
       USE_BERT: "True"
+      TESTS: "True"
     ports:
       - "8000:8000"
 
