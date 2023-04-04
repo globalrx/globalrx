@@ -84,21 +84,13 @@
                         singleItemUrl = `../data/single_label_view/${hit.label_product_id}, ${globalSearchTerm}`;
                       }
                       return html`
-                      <h2>
-                          ${components.Highlight({ attribute: 'drug_label_product_name', hit })}
-                      </h2>
-                      <h3>
-                          Generic Name: <a href="${singleItemUrl}">${components.Highlight({ attribute: 'drug_label_generic_name', hit })}</a>
-                      </h3>
-                      <h3>
-                          Section: ${components.Highlight({ attribute: 'section_name', hit })}
-                      </h3>
-                      <ul>
-                          <li>Source: ${hit.drug_label_source}</li>
-                          <li>Version Date: ${hit.drug_label_version_date}</li>
-                          <li>Product Number: ${hit.drug_label_product_number}</li>
-                          <li>Link: <a href="${hit.drug_label_link}">${hit.drug_label_link}</a></li>
-                      </ul>
+                      ${components.Highlight({ attribute: 'drug_label_product_name', hit })} <br />
+                      <a href="${singleItemUrl}">${components.Highlight({ attribute: 'drug_label_generic_name', hit })}</a> <br />
+                      ${components.Highlight({ attribute: 'section_name', hit })} <br />
+                      Source: ${hit.drug_label_source}<br />
+                      Version Date: ${hit.drug_label_version_date}<br />
+                      Product Number: ${hit.drug_label_product_number}<br />
+                      Link: <a href="${hit.drug_label_link}">${hit.drug_label_link}</a><br />
                       <p>${components.Snippet({ attribute: 'section_text', hit })}</p>
                       `;
                   }
