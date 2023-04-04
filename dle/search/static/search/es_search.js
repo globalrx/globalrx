@@ -3,7 +3,7 @@
 // Basic auth with username/password is not supported - bug: see https://github.com/searchkit/searchkit/issues/1235
 const sk = new Searchkit({
     connection: {
-        host: "http://localhost:8000/api/v1/searchkit", // TODO remove hardcoding for deployment
+        host: ELASTIC_HOST, // Set by the Django template in which this file is embedded
     },
     search_settings: {
         highlight_attributes: ["section_name", "drug_label_product_name", "drug_label_generic_name"],

@@ -35,5 +35,10 @@
 
 {% block footer_scripts %}
 {% load static %}
+
+{{ ELASTIC_HOST|json_script:"ELASTIC_HOST" }}
+<script>
+  const ELASTIC_HOST = JSON.parse(document.getElementById('ELASTIC_HOST').textContent);
+</script>
 <script type="text/javascript" src="{% static 'search/es_search.js' %}"></script>
 {% endblock %}
