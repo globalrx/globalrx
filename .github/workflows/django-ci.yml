@@ -25,4 +25,3 @@ jobs:
           service: django
           command: run-tests.sh
           workdir: dle
-          entrypoint: entrypoint
