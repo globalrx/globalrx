@@ -50,7 +50,13 @@ client = SearchkitInstantsearchClient(sk, {
         beforeSearch: async (searchRequests) => {
             console.log(searchRequests)
             const [uiRequest] = searchRequests
-            const vectorizationRes = await vectorizeText(uiRequest.request.params.query);
+            
+            query = uiRequest.request.params.query
+            if(!query){
+                return searchRequests;
+            }
+
+            const vectorizationRes = await vectorizeText(query);
             return searchRequests.map((sr) => {
                 return {
                     ...sr,
