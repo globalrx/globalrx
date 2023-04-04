@@ -49,7 +49,6 @@ async function vectorizeText(query){
 client = SearchkitInstantsearchClient(sk, {
     hooks: {
         beforeSearch: async (searchRequests) => {
-            console.log(searchRequests)
             const [uiRequest] = searchRequests
             
             query = uiRequest.request.params.query

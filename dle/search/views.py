@@ -88,5 +88,8 @@ def list_search_results_impl(request: HttpRequest) -> HttpResponse:
 
 def es_search(request: HttpRequest) -> HttpResponse:
     """Search results list view"""
-    context = {"ELASTIC_HOST": reverse("api:searchkit_root")}
+    context = {
+        "ELASTIC_HOST": reverse("api:searchkit_root"),
+        "VECTORIZE_SERVICE": reverse("api:vectorize"),
+    }
     return render(request, "search/elastic/search.html", context=context)
