@@ -69,7 +69,7 @@
           instantsearch.widgets.menuSelect({
               container: "#drug-label-generic-name-filter",
               attribute: "drug_label_generic_name",
-              fiekd: "drug_label_generic_name.keyword",
+              field: "drug_label_generic_name.keyword",
               limit: 100
           }),
           instantsearch.widgets.hits({
