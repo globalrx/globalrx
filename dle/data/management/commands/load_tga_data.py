@@ -47,6 +47,7 @@ OTHER_FORMATTED_SECTIONS = [
     r"^NAME AND ADDRESS OF THE SPONSOR",
     r"^POISON SCHEDULE OF THE MEDICINE",
     r"^.*INCLUSION IN THE AUSTRALIAN.*",
+    r"^DATE OF MOST RECENT AMENDMENT",
 ]
 
 
@@ -134,14 +135,13 @@ class Command(BaseCommand):
             # Iterate all the products in the table
             for row in rows:
                 try:
-                    dl = self.get_drug_label_from_row(soup, row)
+                    dl, label_text = self.get_drug_label_from_row(soup, row, cookies)
                     logger.debug(repr(dl))
                     # dl.link is url of pdf
                     # for now, assume only one LabelProduct per DrugLabel
                     lp = LabelProduct(drug_label=dl)
                     lp.save()
-                    dl.raw_text = self.get_and_parse_pdf(dl.link, lp, cookies)
-                    dl.save()
+                    self.save_product_sections(lp, label_text)
                     self.num_drug_labels_parsed += 1
                 except IntegrityError as e:
                     logger.warning(self.style.WARNING("Label already in db"))
@@ -158,7 +158,17 @@ class Command(BaseCommand):
         logger.info(self.style.SUCCESS("process complete"))
         return
 
-    def get_drug_label_from_row(self, soup, row):
+    def convert_date_string(self, date_string):
+        for date_format in ("%d %B %Y", "%d %b %Y", "%d/%m/%Y"):
+            try:
+                dt_obj = datetime.datetime.strptime(date_string, date_format)
+                converted_string = dt_obj.strftime("%Y-%m-%d")
+                return converted_string
+            except ValueError:
+                pass
+        return ""
+
+    def get_drug_label_from_row(self, soup, row, cookies):
         dl = DrugLabel()  # empty object to populate as we go
         dl.source = "TGA"
 
@@ -167,24 +177,43 @@ class Command(BaseCommand):
         dl.product_name = columns[0].text.strip()
         # pdf link is located at the second column
         dl.link = TGA_BASE_URL + columns[1].find("a")["href"]
-        dl.source_product_number = columns[1].find("a")[
-            "target"
-        ]  # TODO: what is this product number?
+        dl.source_product_number = columns[1].find("a")["target"]
         # active ingredient(s) at the third column
         dl.generic_name = columns[2].text.strip()
-        # get version date from the footer
-        footer = soup.find("div", {"class": "Footer"})
-        date_str_key = "Last updated:"
-        entry = footer.find_next(string=re.compile(date_str_key))
-        entry = entry.strip()
-        sub_str = entry[len(date_str_key) :].strip()
-        # parse sub_str into date, from DD M YYYY to: YYYY-MM-DD
-        dt_obj = datetime.datetime.strptime(sub_str, "%d %B %Y")
-        str = dt_obj.strftime("%Y-%m-%d")
-        dl.version_date = str
+
+        # get version date from the pdf
+        dl.raw_text, label_text = self.get_and_parse_pdf(dl.link, dl.source_product_number, cookies)
+        dl.version_date = ""
+        date_string = ""
+        # First to look for date of revision, if it exists and contains a valid date, then store that date
+        # Otherwise look for date of first approval, and store that date if it's available
+        if "Date Of Revision" in label_text.keys():
+            date_string = label_text["Date Of Revision"][0].split("\n")[0]
+            dl.version_date = self.convert_date_string(date_string)
+
+        if dl.version_date == "" and "Date Of First Approval" in label_text.keys():
+            date_string = label_text["Date Of First Approval"][0].split("\n")[0]
+            dl.version_date = self.convert_date_string(date_string)
+
+        if dl.version_date == "" and "Date Of Most Recent Amendment" in label_text.keys():
+            date_string = label_text["Date Of Most Recent Amendment"][0].split("\n")[0]
+            dl.version_date = self.convert_date_string(date_string)
+
+        # Raise an error if the version date is still empty
+        if dl.version_date == "":
+            raise AttributeError(f"Failed to parse for version date ({date_string}) from {dl.link}")
 
         dl.save()
-        return dl
+        return dl, label_text
+
+    def save_product_sections(self, lp, label_text):
+        for index, key in enumerate(label_text):
+            text_block = ""
+            # label_text[key] is an array of text. Convert it to a block of text
+            for s in label_text[key]:
+                text_block += s
+            ps = ProductSection(label_product=lp, section_name=key, section_text=text_block)
+            ps.save()
 
     def get_backoff_time(self, tries=5):
         """Get an amount of time to backoff. Starts with no backoff.
@@ -196,7 +225,7 @@ class Command(BaseCommand):
         for i in range(tries - 1):
             yield 2**i + random.uniform(0, 1)
 
-    def get_and_parse_pdf(self, pdf_url, lp, cookies):
+    def get_and_parse_pdf(self, pdf_url, source_product_number, cookies):
         # have a backoff time for pulling the pdf from the website
         for t in self.get_backoff_time(5):
             try:
@@ -218,13 +247,13 @@ class Command(BaseCommand):
         )
         logger.info(f"saved {pdf_url} file to: {filename}")
         tga_file = settings.MEDIA_ROOT / filename
-        raw_text = self.process_tga_pdf_file(tga_file, lp, pdf_url)
+        raw_text, label_text = self.process_tga_pdf_file(tga_file, source_product_number, pdf_url)
         # delete the file when done
         default_storage.delete(filename)
 
         logger.info(f"Parsed {pdf_url}")
 
-        return raw_text
+        return raw_text, label_text
 
     def get_pdf_sections_with_format(self, text, section_format):
         idx, headers, sections = [], [], []
@@ -248,8 +277,8 @@ class Command(BaseCommand):
     centers = [
         "Clinical Particulars",
         "Contraindications",
-        "Date Of First Authorisation/Renewal Of The Authorisation",
-        "Date Of Revision Of The Text",
+        "Date Of First Approval",
+        "Date Of Revision",
         "Effects On Ability To Drive And Use Machines",
         "Fertility, Pregnancy And Lactation",
         "Incompatibilities",
@@ -283,6 +312,8 @@ class Command(BaseCommand):
         "Interaction With Other Medicines",
         "Name and address of the sponsor",
         "Correction to the Medicine Schedule",
+        "Dosage and Administration",
+        "Date Of Most Recent Amendment",
     ]
     # note: maybe we should manually merge these pairs:
     #   FERTILITY, PREGNANCY AND LACTATION
@@ -303,27 +334,27 @@ class Command(BaseCommand):
         else:
             return self.centers[ix]
 
-    def process_tga_pdf_file(self, tga_file, lp, pdf_url=""):
-        text = []
+    def process_tga_pdf_file(self, tga_file, source_product_number, pdf_url=""):
+        raw_text = []
+        label_text = {}  # next level = product page w/ metadata
 
         try:
-            text = read_pdf(tga_file, no_annex=False)
+            raw_text = read_pdf(tga_file, no_annex=False)
             info = {}
-            product_code = lp.drug_label.source_product_number
+            product_code = source_product_number
             # row = self.df[self.df["Product number"] == product_code]
             # info["metadata"] = row.iloc[0].apply(str).to_dict()
 
-            label_text = {}  # next level = product page w/ metadata
             headers, sections = [], []
 
-            headers, sections = get_pdf_sections(text, pattern=r"^[0-9]+\.?[0-9]*\s+[A-Z].*")
+            headers, sections = get_pdf_sections(raw_text, pattern=r"^[0-9]+\.?[0-9]*\s+[A-Z].*")
 
             # With the above method, it should at least find 20 sections, if less than that,
             #  then parse it with other method
             if len(headers) < 20:
                 logger.info("Failed to parse. Using another method...")
                 headers, sections = self.get_pdf_sections_with_format(
-                    text, OTHER_FORMATTED_SECTIONS
+                    raw_text, OTHER_FORMATTED_SECTIONS
                 )
                 if len(headers) == 0:
                     raise Exception("Failed to parse pdf with both methods")
@@ -336,14 +367,6 @@ class Command(BaseCommand):
                     else:
                         label_text[header].append(s)
 
-            for index, key in enumerate(label_text):
-                text_block = ""
-                # label_text[key] is an array of text. Convert it to a block of text
-                for s in label_text[key]:
-                    text_block += s
-                ps = ProductSection(label_product=lp, section_name=key, section_text=text_block)
-                ps.save()
-
             info["Label Text"] = label_text
             self.records[product_code] = info
         except Exception as e:
@@ -351,7 +374,7 @@ class Command(BaseCommand):
             logger.error(self.style.ERROR(f"Failed to process {tga_file}, url = {pdf_url}"))
             self.error_urls[pdf_url] = True
 
-        return text
+        return raw_text, label_text
 
     def get_tga_pi_urls(self):
         """

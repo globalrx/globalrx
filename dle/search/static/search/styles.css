@@ -1,7 +1,7 @@
 
 header {
     box-shadow: 0px 2px 4px  rgba(0,0,0,.5);
-    background-color: #0069D7;
+    background-color: #1f8ecd;
     height: 80px;
     position: fixed;
     top: 0;
@@ -93,6 +93,7 @@ ul.nav li {
   }**/
   
   .ais-Hits-item {
+    width: 95% !important;
     margin-bottom: 1em;
   }
   
@@ -108,4 +109,8 @@ ul.nav li {
     color: #888;
     font-size: 14px;
     margin-bottom: 0.5em;
+  }
+
+  .ais-HitsPerPage-select {
+    width: 100%;
   }
