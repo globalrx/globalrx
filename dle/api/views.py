@@ -34,5 +34,9 @@ def vectorize(request: HttpRequest) -> JsonResponse:
         if len(vector) == 768:
             status = "Success"
             res["vector"] = vector
+        else:
+            res["vector"] = []
+    else:
+        res["vector"] = []
     res["status"] = status
     return JsonResponse(res)
