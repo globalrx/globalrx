@@ -12,20 +12,23 @@
           search_attributes: ["drug_label_product_name", "section_name", "section_text", "drug_label_generic_name"],
           result_attributes: ["id", "label_product_id", "section_name", "section_text", "drug_label_product_name", "drug_label_generic_name", "drug_label_source", "drug_label_link", "drug_label_version_date", "drug_label_product_number"],
           facet_attributes: [
-              "drug_label_source",
-              {
-                  field: "section_name.keyword",
-                  type: "string",
-                  attribute: "section_name",
-              }, {
-                  field: "drug_label_product_name.keyword",
-                  type: "string",
-                  attribute: "drug_label_product_name",
-              }, {
-                  field: "drug_label_generic_name.keyword",
-                  type: "string",
-                  attribute: "drug_label_generic_name",
-              }
+            {
+              field: "drug_label_source.keyword",
+              type: "string",
+              attribute: "drug_label_source",
+            }, {
+                field: "section_name.keyword",
+                type: "string",
+                attribute: "section_name",
+            }, {
+                field: "drug_label_product_name.keyword",
+                type: "string",
+                attribute: "drug_label_product_name",
+            }, {
+                field: "drug_label_generic_name.keyword",
+                type: "string",
+                attribute: "drug_label_generic_name",
+            }
           ],
         }
       })
@@ -49,20 +52,24 @@
           instantsearch.widgets.menuSelect({
               container: "#section-name-filter",
               attribute: "section_name",
+              field: "section_name.keyword",
               limit: 100
           }),
           instantsearch.widgets.refinementList({
               container: "#drug-label-source-filter",
-              attribute: "drug_label_source"
+              attribute: "drug_label_source",
+              field: "drug_label_source.keyword",
           }),
           instantsearch.widgets.menuSelect({
               container: "#drug-label-product-name-filter",
               attribute: "drug_label_product_name",
+              field: "drug_label_product_name.keyword",
               limit: 100
           }),
           instantsearch.widgets.menuSelect({
               container: "#drug-label-generic-name-filter",
               attribute: "drug_label_generic_name",
+              field: "drug_label_generic_name.keyword",
               limit: 100
           }),
           instantsearch.widgets.hits({

@@ -110,3 +110,7 @@ ul.nav li {
     font-size: 14px;
     margin-bottom: 0.5em;
   }
+
+  .ais-HitsPerPage-select {
+    width: 100%;
+  }
