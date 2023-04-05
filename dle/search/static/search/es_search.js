@@ -10,7 +10,7 @@
           highlight_attributes: ["section_name", "drug_label_product_name", "drug_label_generic_name"],
           snippet_attributes: ["section_text"],
           search_attributes: ["drug_label_product_name", "section_name", "section_text", "drug_label_generic_name"],
-          result_attributes: ["id", "label_product_id", "section_name", "section_text", "drug_label_product_name", "drug_label_generic_name", "drug_label_source", "drug_label_link", "drug_label_version_date", "drug_label_product_number"],
+          result_attributes: ["id", "label_product_id", "section_name", "section_text", "drug_label_product_name", "drug_label_generic_name", "drug_label_source", "drug_label_link", "drug_label_version_date", "drug_label_product_number", "drug_label_id"],
           facet_attributes: [
             {
               field: "drug_label_source.keyword",
@@ -122,42 +122,34 @@ search.addWidgets([
                       var singleItemUrl = '';
                       if (globalSearchTerm == '') {
                         // no search term, no highlighting or we will error
-                        singleItemUrl = `../data/single_label_view/${hit.label_product_id}`;
+                        singleItemUrl = `../data/single_label_view/${hit.drug_label_id}`;
                       } else {
-                        singleItemUrl = `../data/single_label_view/${hit.label_product_id}, ${globalSearchTerm}`;
+                        singleItemUrl = `../data/single_label_view/${hit.drug_label_id}, ${globalSearchTerm}`;
                       }
-                return html`
-                <h2>
-                    ${components.Highlight({ attribute: 'drug_label_product_name', hit })}
-                </h2>
-                <h3>
-                    Generic Name: <a href="${singleItemUrl}">${components.Highlight({ attribute: 'drug_label_generic_name', hit })}</a>
-                </h3>
-                <h3>
-                    Section: ${components.Highlight({ attribute: 'section_name', hit })}
-                </h3>
-                <ul>
-                    <li>Source: ${hit.drug_label_source}</li>
-                    <li>Version Date: ${hit.drug_label_version_date}</li>
-                    <li>Product Number: ${hit.drug_label_product_number}</li>
-                    <li>Link: <a href="${hit.drug_label_link}">${hit.drug_label_link}</a></li>
-                </ul>
-                <p>${components.Snippet({ attribute: 'section_text', hit })}</p>
-                `;
-            }
-        }
-    }),
-    instantsearch.widgets.pagination({
-        container: "#pagination"
-    }),
-    instantsearch.widgets.hitsPerPage({
-        container: '#hits-per-page',
-        items: [
-            { label: '10 hits per page', value: 10, default: true },
-            { label: '20 hits per page', value: 20 },
-            { label: '50 hits per page', value: 50 }
-        ],
-    })
-]);
-
-search.start();
+                      return html`
+                      <a href="${singleItemUrl}">${components.Highlight({ attribute: 'drug_label_product_name', hit })}</a> <br />
+                      ${components.Highlight({ attribute: 'drug_label_generic_name', hit })}<br />
+                      ${components.Highlight({ attribute: 'section_name', hit })} <br />
+                      Source: ${hit.drug_label_source}<br />
+                      Version Date: ${hit.drug_label_version_date}<br />
+                      Product Number: ${hit.drug_label_product_number}<br />
+                      Link: <a href="${hit.drug_label_link}">${hit.drug_label_link}</a><br />
+                      <p>${components.Snippet({ attribute: 'section_text', hit })}</p>
+                      `;
+                  }
+              }
+          }),
+          instantsearch.widgets.pagination({
+              container: "#pagination"
+          }),
+          instantsearch.widgets.hitsPerPage({
+              container: '#hits-per-page',
+              items: [
+                  { label: '10 hits per page', value: 10, default: true },
+                  { label: '20 hits per page', value: 20 },
+                  { label: '50 hits per page', value: 50 }
+              ],
+          })
+      ]);
+  
+      search.start();

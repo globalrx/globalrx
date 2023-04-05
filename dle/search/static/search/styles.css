@@ -113,4 +113,13 @@ ul.nav li {
 
   .ais-HitsPerPage-select {
     width: 100%;
+    margin-bottom: 1rem;
+  }
+
+  .ais-MenuSelect-select {
+    margin-bottom: 1rem;
+  }
+
+  .ais-RefinementList-checkbox {
+    margin-right: .5rem;
   }
