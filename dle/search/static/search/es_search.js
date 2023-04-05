@@ -35,7 +35,8 @@
   
       const search = instantsearch({
         indexName: "productsection",
-        searchClient: SearchkitInstantsearchClient(sk)
+        searchClient: SearchkitInstantsearchClient(sk),
+        routing: true,
       });
   
       search.addWidgets([
@@ -44,7 +45,7 @@
                   globalSearchTerm = query;
                   search(query);
               },
-              container: "#searchbox"
+              container: "#searchbox",
           }),
           instantsearch.widgets.currentRefinements({
               container: "#current-refinements"
@@ -84,8 +85,8 @@
                         singleItemUrl = `../data/single_label_view/${hit.label_product_id}, ${globalSearchTerm}`;
                       }
                       return html`
-                      ${components.Highlight({ attribute: 'drug_label_product_name', hit })} <br />
-                      <a href="${singleItemUrl}">${components.Highlight({ attribute: 'drug_label_generic_name', hit })}</a> <br />
+                      <a href="${singleItemUrl}">${components.Highlight({ attribute: 'drug_label_product_name', hit })}</a> <br />
+                      ${components.Highlight({ attribute: 'drug_label_generic_name', hit })}<br />
                       ${components.Highlight({ attribute: 'section_name', hit })} <br />
                       Source: ${hit.drug_label_source}<br />
                       Version Date: ${hit.drug_label_version_date}<br />
