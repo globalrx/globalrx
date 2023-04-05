@@ -1,10 +1,10 @@
-    /* global instantsearch algoliasearch */
+/* global instantsearch algoliasearch */
 
     // Basic auth with username/password is not supported - bug: see https://github.com/searchkit/searchkit/issues/1235
     var globalSearchTerm = '';
     const sk = new Searchkit({
         connection: {
-          host: "http://localhost:8000/api/v1/searchkit", // TODO remove hardcoding for deployment
+            host: ELASTIC_HOST, // Set by the Django template in which this file is embedded
         },
         search_settings: {
           highlight_attributes: ["section_name", "drug_label_product_name", "drug_label_generic_name"],
@@ -31,52 +31,94 @@
             }
           ],
         }
-      })
-  
-      const search = instantsearch({
-        indexName: "productsection",
-        searchClient: SearchkitInstantsearchClient(sk),
-        routing: true,
-      });
-  
-      search.addWidgets([
-          instantsearch.widgets.searchBox({
-              queryHook(query, search) {
-                  globalSearchTerm = query;
-                  search(query);
-              },
-              container: "#searchbox",
-          }),
-          instantsearch.widgets.currentRefinements({
-              container: "#current-refinements"
-          }),
-          instantsearch.widgets.menuSelect({
-              container: "#section-name-filter",
-              attribute: "section_name",
-              field: "section_name.keyword",
-              limit: 100
-          }),
-          instantsearch.widgets.refinementList({
-              container: "#drug-label-source-filter",
-              attribute: "drug_label_source",
+    }
+)
+
+async function vectorizeText(query){
+    const response = await fetch("http://localhost:8000/api/v1/vectorize", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ "query": query })
+    })
+    const vector = await response.json();
+    return vector;
+}
+
+client = SearchkitInstantsearchClient(sk, {
+    hooks: {
+        beforeSearch: async (searchRequests) => {
+            const [uiRequest] = searchRequests
+            
+            query = uiRequest.request.params.query
+            if(!query){
+                return searchRequests;
+            }
+
+            const vectorizationRes = await vectorizeText(query);
+            return searchRequests.map((sr) => {
+                return {
+                    ...sr,
+                    body: {
+                        ...sr.body,
+                        knn: {
+                            "field": "text_embedding",
+                            "query_vector": vectorizationRes.vector,
+                            "k": 10,
+                            "num_candidates": 100
+                        }
+                    }
+                }
+            })
+        }
+    }
+})
+
+const search = instantsearch({
+    indexName: "productsection",
+    searchClient: client,
+    routing: true
+});
+
+search.addWidgets([
+    instantsearch.widgets.searchBox({
+        queryHook(query, search) {
+            globalSearchTerm = query;
+            search(query);
+        },
+        container: "#searchbox"
+    }),
+    instantsearch.widgets.currentRefinements({
+        container: "#current-refinements"
+    }),
+    instantsearch.widgets.menuSelect({
+        container: "#section-name-filter",
+        attribute: "section_name",
+        field: "section_name.keyword",
+        limit: 100
+    }),
+    instantsearch.widgets.refinementList({
+        container: "#drug-label-source-filter",
+        attribute: "drug_label_source",
               field: "drug_label_source.keyword",
-          }),
-          instantsearch.widgets.menuSelect({
-              container: "#drug-label-product-name-filter",
-              attribute: "drug_label_product_name",
+    }),
+    instantsearch.widgets.menuSelect({
+        container: "#drug-label-product-name-filter",
+        attribute: "drug_label_product_name",
               field: "drug_label_product_name.keyword",
-              limit: 100
-          }),
-          instantsearch.widgets.menuSelect({
-              container: "#drug-label-generic-name-filter",
-              attribute: "drug_label_generic_name",
+        limit: 100
+    }),
+    instantsearch.widgets.menuSelect({
+        container: "#drug-label-generic-name-filter",
+        attribute: "drug_label_generic_name",
               field: "drug_label_generic_name.keyword",
-              limit: 100
-          }),
-          instantsearch.widgets.hits({
-              container: "#hits",
-              templates: {
-                  item(hit, { html, components }) {
+        limit: 100
+    }),
+    instantsearch.widgets.hits({
+        container: "#hits",
+        templates: {
+            item(hit, { html, components }) {
                       var singleItemUrl = '';
                       if (globalSearchTerm == '') {
                         // no search term, no highlighting or we will error

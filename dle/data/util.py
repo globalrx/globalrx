@@ -1,4 +1,8 @@
+# import json
+import math
 import re
+
+import numpy as np
 
 
 def highlight_query_string(text: str, qstring: str) -> str:
@@ -83,3 +87,24 @@ def reformat_html_tags_in_raw_text(text: str) -> str:
     text = text.replace("</linkhtml>", "</a>")
 
     return text
+
+
+def magnitude(vector):
+    """Compute the magnitude of a vector so we can normalize to unit length"""
+    # See: https://github.com/elastic/elasticsearch/blob/main/docs/reference/mapping/types/dense-vector.asciidoc
+    return math.sqrt(sum(pow(element, 2) for element in vector))
+
+
+def compute_section_embedding(text: str, model, word_count=256, normalize=True) -> list[float]:
+    n_segments = 1 + len(text.split()) // word_count
+    vecs = np.zeros((n_segments, 768))
+    for i in range(n_segments):
+        segment = text.split()[(i) * word_count : (i + 1) * word_count]
+        vecs[i, :] = model.encode(" ".join(segment))
+    avg_vec = np.mean(vecs, axis=0)
+    if not normalize:
+        return avg_vec
+    else:
+        m = magnitude(avg_vec)
+        # return the unit length vector instead
+        return [x / m for x in avg_vec]

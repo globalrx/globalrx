@@ -66,10 +66,27 @@ if [[ ($LOAD_DJANGO_TO_ES) && ("$LOAD_DJANGO_TO_ES" = "True")]]; then
   # python3 manage.py update_search_index productsection
 
   if [[ ($USE_BERT) && ("$USE_BERT" = "True")]]; then
+    # Load the BERT model if it doesn't already exist
+    python3 manage.py load_bert_model
+
     # TODO script NLP pipeline setup
-    if [[ ($LOAD_VECTORS) && ("$LOAD_VECTORS" = "True")]]; then
-      # TODO pre-vectorize section text outside of Elastic and load
-      echo "Loading pre-vectorized texts"
+    if [[ ($LOAD_FDA_VECTORS) && ("$LOAD_FDA_VECTORS" = "True")]]; then
+      # You must have pre-vectorized texts and placed the appropriate JSON file in /media
+      echo "Starting to load FDA vectors into Django"
+      python3 manage.py vectorize --elasticingest False --agency FDA --vector_file "/app/media/fda_vectors.json"
+      echo "FDA vectors loaded!"
+    fi
+    if [[ ($LOAD_TGA_VECTORS) && ("$LOAD_TGA_VECTORS" = "True")]]; then
+      # You must have pre-vectorized texts and placed the appropriate JSON file in /media
+      echo "Starting to load TGA vectors into Django"
+      python3 manage.py vectorize --elasticingest False --agency TGA --vector_file "/app/media/tga_vectors.json"
+      echo "TGA vectors loaded!"
+    fi
+    if [[ ($LOAD_EMA_VECTORS) && ("$LOAD_EMA_VECTORS" = "True")]]; then
+      # You must have pre-vectorized texts and placed the appropriate JSON file in /media
+      echo "Starting to load FDA vectors into Django"
+      python3 manage.py vectorize --elasticingest False --agency EMA --vector_file "/app/media/ema_vectors.json"
+      echo "EMA vectors loaded!"
     fi
 
     # TODO Create automatic pipeline

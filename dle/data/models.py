@@ -1,3 +1,5 @@
+import json
+
 from django.db import models
 
 from django.contrib.postgres.indexes import GinIndex
@@ -100,6 +102,11 @@ class ProductSection(SearchDocumentMixin, models.Model):
 
     objects = ProductSectionModelManager.from_queryset(ProductSectionQuerySet)()
 
+    # bert_vector will never be accessed directly, only pre-computed, stored, and added to Elasticsearch as a dense_vector field
+    # The vectorization function produces an np.ndarray which we turn into a list and serialize with json.dumps()
+    # The resulting jsonified list is stored here, then deserialized in as_search_document() for ingest
+    bert_vector = models.TextField(blank=True, null=True)
+
     class Meta:
         indexes = (GinIndex(fields=["search_vector"]),)
 
@@ -132,10 +139,14 @@ class ProductSection(SearchDocumentMixin, models.Model):
             "drug_label_link": DrugLabel.objects.get(id=self.label_product.drug_label.id).link,
             "section_name": self.section_name,
             "section_text": self.section_text,
-            "id": self.id,
+            "id": str(self.id),
+            # "text_embedding": np.empty() if not self.bert_vector else np.array(json.loads(self.bert_vector)),
+            "text_embedding": []
+            if not self.bert_vector
+            else [float(w) for w in json.loads(self.bert_vector)],
         }
 
-    # TODO - implement?
+    # TODO - implement for partial updates?
     # def as_search_document_update(self, index, update_fields):
     #     if 'user' in update_fields:
     #         # remove so that it won't raise a ValueError

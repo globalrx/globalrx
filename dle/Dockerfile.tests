@@ -23,7 +23,6 @@ COPY requirements-dev.txt /app
 RUN pip install -r requirements-dev.txt
 
 # Setup app
-# copying over the whole app is not needed - mounted volume
 COPY entrypoint /app
 
 EXPOSE 8000 5000
