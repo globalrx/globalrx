@@ -10,7 +10,7 @@
           highlight_attributes: ["section_name", "drug_label_product_name", "drug_label_generic_name"],
           snippet_attributes: ["section_text"],
           search_attributes: ["drug_label_product_name", "section_name", "section_text", "drug_label_generic_name"],
-          result_attributes: ["id", "label_product_id", "section_name", "section_text", "drug_label_product_name", "drug_label_generic_name", "drug_label_source", "drug_label_link", "drug_label_version_date", "drug_label_product_number"],
+          result_attributes: ["id", "label_product_id", "section_name", "section_text", "drug_label_product_name", "drug_label_generic_name", "drug_label_source", "drug_label_link", "drug_label_version_date", "drug_label_product_number", "drug_label_id"],
           facet_attributes: [
             {
               field: "drug_label_source.keyword",
@@ -80,9 +80,9 @@
                       var singleItemUrl = '';
                       if (globalSearchTerm == '') {
                         // no search term, no highlighting or we will error
-                        singleItemUrl = `../data/single_label_view/${hit.label_product_id}`;
+                        singleItemUrl = `../data/single_label_view/${hit.drug_label_id}`;
                       } else {
-                        singleItemUrl = `../data/single_label_view/${hit.label_product_id}, ${globalSearchTerm}`;
+                        singleItemUrl = `../data/single_label_view/${hit.drug_label_id}, ${globalSearchTerm}`;
                       }
                       return html`
                       <a href="${singleItemUrl}">${components.Highlight({ attribute: 'drug_label_product_name', hit })}</a> <br />
