@@ -130,13 +130,13 @@ search.addWidgets([
         container: "#drug-label-product-name-filter",
         attribute: "drug_label_product_name",
         field: "drug_label_product_name.keyword",
-        limit: 100
+        limit: 10000
     }),
     instantsearch.widgets.menuSelect({
         container: "#drug-label-generic-name-filter",
         attribute: "drug_label_generic_name",
         field: "drug_label_generic_name.keyword",
-        limit: 100
+        limit: 10000
     }),
     instantsearch.widgets.hits({
         container: "#hits",
@@ -153,13 +153,13 @@ search.addWidgets([
                     singleItemUrl = `../data/single_label_view/${hit.drug_label_id}, ${globalSearchTerm}`;
                 }
                 return html `
-                      <a href="${singleItemUrl}">${components.Highlight({ attribute: 'drug_label_product_name', hit })}</a> <br />
+                      <a href="${singleItemUrl}"style='font-weight:bold'>${components.Highlight({ attribute: 'drug_label_product_name', hit })}</a> <br />
                       ${components.Highlight({ attribute: 'drug_label_generic_name', hit })}<br />
-                      ${components.Highlight({ attribute: 'section_name', hit })} <br />
+                      Section Name: ${components.Highlight({ attribute: 'section_name', hit })} <br />
                       Source: ${hit.drug_label_source}<br />
                       Version Date: ${hit.drug_label_version_date}<br />
-                      Product Number: ${hit.drug_label_product_number}<br />
-                      Link: <a href="${hit.drug_label_link}">${hit.drug_label_link}</a><br />
+                      <!-- DOESN'T EXIST IN ES YET Product Number: ${hit.drug_label_product_number}<br /> -->
+                      Source Link: <a href="${hit.drug_label_link}">${hit.drug_label_link}</a><br />
                       <p>${components.Snippet({ attribute: 'section_text', hit })}</p>
                       `;
             }
