@@ -144,3 +144,11 @@ docs/section-matching/data
 dle/api/bert_models/*
 !dle/api/bert_models/.keep
 !dle/api/bert_models/load.py
+
+# Do not track dle/static except for robots.txt and favicon.ico
+# All other static files should live in <app>/static/<app> folders
+# and will be copied to dle/static during collectstatic runs or
+# served automatically during local dev with the Django dev server
+dle/static
+!dle/static/favicon.ico
+!dle/static/robots.txt
