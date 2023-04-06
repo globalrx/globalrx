@@ -20,7 +20,7 @@ The project is containerized so that it can be run locally or deployed to a clou
     - For a first run, set `MIGRATE`, `LOAD`, and `INIT_SUPERUSER` to `True`
     - After data is loaded, set `LOAD` and `INIT_SUPERUSER` to `False`
     - If you are working on BERT model, you will need to start an Elasticsearch trial license; you can either try to set the `LICENSE` variable to `trial`, or POST this to Elasticsearch after it starts up either in Kibana: or via `curl`: `/_license/start_trial?acknowledge=true`
-    - Set USE_BERT to True to download the BERT model. Unfortunately once we include the model in `api.app` it makes the app take a lot longer to startup, but it does mean that vectorization of search terms is quite quick 
+    - The API app will run `load_bert_model` and download PubMedBERT from HuggingFace if you don't already have it. We preload the model for reuse in `api.apps.py`. Unfortunately this makes Django take a lot longer to startup, but vectorization of search terms at the `/vectorize` endpoint is pretty snappy.
 4. Run `docker compose up` to start the application. This will take a long time the first time. Steps that occur:
     - Builds the Django container from `Dockerfile.dev`
         - `python:3.10.10-slim-buster` base image
