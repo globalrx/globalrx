@@ -180,7 +180,7 @@ LOGGING = {
     },
     "root": {
         "handlers": ["console"],
-        "level": "WARNING",
+        "level": "INFO",  # TODO set to WARNING if we are in production
     },
 }
 
@@ -216,6 +216,6 @@ SEARCH_SETTINGS = {
         "never_auto_sync": [],
         # if true, then indexes must have mapping files
         "strict_validation": False,
-        "mappings_dir": "search/mappings",
+        "mappings_dir": os.path.join(BASE_DIR, "search/mappings"),
     },
 }
