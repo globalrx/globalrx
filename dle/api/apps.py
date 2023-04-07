@@ -5,13 +5,17 @@ from django.conf import settings
 
 from sentence_transformers import SentenceTransformer
 
+from api.util import load_bert_model
+
 
 class ApiConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
     name = 'api'
-    # TODO script this startup so it doesn't download multiple times]
+
+    huggingface_model_name = "pritamdeka/S-PubMedBert-MS-MARCO"
+
+    # TODO see if we can get rid of this - directly loading for Github Actions tests
     if settings.TESTS==True:
-        pubmedbert_model = SentenceTransformer("pritamdeka/S-PubMedBert-MS-MARCO")
+        pubmedbert_model = SentenceTransformer(huggingface_model_name)
     else:
-        MODEL_PATH = os.path.join(settings.NLP_MODELS, "S-PubMedBert-MS-MARCO")
-        pubmedbert_model = SentenceTransformer(MODEL_PATH)
+       pubmedbert_model = SentenceTransformer(load_bert_model(huggingface_model=huggingface_model_name))
