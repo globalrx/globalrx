@@ -25,9 +25,16 @@ jobs:
           aws-region: us-east-1
         continue-on-error: true
 
-      - name: Upload to S3
+      - name: get s3 name
         run: |
-          aws s3 sync ./cfn s3://globalrx
+              BUCKET_NAME=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy_s3 --query "Stacks[0].Outputs[0].OutputValue"`
+              echo $BUCKET_NAME
+              if [[ -n "$BUCKET_NAME" ]]
+              then
+                 echo "BUCKET_CREATED=true" >> "$GITHUB_ENV"
+              else
+                 echo "BUCKET_CREATED=false" >> "$GITHUB_ENV"
+              fi
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -35,9 +42,28 @@ jobs:
         continue-on-error: true
 
 
+      - name: create s3
+        if: env.BUCKET_CREATED == true
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: deploy_s3
+          template: https://globalrx.s3.amazonaws.com/deploy_ecr.yaml   # Pass vars to re-use in Image Push
+        continue-on-error: true
+
+        
+
+      - name: Upload to S3
+        run: |
+          aws s3 sync ./cfn s3://env.BUCKET_NAME
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: 'us-east-1'
+        continue-on-error: true
+
       - name: Push cfn to S3
         run: |
-          aws s3 sync ./cfn s3://globalrx
+          aws s3 sync ./cfn s3://env.BUCKET_NAME
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -49,7 +75,7 @@ jobs:
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
           name: test
-          template: https://globalrx.s3.amazonaws.com/deploy_ecr.yaml   # Pass vars to re-use in Image Push
+          template: https://env.BUCKET_NAME.s3.amazonaws.com/deploy_ecr.yaml   # Pass vars to re-use in Image Push
         continue-on-error: true
 
       - name: Login to Amazon ECR  # adapted from https://towardsaws.com/build-push-docker-image-to-aws-ecr-using-github-actions-8396888a8f9e
@@ -75,7 +101,7 @@ jobs:
         with:
           name: test
           capabilities: CAPABILITY_NAMED_IAM
-          template: https://globalrx.s3.amazonaws.com/deploy_main.yaml
+          template: https://env.BUCKET_NAME.s3.amazonaws.com/deploy_main.yaml
         continue-on-error: true
 
       - name: Run a multi-line script
