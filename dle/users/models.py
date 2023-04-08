@@ -26,8 +26,8 @@ class MyLabel(models.Model):
             f"is_successfully_parsed: {self.is_successfully_parsed}"
         )
 
+
 class SavedSearch(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     url = models.TextField()
     name = models.CharField(max_length=255, db_index=True)
-

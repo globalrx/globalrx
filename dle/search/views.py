@@ -8,10 +8,10 @@ from django.views.decorators.cache import cache_page
 
 from data.models import DrugLabel
 from search.models import SearchRequest
+from users.forms import SavedSearchForm
 
 from . import services as SearchService
 from .services import get_type_ahead_mapping
-from users.forms import SavedSearchForm
 
 
 # NOTE comment out cache decorators when doing development to view updates to your front-end templates.
@@ -94,7 +94,7 @@ def es_search(request: HttpRequest) -> HttpResponse:
     context = {
         "ELASTIC_HOST": reverse("api:searchkit_root"),
         "VECTORIZE_SERVICE": reverse("api:vectorize"),
-        "form": form
+        "form": form,
     }
 
     return render(request, "search/elastic/search.html", context=context)

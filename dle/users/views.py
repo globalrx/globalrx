@@ -10,8 +10,7 @@ from django.contrib.auth.decorators import login_required
 
 from data.models import DrugLabel
 
-from .forms import MyLabelForm
-from .forms import SavedSearchForm
+from .forms import MyLabelForm, SavedSearchForm
 from .models import MyLabel, SavedSearch, User
 
 
