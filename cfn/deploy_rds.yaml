@@ -23,15 +23,28 @@ Resources:
 
   globalRxDB:
     Type: AWS::RDS::DBInstance
+    DependsOn: SearchRxSubnetGroup
     Properties:
       VPCSecurityGroups:
         - !GetAtt "globalRxDBSecGroup.GroupId"
       AllocatedStorage: '60'
       DBInstanceClass: !Ref DBTypeParameter
+      DBSubnetGroupName: rds-subnet-group
       Engine: postgres
       MasterUsername: postgres
       MasterUserPassword: fghyucvsafd
     DeletionPolicy: Delete
+
+  SearchRxSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties: 
+      DBSubnetGroupDescription: subnet group for RDS
+      DBSubnetGroupName: rds-subnet-group
+          SubnetIds: 
+            - subnet-0cfa82bd41644a2c5
+            - subnet-0112d7b96d708a330
+      Tags: 
+        - Tag
 
 Outputs:
   globalRxEndpoint:
