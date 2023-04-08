@@ -74,7 +74,7 @@ jobs:
 
       - name: Push cfn to S3
         run: |
-          aws s3 sync /cfn s3://${{ env.BUCKET_NAME }}
+          aws s3 sync cfn s3://${{ env.BUCKET_NAME }}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
