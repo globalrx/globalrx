@@ -100,7 +100,7 @@ jobs:
           name: test
           capabilities: CAPABILITY_NAMED_IAM
           template: https://${{ env.BUCKET_NAME }}.s3.amazonaws.com/deploy_main.yaml
-          parameter-overrides: "S3Name=${{ secrets.BUCKET_NAME }},ImageIDParameter=${{ secrets.AMI_ID }}"
+       #   parameter-overrides: "S3Name=${{ secrets.BUCKET_NAME }},ImageIDParameter=${{ secrets.AMI_ID }}"
 
         continue-on-error: true
 
