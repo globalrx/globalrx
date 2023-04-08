@@ -8,7 +8,12 @@ Parameters:
   VPCParameter:
     Type: AWS::SSM::Parameter::Value<String>
     Default: /vpc_id
-
+  subnet1:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /public_subnet_1
+  subnet2:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /public_subnet_2
 Resources:
   globalRxDBSecGroup:
     Type: 'AWS::EC2::SecurityGroup'
@@ -19,7 +24,7 @@ Resources:
         - IpProtocol: tcp
           FromPort: '5432'
           ToPort: '5432'
-          CidrIp: 0.0.0.0/0 
+          CidrIp: 0.0.0.0/0
 
   globalRxDB:
     Type: AWS::RDS::DBInstance
@@ -41,8 +46,8 @@ Resources:
       DBSubnetGroupDescription: subnet group for RDS
       DBSubnetGroupName: rds-subnet-group
       SubnetIds: 
-        - subnet-0cfa82bd41644a2c5
-        - subnet-0112d7b96d708a330
+        - !Ref subnet1
+        - !Ref subnet2
 
   endPoint:
     Type: AWS::SSM::Parameter
