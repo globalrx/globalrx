@@ -86,18 +86,13 @@ jobs:
         continue-on-error: true
 
 
-      - name: Deploy ECR Repositories 
-        uses: aws-actions/aws-cloudformation-github-deploy@v1
-        with:
-          name: test
-          template: https://${{ env.BUCKET_NAME }}.s3.amazonaws.com/deploy_ecr.yaml   # Pass vars to re-use in Image Push
-        continue-on-error: true
+
 
 
       - name: Deploy CFN Main Template
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
-          name: test
+          name: main
           capabilities: CAPABILITY_NAMED_IAM
           template: https://${{ env.BUCKET_NAME }}.s3.amazonaws.com/deploy_main.yaml
        #   parameter-overrides: "S3Name=${{ secrets.BUCKET_NAME }},ImageIDParameter=${{ secrets.AMI_ID }}"
