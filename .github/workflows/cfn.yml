@@ -25,12 +25,6 @@ jobs:
           aws-region: us-east-1
         continue-on-error: true
 
-      - name: test 
-        uses: aws-actions/aws-cloudformation-github-deploy@v1
-        with:
-          name: test
-          template: cfn/deploy_ecr.yaml   # Pass vars to re-use in Image Push
-        continue-on-error: true
 
       - name: get s3 name
         run: |
@@ -60,7 +54,7 @@ jobs:
         
       - name: Upload to S3
         run: |
-          aws s3 sync ./cfn s3://env.BUCKET_NAME
+          aws s3 sync ./cfn s3://${{ env.BUCKET_NAME }}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -69,7 +63,7 @@ jobs:
 
       - name: Push cfn to S3
         run: |
-          aws s3 sync ./cfn s3://env.BUCKET_NAME
+          aws s3 sync ./cfn s3://${{ env.BUCKET_NAME }}
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -81,7 +75,7 @@ jobs:
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
           name: test
-          template: https://env.BUCKET_NAME.s3.amazonaws.com/deploy_ecr.yaml   # Pass vars to re-use in Image Push
+          template: https://${{ env.BUCKET_NAME }}.s3.amazonaws.com/deploy_ecr.yaml   # Pass vars to re-use in Image Push
         continue-on-error: true
 
       - name: Login to Amazon ECR  # adapted from https://towardsaws.com/build-push-docker-image-to-aws-ecr-using-github-actions-8396888a8f9e
@@ -107,7 +101,7 @@ jobs:
         with:
           name: test
           capabilities: CAPABILITY_NAMED_IAM
-          template: https://env.BUCKET_NAME.s3.amazonaws.com/deploy_main.yaml
+          template: https://${{ env.BUCKET_NAME }}.s3.amazonaws.com/deploy_main.yaml
         continue-on-error: true
 
       - name: Run a multi-line script
