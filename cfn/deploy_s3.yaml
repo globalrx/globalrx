@@ -3,5 +3,5 @@ Resources:
   globalRxBucket:
     Type: AWS::S3::Bucket
 Outputs:
-  BUCKET_NAME:
+  bucketname:
     Value: !GetAtt S3Bucket
