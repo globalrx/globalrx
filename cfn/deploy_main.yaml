@@ -57,10 +57,10 @@ Resources:
     DependsOn: NestedStackVPC
     Properties:
       TemplateURL: !Sub https://${S3Name}.s3.amazonaws.com/deploy_rds.yaml
-        VPCParameter:
-          Fn::GetAtt: 
-          - NestedStackVPC 
-          - Outputs.VPC
+      VPCParameter:
+        Fn::GetAtt: 
+        - NestedStackVPC 
+        - Outputs.VPC
 
   
   NestedStackEC2:
