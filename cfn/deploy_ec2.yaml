@@ -69,7 +69,6 @@ Resources:
             VolumeType: gp3
       SecurityGroupIds:
         - !GetAtt "globalRxSecGroup.GroupId"
-      SubnetId: "subnet-01f4190f"
       Tags:
         - Key: Name
           Value: !Ref NameParameter
