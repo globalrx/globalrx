@@ -7,12 +7,6 @@ Parameters:
       - m5.small
       - m6i.large
     Description: Default is t2.micro.
-  ImageIDParameter:
-    Type: String
-    Default: "ami-005f9685cb30f234b"
-    AllowedValues:
-      - ami-005f9685cb30f234b
-    Description: Amazon Linux AMI.
   KeyIDParameter:
     Type: String
     Default: "globalrx_sshkey"
@@ -24,14 +18,26 @@ Parameters:
     Type: String
     Default: "aeg224@g.harvard.edu"
     Description: email for django admin user
+
+
   VPCParameter:
-    Type: String
-    Default: "vpc-23074059"
-    Description: VPC ID
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /vpc_id
+
+  S3Name:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cfn_bucket
+
+  ImageIDParameter:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /ami_id
+
   DBEndpointParameter:
-    Type: String
-    Default: "asdf-globalrxdb-axodhrci4xgh.cj9gkkj3it4b.us-east-1.rds.amazonaws.com"
-    Description: DB Endpoint
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /rds_endpoint
+
+
+
   PublicKeyMaterialParameter:
     Type: String
     Default: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDel37v9xkR2BF6xyaXvSylZ7ZL5nUDynVaPPxXt7JTPVj3AMp6BWx/+YJh75lorOx+rsJJo8uwq67bnfV/BBPkRyvXDU68U2BSmg7YOxDYJH4d6tizQV3NKD0v3NSYdQYk11GJx1HOe/5Ye7YujTaF7bwoDXu45vrE2HzMZLTdDveeMl5866Q78GMOZLTvw9okjT1d/THHmXEwzAftnwir1PuEtEvrQ6QZ0iVO0hDAbSbXYeZl1g/G1qi+Z0AI+aeyshZQFzhYdWA2M5tSNe71RlVw6reBdQ+mP4vQyPI72GxWpTU8mQ65PoB/EEayaF+bQUewaC7lQ1LyygVZbS68KFbUjD03y5DMcdyWXRIjTYGaB0oB1zzQ9A6eGuEmPw4lFTkKRllfRXmAj81E9lp0Ge+eSKmRuuahckvFtDnFD2tSVvVSXnKg/WivNDyVOYVzTPEePdnCFw4EYcwB1anKnBX/0RbfBzq3Cx7S3fVYcJIEwJ66jVKeuQEpHzO9qz0="

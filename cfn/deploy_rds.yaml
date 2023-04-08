@@ -6,9 +6,8 @@ Parameters:
       - db.t4g.medium
     Description: Default is db.t4g.medium.
   VPCParameter:
-    Type: String
-    Default: "vpc-23074059"
-    Description: VPC ID
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /vpc_id
 
 Resources:
   globalRxDBSecGroup:

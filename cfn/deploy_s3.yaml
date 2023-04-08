@@ -5,3 +5,4 @@ Resources:
 Outputs:
   bucketname:
     Value: !Ref searchRxBucket
+# ADD BLOCK PUBLIC ACCESS
