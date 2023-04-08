@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  InstanceTypeParameter:
+    Type: String
+    Default: "m6i.large"
+    AllowedValues:
+      - t2.micro
+      - m5.small
+      - m6i.large
+    Description: Default is m6i.large.
+
+  KeyIDParameter:
+    Type: String
+    Default: "searchrx_key"
+  PublicKeyMaterialParameter:
+    Type: String
+    Default: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDel37v9xkR2BF6xyaXvSylZ7ZL5nUDynVaPPxXt7JTPVj3AMp6BWx/+YJh75lorOx+rsJJo8uwq67bnfV/BBPkRyvXDU68U2BSmg7YOxDYJH4d6tizQV3NKD0v3NSYdQYk11GJx1HOe/5Ye7YujTaF7bwoDXu45vrE2HzMZLTdDveeMl5866Q78GMOZLTvw9okjT1d/THHmXEwzAftnwir1PuEtEvrQ6QZ0iVO0hDAbSbXYeZl1g/G1qi+Z0AI+aeyshZQFzhYdWA2M5tSNe71RlVw6reBdQ+mP4vQyPI72GxWpTU8mQ65PoB/EEayaF+bQUewaC7lQ1LyygVZbS68KFbUjD03y5DMcdyWXRIjTYGaB0oB1zzQ9A6eGuEmPw4lFTkKRllfRXmAj81E9lp0Ge+eSKmRuuahckvFtDnFD2tSVvVSXnKg/WivNDyVOYVzTPEePdnCFw4EYcwB1anKnBX/0RbfBzq3Cx7S3fVYcJIEwJ66jVKeuQEpHzO9qz0="
+  NameParameter:
+    Type: String
+    Default: "CFN_TEST"
+    Description: Value for Name Tag
+  EmailParameter:
+    Type: String
+    Default: "aeg224@g.harvard.edu"
+    Description: email for django admin user
+  DBTypeParameter:
+    Type: String
+    Default: "db.t4g.medium"
+    AllowedValues:
+      - db.t4g.medium
+    Description: Default is db.t4g.medium.
+
+  S3Name:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cfn_bucket
+
+  ImageIDParameter:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /ami_id
+  VPCIDParameter:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /vpc_id
+
+
+Resources:
+
+  NestedStackECR:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${S3Name}.s3.amazonaws.com/deploy_ecr.yaml
+
+  NestedStackRDS:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub https://${S3Name}.s3.amazonaws.com/deploy_rds.yaml
+    Parameters:
+      VPCParameter: !Ref VPCIDParameter
+
+  
+  NestedStackEC2:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: NestedStackRDS
+    Properties:
+      TemplateURL: !Sub https://${S3Name}.s3.amazonaws.com/deploy_ec2.yaml
+      Parameters:
+        EmailParameter: !Ref EmailParameter
+        InstanceTypeParameter: !Ref InstanceTypeParameter
+        NameParameter: !Ref NameParameter
+        KeyIDParameter: !Ref KeyIDParameter
+        PublicKeyMaterialParameter: !Ref PublicKeyMaterialParameter
+        ImageIDParameter: !Ref ImageIDParameter
+        DBEndpointParameter: 
+          Fn::GetAtt: 
+          - NestedStackRDS
+          - Outputs.globalRxEndpoint
+        VPCParameter: !Ref VPCIDParameter
+

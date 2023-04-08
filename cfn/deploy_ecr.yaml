@@ -1,0 +1,20 @@
+
+Parameters:
+  RepoName:
+    Type: String
+    Default: "django"
+
+Resources:
+  Repo1:
+    Type: AWS::ECR::Repository
+    Properties: 
+      ImageScanningConfiguration: 
+        ScanOnPush: True
+      RepositoryName: !Ref RepoName
+
+  ecrRepo:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Name: ecr_repo
+      Type: String
+      Value: !Ref RepoName

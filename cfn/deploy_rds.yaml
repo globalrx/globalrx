@@ -1,0 +1,69 @@
+Parameters:
+  DBTypeParameter:
+    Type: String
+    Default: "db.t4g.medium"
+    AllowedValues:
+      - db.t4g.medium
+    Description: Default is db.t4g.medium.
+  VPCParameter:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /vpc_id
+  subnet1:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /public_subnet_1
+  subnet2:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /public_subnet_2
+
+  password:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /rds_password
+
+
+
+Resources:
+  globalRxDBSecGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Open 5432
+      VpcId: !Ref VPCParameter
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: '5432'
+          ToPort: '5432'
+          CidrIp: 0.0.0.0/0
+
+  globalRxDB:
+    Type: AWS::RDS::DBInstance
+    DependsOn: SearchRxSubnetGroup
+    Properties:
+      VPCSecurityGroups:
+        - !GetAtt "globalRxDBSecGroup.GroupId"
+      AllocatedStorage: '60'
+      DBInstanceClass: !Ref DBTypeParameter
+      DBSubnetGroupName: rds-subnet-group
+      Engine: postgres
+      MasterUsername: postgres
+      MasterUserPassword: fghyucvsafd
+    DeletionPolicy: Delete
+
+  SearchRxSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties: 
+      DBSubnetGroupDescription: subnet group for RDS
+      DBSubnetGroupName: rds-subnet-group
+      SubnetIds: 
+        - !Ref subnet1
+        - !Ref subnet2
+
+  endPoint:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Name: db_endpoint
+      Type: String
+      Value: !GetAtt globalRxDB.Endpoint.Address
+
+Outputs:
+  globalRxEndpoint:
+      Description: "DB Endpoint"
+      Value: !GetAtt globalRxDB.Endpoint.Address
