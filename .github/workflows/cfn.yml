@@ -55,7 +55,7 @@ jobs:
 
       - name: Set Bucket Name Parameter
         run: |
-          BUCKET_NAME=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-s3 --query "Stacks[0].Outputs[0].OutputValue --output text"`
+          BUCKET_NAME=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-s3 --query "Stacks[0].Outputs[0].OutputValue" --output text`
           aws ssm put-parameter --name "cfn_bucket" --type "String" --value $BUCKET_NAME --overwrite
           echo "BUCKET_NAME=$BUCKET_NAME" >> "$GITHUB_ENV"
         env:
