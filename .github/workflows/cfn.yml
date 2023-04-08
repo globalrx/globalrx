@@ -55,7 +55,7 @@ jobs:
         if: env.BUCKET_CREATED == false
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
-          name: deploy_s3
+          name: deploy-s3
           template: cfn/deploy_s3.yaml  
         continue-on-error: true
 
@@ -100,7 +100,7 @@ jobs:
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         if: env.VPC_CREATED == false
         with:
-          name: deploy_vpc
+          name: deploy-vpc
           capabilities: CAPABILITY_NAMED_IAM
           template: https://${{ env.BUCKET_NAME }}.s3.amazonaws.com/deploy_vpc.yaml
        #   parameter-overrides: "S3Name=${{ secrets.BUCKET_NAME }},ImageIDParameter=${{ secrets.AMI_ID }}"
@@ -138,7 +138,7 @@ jobs:
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         if: env.RDS_CREATED == false
         with:
-          name: deploy_rds
+          name: deploy-rds
           capabilities: CAPABILITY_NAMED_IAM
           template: https://${{ env.BUCKET_NAME }}.s3.amazonaws.com/deploy_rds.yaml
        #   parameter-overrides: "S3Name=${{ secrets.BUCKET_NAME }},ImageIDParameter=${{ secrets.AMI_ID }}"
@@ -175,7 +175,7 @@ jobs:
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         if: env.REPO_NAME == false
         with:
-          name: deploy_ecr
+          name: deploy-ecr
           capabilities: CAPABILITY_NAMED_IAM
           template: https://${{ env.BUCKET_NAME }}.s3.amazonaws.com/deploy_ecr.yaml
         continue-on-error: true
