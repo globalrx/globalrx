@@ -43,20 +43,20 @@ Resources:
   NestedStackVPC:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: "https://${S3Name}.s3.amazonaws.com/deploy_vpc.yaml"
+      TemplateURL: !Sub https://${S3Name}.s3.amazonaws.com/deploy_vpc.yaml
 
 
   NestedStackECR:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: "https://${S3Name}.s3.amazonaws.com/deploy_ecr.yaml" 
+      TemplateURL: !Sub https://${S3Name}.s3.amazonaws.com/deploy_ecr.yaml
 
 
   NestedStackRDS:
     Type: AWS::CloudFormation::Stack
     DependsOn: NestedStackVPC
     Properties:
-      TemplateURL: "https://${S3Name}.s3.amazonaws.com/deploy_rds.yaml"
+      TemplateURL: !Sub https://${S3Name}.s3.amazonaws.com/deploy_rds.yaml
 
 
   
@@ -64,7 +64,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
     DependsOn: NestedStackRDS
     Properties:
-      TemplateURL: "https://${S3Name}.s3.amazonaws.com/deploy_ec2.yaml"
+      TemplateURL: !Sub https://${S3Name}.s3.amazonaws.com/deploy_ec2.yaml
       Parameters:
         EmailParameter: !Ref EmailParameter
         InstanceTypeParameter: !Ref InstanceTypeParameter
