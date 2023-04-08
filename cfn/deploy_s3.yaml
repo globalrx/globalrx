@@ -1,7 +1,7 @@
 
 Resources:
-  globalRxBucket:
+  searchRxBucket:
     Type: AWS::S3::Bucket
 Outputs:
   bucketname:
-    Value: !GetAtt S3Bucket
+    Value: !GetAtt searchRxBucket
