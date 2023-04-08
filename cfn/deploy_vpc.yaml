@@ -201,6 +201,41 @@ Resources:
       GroupDescription: "Security group with no ingress rule"
       VpcId: !Ref VPC
 
+  PublicSubnet1:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Name: public_subnet_1
+      Type: String
+      Value: !Ref PublicSubnet1
+
+  PublicSubnet2:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Name: public_subnet_2
+      Type: String
+      Value: !Ref PublicSubnet2
+
+  PrivateSubnet1:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Name: private_subnet_1
+      Type: String
+      Value: !Ref PrivateSubnet1
+
+  PrivateSubnet2:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Name: private_subnet_2
+      Type: String
+      Value: !Ref PrivateSubnet2
+
+  VPCId:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Name: vpc_id
+      Type: String
+      Value: !Ref VPC
+
 Outputs:
   VPC:
     Description: A reference to the created VPC

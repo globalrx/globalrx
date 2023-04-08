@@ -36,6 +36,9 @@ Parameters:
     Type: AWS::SSM::Parameter::Value<String>
     Default: /rds_endpoint
 
+  subnet1:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /public_subnet_1
 
 
   PublicKeyMaterialParameter:
@@ -61,6 +64,7 @@ Resources:
       InstanceType: !Ref InstanceTypeParameter
       IamInstanceProfile: "globalRX"
       KeyName: !Ref KeyIDParameter
+      SubnetId: !Ref subnet1
       BlockDeviceMappings: 
         - DeviceName: "/dev/xvda"
           Ebs: 

@@ -2,6 +2,14 @@
 Resources:
   searchRxBucket:
     Type: AWS::S3::Bucket
+
+
+  bucketName:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Name: s3_bucket
+      Type: String
+      Value: !Ref searchRxBucket
 Outputs:
   bucketname:
     Value: !Ref searchRxBucket
