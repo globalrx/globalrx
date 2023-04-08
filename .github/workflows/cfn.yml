@@ -27,7 +27,7 @@ jobs:
 
       - name: get s3 name
         run: |
-              BUCKET_NAME=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy_s3 --query "Stacks[0].Outputs[0].OutputValue"`
+              BUCKET_NAME=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-s3 --query "Stacks[0].Outputs[0].OutputValue"`
               echo $BUCKET_NAME
               if [[ -n "$BUCKET_NAME" ]]
               then
@@ -43,10 +43,10 @@ jobs:
 
 
       - name: create s3
-        if: env.BUCKET_CREATED == true
+        if: env.BUCKET_CREATED == false
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
-          name: deploy_s3
+          name: deploy-s3
           template: https://globalrx.s3.amazonaws.com/deploy_ecr.yaml   # Pass vars to re-use in Image Push
         continue-on-error: true
 
