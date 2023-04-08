@@ -31,6 +31,10 @@ Parameters:
     AllowedValues:
       - db.t4g.medium
     Description: Default is db.t4g.medium.
+  S3Name:
+    Type: String
+    Default: "globalrx"
+    Description: S3 bucket name
 
 
 Resources:

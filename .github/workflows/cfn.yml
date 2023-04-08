@@ -49,7 +49,7 @@ jobs:
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
           name: deploy-s3
-          template: cfn/deploy_main.yaml   # Pass vars to re-use in Image Push
+          template: cfn/deploy_s3.yaml   # Pass vars to re-use in Image Push
         continue-on-error: true
 
 
