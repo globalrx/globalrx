@@ -66,7 +66,7 @@ jobs:
 
       - name: Set AMI Parameter
         run: |
-          AMI_ID=`aws ssm get-parameters --names /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2 --region us-east-1 | jq '.Parameters[0].Value'`
+          AMI_ID=`aws ssm get-parameters --names /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2 --region us-east-1 | jq -r '.Parameters[0].Value'`
           aws ssm put-parameter --name "ami_id" --type "String" --value $AMI_ID --overwrite
           echo "AMI_ID=$AMI_ID" >> "$GITHUB_ENV"
         env:
