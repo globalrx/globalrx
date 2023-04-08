@@ -44,7 +44,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Join 
-        - 'https://'
+        - "https://"
         - !Ref S3Bucket
         - ".s3.amazonaws.com/deploy_vpc.yaml"
 
@@ -53,7 +53,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Join 
-        - 'https://'
+        - "https://"
         - !Ref S3Bucket
         - ".s3.amazonaws.com/deploy_ecr.yaml"
 
@@ -63,7 +63,7 @@ Resources:
     DependsOn: NestedStackVPC
     Properties:
       TemplateURL: !Join 
-        - 'https://'
+        - "https://"
         - !Ref S3Bucket
         - ".s3.amazonaws.com/deploy_rds.yaml"
 
@@ -74,7 +74,7 @@ Resources:
     DependsOn: NestedStackRDS
     Properties:
       TemplateURL: !Join 
-        - 'https://'
+        - "https://"
         - !Ref S3Bucket
         - ".s3.amazonaws.com/deploy_ec2.yaml"
       Parameters:
