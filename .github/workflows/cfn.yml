@@ -196,7 +196,7 @@ jobs:
       - name: Deploy EC2 
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
-          name: deploy_ec2
+          name: deploy-ec2
           capabilities: CAPABILITY_NAMED_IAM
           template: https://${{ env.BUCKET_NAME }}.s3.amazonaws.com/deploy_ec2.yaml
        #   parameter-overrides: "S3Name=${{ secrets.BUCKET_NAME }},ImageIDParameter=${{ secrets.AMI_ID }}"
