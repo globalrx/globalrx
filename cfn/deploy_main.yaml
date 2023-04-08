@@ -37,14 +37,12 @@ Parameters:
   ImageIDParameter:
     Type: AWS::SSM::Parameter::Value<String>
     Default: /ami_id
+  VPCIDParameter:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /vpc_id
 
 
 Resources:
-  NestedStackVPC:
-    Type: AWS::CloudFormation::Stack
-    Properties:
-      TemplateURL: !Sub https://${S3Name}.s3.amazonaws.com/deploy_vpc.yaml
-
 
   NestedStackECR:
     Type: AWS::CloudFormation::Stack
@@ -57,10 +55,7 @@ Resources:
     DependsOn: NestedStackVPC
     Properties:
       TemplateURL: !Sub https://${S3Name}.s3.amazonaws.com/deploy_rds.yaml
-      VPCParameter:
-        Fn::GetAtt: 
-        - NestedStackVPC 
-        - Outputs.VPC
+      VPCParameter: !Ref VPCIDParameter
 
   
   NestedStackEC2:
@@ -79,8 +74,5 @@ Resources:
           Fn::GetAtt: 
           - NestedStackRDS
           - Outputs.globalRxEndpoint
-        VPCParameter:
-          Fn::GetAtt: 
-          - NestedStackVPC 
-          - Outputs.VPC
+        VPCParameter: !Ref VPCIDParameter
 

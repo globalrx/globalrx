@@ -87,6 +87,28 @@ jobs:
 
 
 
+      - name: Deploy VPC CFN
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: deploy-vpc
+          capabilities: CAPABILITY_NAMED_IAM
+          template: https://${{ env.BUCKET_NAME }}.s3.amazonaws.com/deploy_vpc.yaml
+       #   parameter-overrides: "S3Name=${{ secrets.BUCKET_NAME }},ImageIDParameter=${{ secrets.AMI_ID }}"
+
+        continue-on-error: true
+
+      - name: Set VPC Parameter
+        run: |
+          VPC_ID=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-vpc --query "Stacks[0].Outputs[0].OutputValue" --output text`
+          aws ssm put-parameter --name "vpc_id" --type "String" --value $VPC_ID --overwrite
+          echo "VPC_ID=$VPC_ID" >> "$VPC_ID"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: 'us-east-1'
+        continue-on-error: true
+
+
 
 
       - name: Deploy CFN Main Template
