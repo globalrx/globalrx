@@ -43,8 +43,7 @@ Resources:
       SubnetIds: 
         - subnet-0cfa82bd41644a2c5
         - subnet-0112d7b96d708a330
-      Tags: 
-        - Tag
+
 
 Outputs:
   globalRxEndpoint:
