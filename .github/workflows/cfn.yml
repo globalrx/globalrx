@@ -53,7 +53,7 @@ jobs:
         continue-on-error: true
 
 
-      - name: Upload Bucket Name to Parameter
+      - name: Set Bucket Name Parameter
         run: |
           BUCKET_NAME=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-s3 --query "Stacks[0].Outputs[0].OutputValue"`
           aws ssm put-parameter --name "cfn_bucket" --type "String" --value $BUCKET_NAME --overwrite
@@ -64,6 +64,16 @@ jobs:
           AWS_DEFAULT_REGION: 'us-east-1'
         continue-on-error: true
 
+      - name: Set AMI Parameter
+        run: |
+          AMI_ID=`aws ssm get-parameters --names /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2 --region us-east-1 | jq '.Parameters[0].Value'`
+          aws ssm put-parameter --name "ami_id" --type "String" --value $AMI_ID --overwrite
+          echo "AMI_ID=$AMI_ID" >> "$GITHUB_ENV"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: 'us-east-1'
+        continue-on-error: true
 
 
       - name: Push cfn to S3
@@ -75,13 +85,29 @@ jobs:
           AWS_DEFAULT_REGION: 'us-east-1'
         continue-on-error: true
 
+
       - name: Deploy ECR Repositories 
-        if: contains(github.event.head_commit.message, 'create_ecr_repos')
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
           name: test
           template: https://${{ env.BUCKET_NAME }}.s3.amazonaws.com/deploy_ecr.yaml   # Pass vars to re-use in Image Push
         continue-on-error: true
+
+
+      - name: Deploy CFN Main Template
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: test
+          capabilities: CAPABILITY_NAMED_IAM
+          template: https://${{ env.BUCKET_NAME }}.s3.amazonaws.com/deploy_main.yaml
+          parameter-overrides: "S3Name=${{ secrets.BUCKET_NAME }},ImageIDParameter=${{ secrets.AMI_ID }}"
+
+        continue-on-error: true
+
+
+
+
+
 
       - name: Login to Amazon ECR  # adapted from https://towardsaws.com/build-push-docker-image-to-aws-ecr-using-github-actions-8396888a8f9e
         if: contains(github.event.head_commit.message, 'push_django')
@@ -99,20 +125,3 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-
-      - name: Deploy CFN Main Template
-        if: contains(github.event.head_commit.message, 'deploy_main')
-        uses: aws-actions/aws-cloudformation-github-deploy@v1
-        with:
-          name: test
-          capabilities: CAPABILITY_NAMED_IAM
-          template: https://${{ env.BUCKET_NAME }}.s3.amazonaws.com/deploy_main.yaml
-        continue-on-error: true
-
-      - name: Run a multi-line script
-        run: |
-          whoami
-          pwd
-          cd /etc
-          ls
-        continue-on-error: true
