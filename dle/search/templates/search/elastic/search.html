@@ -25,11 +25,10 @@
         <div id="drug-label-generic-name-filter"></div>
         {% if user.is_authenticated %}
         <h2>Save Search</h2>
-        <form method="post" action="/users/my_labels/create/" enctype="multipart/form-data">
+        <form method="post" action="/users/saved_searches/create/" enctype="multipart/form-data">
           {% csrf_token %}
-          <p><strong>Name of search</strong></p>
-          <input type="text" name="saved_search" id="saved_search" />      
-          <input class="btn btn-primary" type="submit" value="Save">
+          {{ form }}        
+          <input class="btn btn-primary" type="submit" value="Submit">
         </form>
         {% endif %}        
     </div>
@@ -52,4 +51,13 @@
   const VECTORIZE_SERVICE = JSON.parse(document.getElementById('VECTORIZE_SERVICE').textContent);
 </script>
 <script type="text/javascript" src="{% static 'search/es_search.js' %}"></script>
+<script>
+  function getUrl() {
+    var url = document.URL;
+    document.getElementById("id_url").value = url;
+  }
+  window.addEventListener('load', getUrl);
+  document.body.addEventListener('click', getUrl, true); 
+  document.body.addEventListener('keyup', getUrl, true);
+</script>
 {% endblock %}

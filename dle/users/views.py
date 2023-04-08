@@ -11,7 +11,8 @@ from django.contrib.auth.decorators import login_required
 from data.models import DrugLabel
 
 from .forms import MyLabelForm
-from .models import MyLabel, User
+from .forms import SavedSearchForm
+from .models import MyLabel, SavedSearch, User
 
 
 def login_view(request):
@@ -72,12 +73,35 @@ def my_labels_view(request, msg=None):
     # get a list of the user's MyLabels
     # note, could have performance issues if user has a "lot" of labels
     my_labels = MyLabel.objects.filter(user=request.user).all()
+    saved_searches = SavedSearch.objects.filter(user=request.user).all()
+
     context = {
         "form": form,
         "my_labels": my_labels,
         "message": msg,
+        "saved_searches": saved_searches,
     }
     return render(request, "users/my_labels.html", context)
+
+
+@login_required
+def create_saved_search(request):
+    """Accepts a request for a user to create saved search record"""
+    if request.method == "POST":
+        form = SavedSearchForm(request.POST)
+        if form.is_valid():
+            url = form.cleaned_data["url"]
+            name = form.cleaned_data["name"]
+
+            saved_search = SavedSearch(
+                url=url,
+                name=name,
+                user=request.user,
+            )
+
+            saved_search.save()
+
+            return redirect(reverse("users:my_labels"))
 
 
 @login_required
