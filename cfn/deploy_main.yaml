@@ -49,7 +49,6 @@ Resources:
     Properties:
       TemplateURL: !Sub https://${S3Name}.s3.amazonaws.com/deploy_ecr.yaml
 
-
   NestedStackRDS:
     Type: AWS::CloudFormation::Stack
     DependsOn: NestedStackVPC
