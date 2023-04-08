@@ -3,6 +3,7 @@ Parameters:
   RepoName:
     Type: String
     Default: "django"
+
 Resources:
   Repo1:
     Type: AWS::ECR::Repository
@@ -11,5 +12,9 @@ Resources:
         ScanOnPush: True
       RepositoryName: !Ref RepoName
 
-Outputs:
-  searchRxRepo: !Ref RepoName
+  ecrRepo:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Name: ecr_repo
+      Type: String
+      Value: !Ref RepoName

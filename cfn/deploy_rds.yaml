@@ -44,6 +44,12 @@ Resources:
         - subnet-0cfa82bd41644a2c5
         - subnet-0112d7b96d708a330
 
+  endPoint:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Name: db_endpoint
+      Type: String
+      Value: !GetAtt globalRxDB.Endpoint.Address
 
 Outputs:
   globalRxEndpoint:
