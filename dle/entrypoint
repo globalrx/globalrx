@@ -42,9 +42,29 @@ if [[ ($LOAD) && ("$LOAD" = "True") ]]; then
   echo "Ended the Django data ingest"
 fi
 
-if [[ ($LOAD_DJANGO_TO_ES) && ("$LOAD_DJANGO_TO_ES" = "True")]]; then
-  # TODO ensure ES is available
-  echo "Loading Django data into Elasticsearch"
+# Loading pre-computed vectors
+if [[ ($LOAD_FDA_VECTORS) && ("$LOAD_FDA_VECTORS" = "True")]]; then
+  # You must have pre-vectorized texts and placed the appropriate JSON file in /media
+  echo "Starting to load FDA vectors into Django"
+  python3 manage.py vectorize --elasticingest False --agency FDA --vector_file "/app/media/fda_vectors.json"
+  echo "FDA vectors loaded!"
+fi
+if [[ ($LOAD_TGA_VECTORS) && ("$LOAD_TGA_VECTORS" = "True")]]; then
+  # You must have pre-vectorized texts and placed the appropriate JSON file in /media
+  echo "Starting to load TGA vectors into Django"
+  python3 manage.py vectorize --elasticingest False --agency TGA --vector_file "/app/media/tga_vectors.json"
+  echo "TGA vectors loaded!"
+fi
+if [[ ($LOAD_EMA_VECTORS) && ("$LOAD_EMA_VECTORS" = "True")]]; then
+  # You must have pre-vectorized texts and placed the appropriate JSON file in /media
+  echo "Starting to load FDA vectors into Django"
+  python3 manage.py vectorize --elasticingest False --agency EMA --vector_file "/app/media/ema_vectors.json"
+  echo "EMA vectors loaded!"
+fi
+
+# if [[ ($LOAD_DJANGO_TO_ES) && ("$LOAD_DJANGO_TO_ES" = "True")]]; then
+#   # TODO ensure ES is available
+#   echo "Loading Django data into Elasticsearch"
   # TODO manually manage ES indexing. Currently, just use ES_AUTO_SYNC, but will need to implement once we have an NLP pipeline
 
   # see if index exists; otherwise, create it. See https://github.com/yunojuno/elasticsearch-django
@@ -64,21 +84,6 @@ if [[ ($LOAD_DJANGO_TO_ES) && ("$LOAD_DJANGO_TO_ES" = "True")]]; then
 
   # Load the data
   # python3 manage.py update_search_index productsection
-
-  if [[ ($USE_BERT) && ("$USE_BERT" = "True")]]; then
-    # TODO script NLP pipeline setup
-    if [[ ($LOAD_VECTORS) && ("$LOAD_VECTORS" = "True")]]; then
-      # TODO pre-vectorize section text outside of Elastic and load
-      echo "Loading pre-vectorized texts"
-    fi
-
-    # TODO Create automatic pipeline
-    # TODO Load model
-    # TODO Set pipeline as default ?
-
-    # Do not kick off pipeline! Need to think about how to handle updates ...
-  fi
-fi
 
 # In production, use Gunicorn + Nginx
 # TODO maybe reverse this so if nothing is passed the default is Nginx?

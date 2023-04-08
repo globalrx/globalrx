@@ -3,6 +3,7 @@ from typing import List, Set, Tuple
 from django.core.paginator import Paginator
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
+from django.urls import reverse
 from django.views.decorators.cache import cache_page
 
 from data.models import DrugLabel
@@ -87,4 +88,8 @@ def list_search_results_impl(request: HttpRequest) -> HttpResponse:
 
 def es_search(request: HttpRequest) -> HttpResponse:
     """Search results list view"""
-    return render(request, "search/elastic/search.html", context={})
+    context = {
+        "ELASTIC_HOST": reverse("api:searchkit_root"),
+        "VECTORIZE_SERVICE": reverse("api:vectorize"),
+    }
+    return render(request, "search/elastic/search.html", context=context)

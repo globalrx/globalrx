@@ -25,6 +25,7 @@ services:
       ELASTICSEARCH_URL: http://localhost:9200
       ELASTIC_PASSWORD: fakethisisrequiredfordjangotostart
       ELASTICSEARCH_USER: elastic_also_required
+      TESTS: "True"
     ports:
       - "8000:8000"
     volumes:
