@@ -53,6 +53,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: !Sub https://${S3Name}.s3.amazonaws.com/deploy_rds.yaml
+    Parameters:
       VPCParameter: !Ref VPCIDParameter
 
   
