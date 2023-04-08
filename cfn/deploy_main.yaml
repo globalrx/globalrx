@@ -8,10 +8,7 @@ Parameters:
       - m5.small
       - m6i.large
     Description: Default is m6i.large.
-  ImageIDParameter:
-    Type: String
-    Default: "ami-005f9685cb30f234b"
-    Description: Amazon Linux AMI.
+
   KeyIDParameter:
     Type: String
     Default: "searchrx_key"
@@ -32,10 +29,14 @@ Parameters:
     AllowedValues:
       - db.t4g.medium
     Description: Default is db.t4g.medium.
+
   S3Name:
-    Type: String
-    Default: "globalrx"
-    Description: S3 bucket name
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cfn_bucket
+
+  ImageIDParameter:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /ami_id
 
 
 Resources:
