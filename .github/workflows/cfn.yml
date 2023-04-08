@@ -25,6 +25,13 @@ jobs:
           aws-region: us-east-1
         continue-on-error: true
 
+      - name: test 
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: test
+          template: cfn/deploy_ecr.yaml   # Pass vars to re-use in Image Push
+        continue-on-error: true
+
       - name: get s3 name
         run: |
               BUCKET_NAME=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-s3 --query "Stacks[0].Outputs[0].OutputValue"`
