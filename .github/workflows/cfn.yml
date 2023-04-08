@@ -30,6 +30,7 @@ jobs:
         run: |
               BUCKET_NAME=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-s3 --query "Stacks[0].Outputs[0].OutputValue"`
               echo $BUCKET_NAME
+              ${{ env.BUCKET_NAME }}
               if [[ -n "$BUCKET_NAME" ]]
               then
                  echo "BUCKET_CREATED=true" >> "$GITHUB_ENV"
@@ -48,18 +49,22 @@ jobs:
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
           name: deploy-s3
-          template: cfn/deploy_s3.yaml   # Pass vars to re-use in Image Push
+          template: cfn/deploy_main.yaml   # Pass vars to re-use in Image Push
         continue-on-error: true
 
-        
-      - name: Upload to S3
+
+      - name: Upload Bucket Name to Parameter
         run: |
-          aws s3 sync ./cfn s3://${{ env.BUCKET_NAME }}
+          BUCKET_NAME=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-s3 --query "Stacks[0].Outputs[0].OutputValue"`
+          aws ssm put-parameter --name "cfn_bucket" --type "String" --value $BUCKET_NAME
+          echo "BUCKET_NAME=$BUCKET_NAME" >> "$GITHUB_ENV"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: 'us-east-1'
         continue-on-error: true
+
+
 
       - name: Push cfn to S3
         run: |
