@@ -2,5 +2,3 @@
 Resources:
   globalRxBucket:
     Type: AWS::S3::Bucket
-    Properties: 
-      BucketName: globalRx-bucket

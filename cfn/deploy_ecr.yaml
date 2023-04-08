@@ -7,9 +7,3 @@ Resources:
         ScanOnPush: True
       RepositoryName: "django"
 
-  Repo2:
-    Type: AWS::ECR::Repository
-    Properties: 
-      ImageScanningConfiguration: 
-        ScanOnPush: True
-      RepositoryName: "postgres"
