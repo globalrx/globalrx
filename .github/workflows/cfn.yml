@@ -47,11 +47,10 @@ jobs:
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
           name: deploy-s3
-          template: https://globalrx.s3.amazonaws.com/deploy_ecr.yaml   # Pass vars to re-use in Image Push
+          template: dle/cfn/deploy_s3.yaml   # Pass vars to re-use in Image Push
         continue-on-error: true
 
         
-
       - name: Upload to S3
         run: |
           aws s3 sync ./cfn s3://env.BUCKET_NAME
