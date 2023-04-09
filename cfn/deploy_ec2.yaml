@@ -97,10 +97,14 @@ Resources:
             cp .env.example .env
             sed "s/DJANGO_SUPERUSER_EMAIL.*/DJANGO_SUPERUSER_EMAIL="$EMAIL"/g" -i /home/ec2-user/globalrx/dle/.env
 
+
             IP=$(dig +short txt ch whoami.cloudflare @1.0.0.1  | tr -d '"')
+            aws ssm put-parameter --name "ec2_ip" --type "String" --value $IP --overwrite
+
+
             sed "s/ALLOWED_HOSTS = \[/ALLOWED_HOSTS = \["\"$IP\"",/g" -i /home/ec2-user/globalrx/dle/dle/settings.py
             DB_ENDPOINT=${DBEndpointParameter}
-            sed "s/DATABASE_URL.*/DATABASE_URL=$DB_ENDPOINT/g" -i /home/ec2-user/globalrx/dle/.env
+            sed "s/DATABASE_URL.*/DATABASE_URL=postgres://postgres:fghyucvsafd@$DB_ENDPOINT:5432\/postgres/g" -i /home/ec2-user/globalrx/dle/.env
 
             cd /home/ec2-user
             echo "#!/bin/sh" > start_script.sh

@@ -1,9 +1,26 @@
 AWSTemplateFormatVersion: 2010-09-09
 Parameters:
+
   ElasticIPAddress:
-    Type: String
-    Default: "44.197.203.81"
-    Description: IP address of EC2 instance where Elastic-kibana are located
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /ec2_ip
+  DBEndpointParameter:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /rds_endpoint
+  rds_pword:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /rds_pw
+  kibana_pword:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /kibana_pw    
+  elastic_pword:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /elastic_pw    
+  secret_pword:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /secret_pw    
+
+
 
 Resources:
   CloudMap:
@@ -12,6 +29,7 @@ Resources:
       Name: dle.local
       Vpc: vpc-23074059
     Type: AWS::ServiceDiscovery::PrivateDnsNamespace
+
   Cluster:
     Properties:
       ClusterName: dle
@@ -163,7 +181,7 @@ Resources:
         - Name: COMPOSE_PROJECT_NAME
           Value: dle
         - Name: DATABASE_URL
-          Value: postgres://postgres:fghyucvsafd@asdf-globalrxdb-axodhrci4xgh.cj9gkkj3it4b.us-east-1.rds.amazonaws.com:5432/postgres
+          Value: !Sub postgres://postgres:fghyucvsafd@${DBEndpointParameter}:5432/postgres
         - Name: DEBUG
           Value: "True"
         - Name: DJANGO_SUPERUSER_EMAIL
@@ -181,7 +199,7 @@ Resources:
         - Name: ELASTIC_CLOUD_PASSWORD
           Value: RandomGenPWD
         - Name: ELASTIC_PASSWORD
-          Value: dKnaSVB4bTkRzL
+          Value: !Ref elastic_pword
         - Name: ES_AUTO_SYNC
           Value: "False"
         - Name: ES_PORT
@@ -191,7 +209,7 @@ Resources:
         - Name: KIBANA_MEM_LIMIT
           Value: '1073741824 # 1 GB'
         - Name: KIBANA_PASSWORD
-          Value: DU5z8Hsl792jTN
+          Value: !Ref kibana_pword
         - Name: KIBANA_PORT
           Value: "5601"
         - Name: LICENSE
@@ -207,13 +225,13 @@ Resources:
         - Name: POSTGRES_HOST
           Value: postgres
         - Name: POSTGRES_PASSWORD
-          Value: fghyucvsafd
+          Value: !Ref rds_pword 
         - Name: POSTGRES_PORT
           Value: "5432"
         - Name: POSTGRES_USER
           Value: postgres
         - Name: SECRET_KEY
-          Value: secretdoesntmatter!whenindev
+          Value: !Ref secret_pword
         - Name: STACK_VERSION
           Value: 8.5.0
         Essential: true

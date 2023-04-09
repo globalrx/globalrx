@@ -35,6 +35,25 @@ jobs:
           AWS_DEFAULT_REGION: 'us-east-1'
         continue-on-error: true
 
+      - name: Set random passwords and send to Parameter Store
+        run: |
+          RDS=$(dd if=/dev/urandom count=1 2> /dev/null | uuencode -m - | sed -ne 2p | cut -c-12)
+          KIBANA=$(dd if=/dev/urandom count=1 2> /dev/null | uuencode -m - | sed -ne 2p | cut -c-12)
+          ELASTIC=$(dd if=/dev/urandom count=1 2> /dev/null | uuencode -m - | sed -ne 2p | cut -c-12)
+          SECRET=$(dd if=/dev/urandom count=1 2> /dev/null | uuencode -m - | sed -ne 2p | cut -c-12)
+
+          aws ssm put-parameter --name "rds_pw" --type "String" --value $RDS --overwrite
+          aws ssm put-parameter --name "kibana_pw" --type "String" --value $KIBANA --overwrite
+          aws ssm put-parameter --name "elastic_pw" --type "String" --value $ELASTIC --overwrite
+          aws ssm put-parameter --name "secret_pw" --type "String" --value $SECRET --overwrite
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: 'us-east-1'
+        continue-on-error: true
+
+
+
       - name: get s3 name
         run: |
               BUCKET_NAME=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-s3 --query "Stacks[0].Outputs[0].OutputValue"`
@@ -193,17 +212,6 @@ jobs:
           AWS_DEFAULT_REGION: 'us-east-1'
         continue-on-error: true
 
-      - name: Deploy EC2 
-        uses: aws-actions/aws-cloudformation-github-deploy@v1
-        with:
-          name: deploy-ec2
-          capabilities: CAPABILITY_NAMED_IAM
-          template: https://${{ env.BUCKET_NAME }}.s3.amazonaws.com/deploy_ec2.yaml
-       #   parameter-overrides: "S3Name=${{ secrets.BUCKET_NAME }},ImageIDParameter=${{ secrets.AMI_ID }}"
-        continue-on-error: true
-
-
-
 
 
       - name: Login to Amazon ECR  # adapted from https://towardsaws.com/build-push-docker-image-to-aws-ecr-using-github-actions-8396888a8f9e
@@ -221,4 +229,15 @@ jobs:
           cd docker
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Deploy EC2 
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: deploy-ec2
+          capabilities: CAPABILITY_NAMED_IAM
+          template: https://${{ env.BUCKET_NAME }}.s3.amazonaws.com/deploy_ec2.yaml
+       #   parameter-overrides: "S3Name=${{ secrets.BUCKET_NAME }},ImageIDParameter=${{ secrets.AMI_ID }}"
+        continue-on-error: true
+
+
 

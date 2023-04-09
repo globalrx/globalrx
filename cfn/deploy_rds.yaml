@@ -15,9 +15,9 @@ Parameters:
     Type: AWS::SSM::Parameter::Value<String>
     Default: /public_subnet_2
 
-  password:
+  rds_pword:
     Type: AWS::SSM::Parameter::Value<String>
-    Default: /rds_password
+    Default: /rds_pword
 
 
 
@@ -44,7 +44,7 @@ Resources:
       DBSubnetGroupName: rds-subnet-group
       Engine: postgres
       MasterUsername: postgres
-      MasterUserPassword: fghyucvsafd
+      MasterUserPassword: !Ref rds_pword 
     DeletionPolicy: Delete
 
   SearchRxSubnetGroup:
