@@ -15,4 +15,4 @@ class MyLabelForm(forms.Form):
 
 class SavedSearchForm(forms.Form):
     name = forms.CharField(label="Search Name", max_length=255, required=True)
-    url = forms.CharField(label="Url", max_length=255, required=True, widget=forms.HiddenInput())
+    url = forms.CharField(label="Url", max_length=400, required=True, widget=forms.HiddenInput())
