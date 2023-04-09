@@ -71,18 +71,18 @@ LOGIN_URL = "/users/login/"
 # Application definition
 
 INSTALLED_APPS = [
-    "users.apps.UsersConfig",
-    "data.apps.DataConfig",
-    "compare.apps.CompareConfig",
-    "api.apps.ApiConfig",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "search.apps.SearchConfig",
     "elasticsearch_django",
     "django_extensions",
+    "users",
+    "data",
+    "compare",
+    "api",
+    "search",
 ]
 
 AUTH_USER_MODEL = "users.User"
