@@ -11,3 +11,8 @@ class MyLabelForm(forms.Form):
     generic_name = forms.CharField(label="Generic name", max_length=255, required=True)
     product_number = forms.CharField(label="Product Number", max_length=255, required=True)
     marketer = forms.CharField(label="Marketer", max_length=255, required=True)
+
+
+class SavedSearchForm(forms.Form):
+    name = forms.CharField(label="Search Name", max_length=255, required=True)
+    url = forms.CharField(label="Url", max_length=400, required=True, widget=forms.HiddenInput())

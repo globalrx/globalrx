@@ -28,4 +28,10 @@
         <p>Successfully parsed: {{ my_label.is_successfully_parsed }}</p>
     {% endfor %}
 
+<h4>My Saved Searches</h4>
+{% for search in saved_searches %}
+    <a href="{{ search.url }}">{{ search.name }}</a><br>
+{% endfor %}
+
+
 {% endblock %}

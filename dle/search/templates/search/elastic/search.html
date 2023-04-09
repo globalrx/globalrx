@@ -23,6 +23,14 @@
         <div id="drug-label-product-name-filter"></div>
         <p><strong>Drug Label Generic Name</strong></p>
         <div id="drug-label-generic-name-filter"></div>
+        {% if user.is_authenticated %}
+        <h2>Save Search</h2>
+        <form method="post" action="/users/saved_searches/create/" enctype="multipart/form-data">
+          {% csrf_token %}
+          {{ form }}        
+          <input class="btn btn-primary" type="submit" value="Submit">
+        </form>
+        {% endif %}        
     </div>
     <div class="right-panel">
       <div id="searchbox" class="ais-SearchBox"></div>
@@ -43,4 +51,13 @@
   const VECTORIZE_SERVICE = JSON.parse(document.getElementById('VECTORIZE_SERVICE').textContent);
 </script>
 <script type="text/javascript" src="{% static 'search/es_search.js' %}"></script>
+<script>
+  function getUrl() {
+    var url = document.URL;
+    document.getElementById("id_url").value = url;
+  }
+  window.addEventListener('load', getUrl);
+  document.body.addEventListener('click', getUrl, true); 
+  document.body.addEventListener('keyup', getUrl, true);
+</script>
 {% endblock %}
