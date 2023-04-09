@@ -1,2 +1,2 @@
 #!/bin/sh
-python3 -Wa dle/manage.py test --noinput
+python3 -Wa manage.py test --noinput

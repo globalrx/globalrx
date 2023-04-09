@@ -21,6 +21,7 @@ jobs:
       - name: Run dockerized tests
         uses: cloudposse/github-action-docker-compose-test-run@main
         with:
-          file: dle/docker-compose-tests.yml
+          file: docker-compose-tests.yml
           service: django
-          command: dle/run-tests.sh
+          command: run-tests.sh
+          workdir: dle
