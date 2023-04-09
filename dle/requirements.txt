@@ -1,4 +1,4 @@
-asgiref==3.5.2
+asgiref>=3.6.0
 backports.zoneinfo==0.2.1;python_version<"3.9"
 beautifulsoup4==4.10.0
 bleach==5.0.0
@@ -7,11 +7,10 @@ charset-normalizer==2.0.12
 click==8.0.4
 cycler==0.11.0
 diff-match-patch==20200713
-Django==4.1.8
+Django==4.2.0
 django-environ==0.9.0
 djangorestframework==3.14.0
 elasticsearch-django==8.2
-eland[pytorch]==8.3.0
 et-xmlfile==1.1.0
 fonttools==4.32.0
 gensim==4.1.2
