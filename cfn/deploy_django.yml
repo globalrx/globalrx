@@ -7,18 +7,21 @@ Parameters:
   DBEndpointParameter:
     Type: AWS::SSM::Parameter::Value<String>
     Default: /rds_endpoint
-  rds_pword:
+  rdsPword:
     Type: AWS::SSM::Parameter::Value<String>
     Default: /rds_pw
-  kibana_pword:
+  kibanaPword:
     Type: AWS::SSM::Parameter::Value<String>
     Default: /kibana_pw    
-  elastic_pword:
+  elasticPword:
     Type: AWS::SSM::Parameter::Value<String>
     Default: /elastic_pw    
-  secret_pword:
+  secretPword:
     Type: AWS::SSM::Parameter::Value<String>
     Default: /secret_pw    
+  imageUrl:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /image_url    
 
 
 
@@ -199,7 +202,7 @@ Resources:
         - Name: ELASTIC_CLOUD_PASSWORD
           Value: RandomGenPWD
         - Name: ELASTIC_PASSWORD
-          Value: !Ref elastic_pword
+          Value: !Ref elasticPword
         - Name: ES_AUTO_SYNC
           Value: "False"
         - Name: ES_PORT
@@ -209,7 +212,7 @@ Resources:
         - Name: KIBANA_MEM_LIMIT
           Value: '1073741824 # 1 GB'
         - Name: KIBANA_PASSWORD
-          Value: !Ref kibana_pword
+          Value: !Ref kibanaPword
         - Name: KIBANA_PORT
           Value: "5601"
         - Name: LICENSE
@@ -225,17 +228,17 @@ Resources:
         - Name: POSTGRES_HOST
           Value: postgres
         - Name: POSTGRES_PASSWORD
-          Value: !Ref rds_pword 
+          Value: !Ref rdsPword 
         - Name: POSTGRES_PORT
           Value: "5432"
         - Name: POSTGRES_USER
           Value: postgres
         - Name: SECRET_KEY
-          Value: !Ref secret_pword
+          Value: !Ref secretPword
         - Name: STACK_VERSION
           Value: 8.5.0
         Essential: true
-        Image: 300423063901.dkr.ecr.us-east-1.amazonaws.com/dle-django:latest@sha256:113181aa619e554ab12d81dcac60881f68fffd9ee0d430cf727708b2aff23b4b
+        Image: !Ref imageUrl 
         LinuxParameters: {}
         LogConfiguration:
           LogDriver: awslogs
