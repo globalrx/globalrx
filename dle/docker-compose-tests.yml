@@ -26,6 +26,7 @@ services:
       ELASTIC_PASSWORD: fakethisisrequiredfordjangotostart
       ELASTICSEARCH_USER: elastic_also_required
       TESTS: "True"
+      LOG_LEVEL: "WARNING"
     ports:
       - "8000:8000"
     volumes:
