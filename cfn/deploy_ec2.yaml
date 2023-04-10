@@ -109,7 +109,7 @@ Resources:
             cd /home/ec2-user
             echo "#!/bin/sh" > start_script.sh
             echo "cd /home/ec2-user/globalrx/dle" >> start_script.sh
-            echo "/usr/local/bin/docker-compose up" >> start_script.sh
+            echo "/usr/local/bin/docker-compose -f docker-compose-elastic.yml up" >> start_script.sh
             chmod 755 start_script.sh
             nohup ./start_script.sh > output & 
 #nohup ./start_script.sh > output &
