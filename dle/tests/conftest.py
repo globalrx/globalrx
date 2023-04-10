@@ -25,7 +25,7 @@ def http_service(docker_ip, docker_services):
     """
 
     # `port_for` takes a container port and returns the corresponding host port
-    port = docker_services.port_for("django", 8000)
+    port = docker_services.port_for("django_tests", 8000)
     url = "http://{}:{}".format(docker_ip, port)
     url404 = f"{url}/missing"
     docker_services.wait_until_responsive(

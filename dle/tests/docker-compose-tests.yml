@@ -7,11 +7,11 @@ version: '3'
 #     driver: local
 
 services:
-  django:
+  django_tests:
     build:
-      dockerfile: Dockerfile.tests
+      dockerfile: ./Dockerfile.tests
       context: ../
-    image: dle-django-tests
+    # image: dle-django-tests
     depends_on:
       - postgres
     links:
@@ -29,7 +29,9 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - .:/app
+      - ..:/app
+    # command: tail -F anything # Use this to keep up container to test if it fails to start
+
 
   postgres:
     hostname: postgres
