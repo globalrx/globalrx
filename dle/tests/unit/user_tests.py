@@ -1,31 +1,32 @@
-from django.db import IntegrityError
-from django.test import Client, TestCase
+# from django.db import IntegrityError
+# from django.test import Client, TestCase
 
 import pytest
 import requests
 
-from data.models import DrugLabel
-from users.models import MyLabel, User
-
 from ..utils import is_responsive_404
+
+
+# from data.models import DrugLabel
+# from users.models import MyLabel, User
+
 
 
 def test_dummy():
     assert(1==1)
 
-# def test_register_user(http_service):
-#     client = Client()
-#     response = client.post(
-#             "/users/register/",
-#             {
-#                 "username": "testuser",
-#                 "email": "testuser@gmail.com",
-#                 "password": "testuser",
-#                 "confirmation": "testuser",
-#             },
-#         )
-#     print(response)
-#     assert(response.status_code == 302)
+def test_register_user(client, http_service):
+    response = client.post(
+        "/users/register/",
+        {
+            "username": "testuser",
+            "email": "testuser@gmail.com",
+            "password": "testuser",
+            "confirmation": "testuser",
+        },
+    )
+    print(response)
+    assert(response.status_code == 302)
 
 
 # class UserTests(TestCase):

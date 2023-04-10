@@ -5,18 +5,26 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
+    
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v3
 
-      - name: Run dockerized tests
-        uses: cloudposse/github-action-docker-compose-test-run@main
-        with:
-          file: docker-compose-tests.yml
-          service: django
-          command: run-tests.sh
-          workdir: dle
+      # - name: Run dockerized tests
+      #   uses: cloudposse/github-action-docker-compose-test-run@main
+      #   with:
+      #     file: docker-compose-tests.yml
+      #     service: django
+      #     command: run-tests.sh
+      #     workdir: dle
+      - name: Install requirements for test environment
+        run: pip3 install -r ./tests/pytest_requirements.txt
+
+      - name: Run Pytest tests with pytest-docker
+        run: pytest -vv
