@@ -40,3 +40,6 @@ ensure_newline_before_comments = true
 line_length = 100
 py_version=310
 filter_files = true
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "dle.settings"

@@ -1,17 +1,17 @@
 version: '3'
 
-volumes:
-  local_postgres_data: {}
-  local_postgres_data_backups: {}
-  certs:
-    driver: local
+# volumes:
+#   local_postgres_data: {}
+#   local_postgres_data_backups: {}
+#   certs:
+#     driver: local
 
 services:
-  django:
+  django_tests:
     build:
-      dockerfile: Dockerfile.tests
-      context: .
-    image: dle-django-tests
+      dockerfile: ./Dockerfile.tests
+      context: ../
+    # image: dle-django-tests
     depends_on:
       - postgres
     links:
@@ -26,18 +26,19 @@ services:
       ELASTIC_PASSWORD: fakethisisrequiredfordjangotostart
       ELASTICSEARCH_USER: elastic_also_required
       TESTS: "True"
-      LOG_LEVEL: "WARNING"
     ports:
       - "8000:8000"
     volumes:
-      - .:/app
+      - ..:/app
+    # command: tail -F anything # Use this to keep up container to test if it fails to start
+
 
   postgres:
     hostname: postgres
     image: postgres:14.6
-    volumes:
-      - local_postgres_data:/var/lib/postgresql/data
-      - local_postgres_data_backups:/backups
+    # volumes:
+    #   - local_postgres_data:/var/lib/postgresql/data
+    #   - local_postgres_data_backups:/backups
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
