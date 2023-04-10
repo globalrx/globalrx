@@ -15,7 +15,7 @@ def tests_dir():
 
 @pytest.fixture(scope="session")
 def docker_compose_file(pytestconfig):
-    return pathlib.Path(__file__).resolve().parent / "test-docker-compose.yml"
+    return pathlib.Path(__file__).resolve().parent / "docker-compose-tests.yml"
 
 
 @pytest.fixture(scope="session")

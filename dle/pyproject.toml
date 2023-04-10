@@ -43,4 +43,3 @@ filter_files = true
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "dle.settings"
-python_files = "tests.py test_*.py *_tests.py"
