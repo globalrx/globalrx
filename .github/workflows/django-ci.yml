@@ -24,7 +24,7 @@ jobs:
       #     command: run-tests.sh
       #     workdir: dle
       - name: Install requirements for test environment
-        run: pip3 install -r ./tests/pytest_requirements.txt
+        run: pip3 install -r ./dle/tests/pytest_requirements.txt
 
       - name: Run Pytest tests with pytest-docker
         run: pytest -vv
