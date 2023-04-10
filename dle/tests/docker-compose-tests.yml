@@ -1,0 +1,45 @@
+version: '3'
+
+# volumes:
+#   local_postgres_data: {}
+#   local_postgres_data_backups: {}
+#   certs:
+#     driver: local
+
+services:
+  django:
+    build:
+      dockerfile: Dockerfile.tests
+      context: ../
+    image: dle-django-tests
+    depends_on:
+      - postgres
+    links:
+      - postgres
+    environment:
+      MIGRATE: "True"
+      LOAD: "False"
+      INIT_SUPERUSER: "False"
+      SECRET_KEY: secretdoesntmatter!whenindev
+      DATABASE_URL: postgres://postgres:password@postgres:5432/postgres
+      ELASTICSEARCH_URL: http://localhost:9200
+      ELASTIC_PASSWORD: fakethisisrequiredfordjangotostart
+      ELASTICSEARCH_USER: elastic_also_required
+      TESTS: "True"
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+
+  postgres:
+    hostname: postgres
+    image: postgres:14.6
+    # volumes:
+    #   - local_postgres_data:/var/lib/postgresql/data
+    #   - local_postgres_data_backups:/backups
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
