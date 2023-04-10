@@ -16,20 +16,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
 
-      # - name: Run dockerized tests
-      #   uses: cloudposse/github-action-docker-compose-test-run@main
-      #   with:
-      #     file: docker-compose-tests.yml
-      #     service: django
-      #     command: run-tests.sh
-      #     workdir: dle
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
       - name: Install requirements for test environment
         run: |
           pip3 install -r ./dle/tests/pytest_requirements.txt \
           pip3 install -r ./dle/requirements.txt
-
-            
-
 
       - name: Run Pytest tests with pytest-docker
         working-directory: dle
