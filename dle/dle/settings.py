@@ -120,6 +120,8 @@ TEMPLATES = [
     },
 ]
 
+FIXTURE_DIRS = [os.path.join(BASE_DIR, "tests/fixtures")]
+
 WSGI_APPLICATION = "dle.wsgi.application"
 
 
