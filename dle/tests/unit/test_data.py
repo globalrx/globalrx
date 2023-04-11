@@ -85,7 +85,7 @@ def test_load_ema_data(client, http_service):
     assert num_dl_entries + 3 == num_new_dl_entries
 
 
-def test_can_insert_skilarence(self):
+def test_can_insert_skilarence(client, http_service):
     """Verify that we can get the correct values from the pdf"""
     management.call_command("load_ema_data", type="test")
     dl = DrugLabel(
@@ -128,7 +128,8 @@ def test_unique_constraint(client, http_service):
         # See: https://github.com/pytest-dev/pytest-django/issues/754
         with pytest.raises(IntegrityError) as excinfo:
             # client.check_constraints()
-            print(excinfo.value)
+            pass
+        print(excinfo.value)
 
 
 @pytest.mark.django_db
@@ -140,7 +141,7 @@ def test_raw_text_is_saved(client, http_service):
 
 
 @pytest.mark.django_db
-def test_load_fda_data(self):
+def test_load_fda_data(client, http_service):
     num_dl_entries = DrugLabel.objects.count()
     management.call_command("load_fda_data", type="test")
     # should insert at least 1 dl records
