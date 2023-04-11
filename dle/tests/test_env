@@ -1,0 +1,11 @@
+# General
+MIGRATE=True
+LOAD=False
+INIT_SUPERUSER=False
+SECRET_KEY=secretkey!fortests!
+DATABASE_URL=postgres://postgres:password@postgres:5432/postgres
+TESTS=True
+# Currently not testing any Elastic services, but these are required by settings.py
+ELASTICSEARCH_URL: http://localhost:9200
+ELASTIC_PASSWORD: fakethisisrequiredfordjangotostart
+ELASTICSEARCH_USER: elastic_also_required

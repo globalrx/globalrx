@@ -16,20 +16,12 @@ services:
       - postgres
     links:
       - postgres
-    environment:
-      MIGRATE: "True"
-      LOAD: "False"
-      INIT_SUPERUSER: "False"
-      SECRET_KEY: secretdoesntmatter!whenindev
-      DATABASE_URL: postgres://postgres:password@postgres:5432/postgres
-      ELASTICSEARCH_URL: http://localhost:9200
-      ELASTIC_PASSWORD: fakethisisrequiredfordjangotostart
-      ELASTICSEARCH_USER: elastic_also_required
-      TESTS: "True"
     ports:
       - "8000:8000"
     volumes:
       - ..:/app
+    env_file:
+      - test_env
     # command: tail -F anything # Use this to keep up container to test if it fails to start
 
 
