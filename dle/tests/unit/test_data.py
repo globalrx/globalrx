@@ -85,6 +85,7 @@ def test_load_ema_data(client, http_service):
     assert num_dl_entries + 3 == num_new_dl_entries
 
 
+@pytest.mark.django_db
 def test_can_insert_skilarence(client, http_service):
     """Verify that we can get the correct values from the pdf"""
     management.call_command("load_ema_data", type="test")
@@ -126,10 +127,10 @@ def test_unique_constraint(client, http_service):
             version_date="2022-03-08",
         )
         # See: https://github.com/pytest-dev/pytest-django/issues/754
-        with pytest.raises(IntegrityError) as excinfo:
-            # client.check_constraints()
-            pass
-        print(excinfo.value)
+        with pytest.raises(IntegrityError) as error_info:
+            dl2.save()
+            print(error_info.value)
+        assert error_info.value.message.startswidth("UNIQUE constraint failed")
 
 
 @pytest.mark.django_db
