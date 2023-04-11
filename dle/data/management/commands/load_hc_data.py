@@ -224,6 +224,9 @@ class Command(BaseCommand):
                         spans = p.findAll("span")
                         dl.version_date = spans[0].text
                         dl.link = spans[1].find("a")["href"]
+        if dl.link == "":
+            logger.info(f"{dl.product_name} does not have a PDF label: {link_to_drug_details}")
+
         # If version date is not available, then get the status date instead
         if dl.version_date == "":
             for div in divs:
@@ -380,7 +383,7 @@ class Command(BaseCommand):
             # info["metadata"] = row.iloc[0].apply(str).to_dict()
 
             headers, sections = [], []
-            headers, sections = get_pdf_sections(raw_text, pattern=r"^[0-9]+\.?\s+[A-Z].*")
+            headers, sections = get_pdf_sections(raw_text, pattern=r"^[1-9][0-9]?\.?\s+[A-Z].*")
 
             # With the above method, it should at least find 20 sections, if less than that,
             #  then parse it with other method
@@ -415,4 +418,5 @@ class Command(BaseCommand):
             logger.error(self.style.ERROR(f"Failed to process {hc_file}, url = {pdf_url}"))
             self.error_urls[pdf_url] = True
 
+        logger.info(f"{hc_file} parsed Successfully")
         return raw_text
