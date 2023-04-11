@@ -15,6 +15,7 @@ from ..utils import is_responsive_404
 def test_dummy():
     assert(1==1)
 
+@pytest.mark.django_db
 def test_register_user(client, http_service):
     response = client.post(
         "/users/register/",
