@@ -23,15 +23,13 @@ import environ
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-if "pytest" in sys.modules:
-    print("pytest!")
-else:
-    print("not pytest")
-
 # can override settings in .env, see .env.example
 env = environ.Env()
 # environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 environ.Env.read_env()
+if "pytest" in sys.modules:
+    print("Running for pytest ...")
+    environ.Env.read_env(os.path.join(BASE_DIR, "tests/test.env"))
 
 STATIC_ROOT = os.path.join(BASE_DIR, "static/")
 
