@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 
 import os
 import ssl
+import sys
 from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
@@ -22,10 +23,15 @@ import environ
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+if "pytest" in sys.modules:
+    print("pytest!")
+else:
+    print("not pytest")
+
 # can override settings in .env, see .env.example
 env = environ.Env()
-environ.Env.read_env(env.str("envfile"), os.path.join(BASE_DIR, ".env"))
-# environ.Env.read_env()
+# environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
+environ.Env.read_env()
 
 STATIC_ROOT = os.path.join(BASE_DIR, "static/")
 
