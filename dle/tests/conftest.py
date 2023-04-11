@@ -2,6 +2,8 @@ import json
 import os
 import pathlib
 
+from django.core.management import call_command
+
 import pytest
 import requests
 
@@ -32,3 +34,8 @@ def http_service(docker_ip, docker_services):
         timeout=600.0, pause=0.1, check=lambda: is_responsive_404(url404)
     )
     return url
+
+@pytest.fixture(scope='session')
+def django_db_setup(django_db_setup, django_db_blocker):
+    with django_db_blocker.unblock():
+        call_command('loaddata', 'user_fixture.json')
