@@ -1,34 +1,29 @@
-from django.core.management.base import BaseCommand, CommandError
-from django.db import IntegrityError
-from requests.exceptions import ChunkedEncodingError
-from data.models import (
-    DrugLabel,
-    LabelProduct,
-    ProductSection,
-)
-from users.models import MyLabel
-from django.core.files.base import ContentFile
-from django.core.files.storage import default_storage
-from django.conf import settings
-import requests
-import fitz  # PyMuPDF
-from bs4 import BeautifulSoup
-import re
-import datetime
-import pandas as pd
-import time
+import json
 import logging
 import random
-import string
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.options import Options
-from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.common.keys import Keys
+import re
+import time
+
+from django.conf import settings
+from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
+from django.core.management.base import BaseCommand, CommandError
+from django.db import IntegrityError
+
+import requests
+from bs4 import BeautifulSoup
 from Levenshtein import distance as levdistance
+from requests.exceptions import ChunkedEncodingError
+from selenium import webdriver
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.firefox.options import Options
+
+from data.models import DrugLabel, LabelProduct, ProductSection
+
 from .pdf_parsing_helper import get_pdf_sections, read_pdf
 
-import json
 
 logger = logging.getLogger(__name__)
 
@@ -37,17 +32,22 @@ HC_SEARCH_URL = "https://health-products.canada.ca/dpd-bdpp/search/"
 HC_RESULT_URL = "https://health-products.canada.ca/dpd-bdpp/dispatch-repartition"
 
 OTHER_FORMATTED_SECTIONS = [
-    (r"(INDICATIONS)(.+)(CONTRAINDICATIONS)", "Indications"),
-    (r"(CONTRAINDICATIONS)(.+)(PRECAUTIONS)", "Contraindications"),
-    # Pregnancy, Interactions and Effects on driving are all under the PRECAUTIONS section
-    (r"(Use in [p|P]regnancy)(.+)(Use in [l|L]actation)", "Pregnancy"),
-    (r"(Interactions with other medicines)(.+)(Effects on laboratory tests)", "Interactions"),
-    (r"(Effects on ability to drive and use machines)(.+)(ADVERSE (REACTIONS|EFFECTS))", "Effects on driving"),
-    (r"(PRECAUTIONS)(.+)(ADVERSE (REACTIONS|EFFECTS))", "Warnings"),
-    (r"(ADVERSE (?:REACTIONS|EFFECTS))(.+)(DOSAGE AND ADMINISTRATION)", "Side effects"),
-    (r"(DOSAGE AND ADMINISTRATION)(.+)(OVERDOSAGE)", "Posology"),
-    (r"(OVERDOSAGE)(.+)(PRESENTATION)", "Overdose")
+    r"^SUMMARY PRODUCT INFORMATION",
+    r"^INDICATIONS AND CLINICAL USE",
+    r"^CONTRAINDICATIONS",
+    r"^WARNINGS AND PRECAUTIONS",
+    r"^ADVERSE REACTIONS",
+    r"^DRUG INTERACTIONS",
+    r"^DOSAGE AND ADMINISTRATION",
+    r"^OVERDOSAGE",
+    r"^ACTION AND CLINICAL PHARMACOLOGY",
+    r"^STORAGE AND STABILITY",
+    r"^DOSAGE FORMS, COMPOSITION AND PACKAGING",
+    r"^PHARMACEUTICAL INFORMATION",
+    r"^CLINICAL TRIALS",
+    r"^TOXICOLOGY",
 ]
+
 
 # runs with `python manage.py load_hc_data`
 # add `--type full` to import the full dataset
@@ -55,6 +55,8 @@ OTHER_FORMATTED_SECTIONS = [
 # add `--verbosity 3` for debug output
 class Command(BaseCommand):
     help = "Loads data from HC"
+    records = {}
+
     def __init__(self, stdout=None, stderr=None, no_color=False, force_color=False):
         super().__init__(stdout, stderr, no_color, force_color)
         self.num_drug_labels_parsed = 0
@@ -76,9 +78,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         import_type = options["type"]
         if import_type not in ["full"]:
-            raise CommandError(
-                "'type' parameter must be 'full'"
-            )
+            raise CommandError("'type' parameter must be 'full'")
 
         # basic logging config is in settings.py
         # verbosity is 1 by default, gives critical, error and warning output
@@ -93,28 +93,46 @@ class Command(BaseCommand):
 
         logger.info(self.style.SUCCESS("start process"))
         logger.info(f"import_type: {import_type}")
-        
-        # Before being able to access the drugs, 
+
+        # Before being able to access the drugs,
         #  we have to do a search with "approved" status and "human" class.
         # Then store the cookies and pass it to the requests
         self.driver.get(HC_SEARCH_URL)
         time.sleep(1)
         # Click the approve field
-        approved_status_field = self.driver.find_element(by=By.XPATH, value='/html/body/main/div[1]/div[1]/div[3]/form/fieldset[3]/div[1]/div/select/option[2]')
+        approved_status_field = self.driver.find_element(
+            by=By.XPATH,
+            value="/html/body/main/div[1]/div[1]/div[3]/form/fieldset[3]/div[1]/div/select/option[2]",
+        )
         approved_status_field.click()
         # Unclick the select all field
-        select_all_status_field = self.driver.find_element(by=By.XPATH, value='/html/body/main/div[1]/div[1]/div[3]/form/fieldset[3]/div[1]/div/select/option[1]')
-        ActionChains(self.driver).key_down(Keys.CONTROL).click(select_all_status_field).key_up(Keys.CONTROL).perform()
+        select_all_status_field = self.driver.find_element(
+            by=By.XPATH,
+            value="/html/body/main/div[1]/div[1]/div[3]/form/fieldset[3]/div[1]/div/select/option[1]",
+        )
+        ActionChains(self.driver).key_down(Keys.CONTROL).click(select_all_status_field).key_up(
+            Keys.CONTROL
+        ).perform()
 
         # Click the human field
-        human_class_field = self.driver.find_element(by=By.XPATH, value='/html/body/main/div[1]/div[1]/div[3]/form/fieldset[3]/div[7]/div/select/option[3]')
+        human_class_field = self.driver.find_element(
+            by=By.XPATH,
+            value="/html/body/main/div[1]/div[1]/div[3]/form/fieldset[3]/div[7]/div/select/option[3]",
+        )
         human_class_field.click()
         # Unclick the select all field
-        select_all_class_field = self.driver.find_element(by=By.XPATH, value='/html/body/main/div[1]/div[1]/div[3]/form/fieldset[3]/div[7]/div/select/option[1]')
-        ActionChains(self.driver).key_down(Keys.CONTROL).click(select_all_class_field).key_up(Keys.CONTROL).perform()
+        select_all_class_field = self.driver.find_element(
+            by=By.XPATH,
+            value="/html/body/main/div[1]/div[1]/div[3]/form/fieldset[3]/div[7]/div/select/option[1]",
+        )
+        ActionChains(self.driver).key_down(Keys.CONTROL).click(select_all_class_field).key_up(
+            Keys.CONTROL
+        ).perform()
 
         # Click the search button
-        search_button = self.driver.find_element(by=By.XPATH, value='/html/body/main/div[1]/div[1]/div[3]/form/div[1]/div/input[1]')
+        search_button = self.driver.find_element(
+            by=By.XPATH, value="/html/body/main/div[1]/div[1]/div[3]/form/div[1]/div/input[1]"
+        )
         search_button.click()
 
         # Wait a bit for it to load
@@ -124,12 +142,12 @@ class Command(BaseCommand):
         soup = BeautifulSoup(self.driver.page_source, "html.parser")
         table = soup.find("table")
         table_attrs = json.loads(table.get("data-wb-tables"))
-        num_displayed_results = table_attrs["iDisplayLength"]
+        # num_displayed_results = table_attrs["iDisplayLength"]
         num_total_results = table_attrs["iDeferLoading"]
-    
+
         drug_label_parsed = 0
         # Iterate all the drugs in the table
-        while(drug_label_parsed < num_total_results):
+        while drug_label_parsed < num_total_results:
             soup = BeautifulSoup(self.driver.page_source, "html.parser")
             table = soup.find("table")
             table_body = table.find("tbody")
@@ -143,7 +161,7 @@ class Command(BaseCommand):
                     # for now, assume only one LabelProduct per DrugLabel
                     lp = LabelProduct(drug_label=dl)
                     lp.save()
-                    if(dl.link == ""):
+                    if dl.link == "":
                         raise ValueError(f"{dl.product_name} doesn't have a PDF label")
                     dl.raw_text = self.get_and_parse_pdf(dl.link, dl.source_product_number, lp)
                     dl.save()
@@ -155,12 +173,12 @@ class Command(BaseCommand):
                     logger.warning(self.style.ERROR(repr(e)))
                 except ValueError as e:
                     logger.warning(self.style.WARNING(repr(e)))
-                #logger.info(f"sleep 1s")
-                #time.sleep(1)
+                # logger.info(f"sleep 1s")
+                # time.sleep(1)
                 drug_label_parsed += 1
             # Click the next button
-            next_button = self.driver.find_element(by=By.ID, value='results_next')
-            if next_button != None and drug_label_parsed < num_total_results:
+            next_button = self.driver.find_element(by=By.ID, value="results_next")
+            if next_button is not None and drug_label_parsed < num_total_results:
                 next_button.click()
                 # Wait for a bit, take awhile for it to load
                 time.sleep(10)
@@ -189,38 +207,38 @@ class Command(BaseCommand):
         # product name is located at the fourth column
         # strength is located at the 10th column
         dl.product_name = columns[3].text.strip() + " " + columns[9].text.strip()
-        print(dl.product_name)
+
         # The column under DIN is a clickable link to the drug details
-        link_to_drug_details = HC_BASE_URL + columns[1].find('a')['href']
+        link_to_drug_details = HC_BASE_URL + columns[1].find("a")["href"]
         response = requests.get(link_to_drug_details)
         soup = BeautifulSoup(response.text, "html.parser")
-        divs = soup.findAll('div', attrs={"class":"row"})
+        divs = soup.findAll("div", attrs={"class": "row"})
         # Get the version date and the pdf link
         dl.version_date = ""
         dl.link = ""
         for div in divs:
-            ps = div.findAll('p', attrs={"class":"col-sm-8"})
+            ps = div.findAll("p", attrs={"class": "col-sm-8"})
             for p in ps:
-                if(p.find("strong")):
-                    if("Date" in p.find("strong").text):
-                        spans = p.findAll('span')
+                if p.find("strong"):
+                    if "Date" in p.find("strong").text:
+                        spans = p.findAll("span")
                         dl.version_date = spans[0].text
-                        dl.link = spans[1].find('a')['href']
-        # If version date is not available, then get the status date instead 
-        if(dl.version_date == ""):
+                        dl.link = spans[1].find("a")["href"]
+        # If version date is not available, then get the status date instead
+        if dl.version_date == "":
             for div in divs:
-                p1 = div.find('p', attrs={"class":"col-sm-4"})
-                if(p1 and p1.find("strong") and p1.find("strong").text == "Current status date:"):
-                    p = div.find('p', attrs={"class":"col-sm-8"})
+                p1 = div.find("p", attrs={"class": "col-sm-4"})
+                if p1 and p1.find("strong") and p1.find("strong").text == "Current status date:":
+                    p = div.find("p", attrs={"class": "col-sm-8"})
                     dl.version_date = p.text
 
         # Get all the active ingredient(s)
-        div = soup.find('div', attrs={"class":"table-responsive mrgn-tp-lg"})
-        table = div.find('table')
+        div = soup.find("div", attrs={"class": "table-responsive mrgn-tp-lg"})
+        table = div.find("table")
         rows = table.findAll("tr")
         active_ingredients = ""
         for row in rows:
-            if(row.find("td")):
+            if row.find("td"):
                 # Semi-colon separated
                 if active_ingredients == "":
                     active_ingredients = row.find("td").text.strip()
@@ -259,7 +277,7 @@ class Command(BaseCommand):
             return "unable to download pdf"
 
         filename = default_storage.save(
-            settings.MEDIA_ROOT / f"hc.pdf", ContentFile(response.content)
+            settings.MEDIA_ROOT / "hc.pdf", ContentFile(response.content)
         )
         logger.info(f"saved {pdf_url} file to: {filename}")
         hc_file = settings.MEDIA_ROOT / filename
@@ -273,10 +291,33 @@ class Command(BaseCommand):
         start_idx = 0
         for section in section_format:
             for i, line in enumerate(text[start_idx:], start=start_idx):
-                if re.match(section[0], line):
+                if re.match(section, line):
                     start_idx = i + 1  # +1 to start at next line
                     idx += [i]
                     headers += [line.strip()]
+
+        if len(headers) != 0:
+            # in headers, must increment or restart, and not end in punctuation
+            idx_valid, headers_valid = [idx[0]], [headers[0]]
+            for n in range(1, len(headers)):
+                lastchar = headers[n].strip()[-1].lower()
+                # 1. Headers must not end in punctuation
+                # 2. All the dots ('.') must be from the section numbers
+                # 3. The word "see" must not be in the headers
+                # 4. "safe dose" is not a header
+                valid = (
+                    (lastchar in "qwertyuiopasdfghjklzxcvbnm()")
+                    and (
+                        len(headers[n].split())
+                        and headers[n].split()[0].count(".") == headers[n].strip().count(".")
+                    )
+                    and (headers[n].strip().lower().find("see") == -1)
+                    and ("safe dose" not in headers[n].strip().lower())
+                )
+                if valid:
+                    idx_valid.append(idx[n])
+                    headers_valid.append(headers[n])
+            idx, headers = idx_valid, headers_valid
 
         for n, h in enumerate(headers):
             if (n + 1) < len(headers):
@@ -288,45 +329,25 @@ class Command(BaseCommand):
         return headers, sections
 
     centers = [
-        "Clinical Particulars",
-        "Contraindications",
-        "Date Of First Approval",
-        "Date Of Revision",
-        "Effects On Ability To Drive And Use Machines",
-        "Fertility, Pregnancy And Lactation",
-        "Incompatibilities",
-        "Interaction With Other Medicinal Products And Other Forms Of Interaction",
-        "List Of Excipients",
-        "Marketing Authorisation Holder",
-        "Marketing Authorisation Number",
-        "Name Of The Medicinal Product",
-        "Nature And Contents Of Container",
-        "Overdose",
-        "Pharmaceutical Form",
-        "Pharmaceutical Particulars",
-        "Pharmacodynamic Properties",
-        "Pharmacokinetic Properties",
-        "Pharmacological Properties",
-        "Posology And Method Of Administration",
-        "Preclinical Safety Data",
-        "Pregnancy And Lactation",
-        "Qualitative And Quantitative Composition",
-        "Shelf Life",
-        "Special Precautions For Disposal",
-        "Special Precautions For Disposal And Other Handling",
-        "Special Precautions For Storage",
-        "Special Warnings And Precautions For Use",
-        "Therapeutic Indications",
-        "Undesirable Effects",
-        "Description",
-        "Pharmacology",
         "Indications",
-        "Precautions",
-        "Interaction With Other Medicines",
-        "Name and address of the sponsor",
-        "Correction to the Medicine Schedule",
-        "Dosage and Administration",
-        "Date Of Most Recent Amendment",
+        "Contraindications",
+        "Serious Warnings and Precautions Box",
+        "Dosage And Administration",
+        "Overdosage",
+        "Dosage Forms, Strenths, Composition, and Packaging",
+        "Warnings and Precautions",
+        "Adverse Reactions",
+        "Drug Interactions",
+        "Clinical Pharmacology",
+        "Storage, Stability and Disposal",
+        "Special Handling Instructions",
+        "Pharmaceutical Information",
+        "Clinical Trials",
+        "Microbiology",
+        "Non-clinical Toxicology",
+        "Supporting Product Monographs",
+        "Summary Product Information",
+        "Toxicology",
     ]
     # note: maybe we should manually merge these pairs:
     #   FERTILITY, PREGNANCY AND LACTATION
@@ -359,12 +380,11 @@ class Command(BaseCommand):
             # info["metadata"] = row.iloc[0].apply(str).to_dict()
 
             headers, sections = [], []
-
-            headers, sections = get_pdf_sections(raw_text, pattern=r"^[0-9]+\.?[0-9]*\s+[A-Z].*")
+            headers, sections = get_pdf_sections(raw_text, pattern=r"^[0-9]+\.?\s+[A-Z].*")
 
             # With the above method, it should at least find 20 sections, if less than that,
             #  then parse it with other method
-            if len(headers) < 20:
+            if len(headers) < 15:
                 logger.info("Failed to parse. Using another method...")
                 headers, sections = self.get_pdf_sections_with_format(
                     raw_text, OTHER_FORMATTED_SECTIONS
