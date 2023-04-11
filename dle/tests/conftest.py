@@ -38,4 +38,4 @@ def http_service(docker_ip, docker_services):
 @pytest.fixture(scope='session')
 def django_db_setup(django_db_setup, django_db_blocker):
     with django_db_blocker.unblock():
-        call_command('loaddata', 'user_fixture.json')
+        call_command('loaddata', 'tests_user_fixture.json')
