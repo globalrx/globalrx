@@ -21,7 +21,7 @@ services:
     volumes:
       - ..:/app
     env_file:
-      - test_env
+      - test.env
     # command: tail -F anything # Use this to keep up container to test if it fails to start
 
 
