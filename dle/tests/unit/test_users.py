@@ -2,23 +2,13 @@ from django.db import IntegrityError
 
 import pytest
 import requests
+from pytest_django.asserts import assertTemplateUsed
 
-# from data.models import DrugLabel
+from data.models import DrugLabel
 from users.models import MyLabel, User
 
 from ..utils import is_responsive_404
 
-
-# from django.test import Client, TestCase
-
-
-
-
-
-
-
-def test_dummy():
-    assert(1==1)
 
 @pytest.mark.django_db
 def test_register_user(client, http_service):
@@ -35,18 +25,19 @@ def test_register_user(client, http_service):
     assert(response.status_code == 302)
 
 @pytest.mark.django_db
-def test_login_users(client, http_service):
-    username = "testuser"
-    email = "testuser@gmail.com"
-    password = "testuser"
-    try:
-        User.objects.create_user(username, email, password)
-    except IntegrityError:
-        pass
+def test_register_existing_user(client, http_service):
+    """TODO: re-registering an existing user should fail.
+    See existing user in fixture
+    """
+    pass
 
+@pytest.mark.django_db
+def test_login_users(client, http_service):
+    """Logs in existing user from fixture
+    Password in the fixture is hashed. """
     response = client.post(
         "/users/login/",
-        {"username": "testuser", "password": "testuser"},
+        {"username": "admin", "password": "Wtb8qbY0kH54bF"},
     )
     assert(response.status_code==302)
 
@@ -54,79 +45,37 @@ def test_logout_users(client, http_service):
     response = client.get("/users/logout/")
     assert(response.status_code==302)
 
-# class UserTests(TestCase):
-#     def setUp(self):
-#         username = "test"
-#         email = "test@druglabelexplorer.org"
-#         password = "12345"
-#         self.user = User.objects.create_user(username, email, password)
-#         self.client = Client()
-#         self.logged_in = self.client.login(username=username, password=password)
+@pytest.mark.django_db
+def test_insert_my_label(client, http_service):
+    test_user = User.objects.get(username="admin")
+    num_entries = MyLabel.objects.count()
+    dl = DrugLabel(
+        source="EMA",
+        product_name="Diffusia",
+        generic_name="lorem ipsem",
+        version_date="2022-03-15",
+        source_product_number="ABC-123-DO-RE-ME",
+        raw_text="Fake raw label text",
+        marketer="Landau Pharma",
+    )
+    dl.save()
+    # are labels accessible to anyone until they are linked to a MyLabel?
+    ml = MyLabel(
+        user=test_user,
+        drug_label=dl
+    )
+    ml.save()
+    num_new_entries = MyLabel.objects.count()
+    assert num_new_entries == num_entries + 1
 
-#     def test_dummy(self):
-#         self.assertEqual(1, 1)
+@pytest.mark.django_db
+def user_can_load_labels_html(client, http_service):
+    test_user = User.objects.get(username="admin")
+    response = client.get("/users/my_labels/", {"user": test_user})
+    assert response.status_code == 200
+    assertTemplateUsed(response, "users/my_labels.html")
 
-#     def test_register_users(self):
-#         self.client.logout()
-
-#         response = self.client.post(
-#             "/users/register/",
-#             {
-#                 "username": "testuser",
-#                 "email": "testuser@gmail.com",
-#                 "password": "testuser",
-#                 "confirmation": "testuser",
-#             },
-#         )
-#         self.assertEqual(response.status_code, 302)
-
-
-
-#     def test_logout_users(self):
-#         response = self.client.get("/users/logout/")
-#         self.assertEqual(response.status_code, 302)
-
-
-# class MyLabelModelTests(TestCase):
-#     def setUp(self):
-#         username = "test"
-#         email = "test@druglabelexplorer.org"
-#         password = "12345"
-#         self.user = User.objects.create_user(username, email, password)
-#         self.client = Client()
-#         self.logged_in = self.client.login(username=username, password=password)
-
-#     def logout_user(self):
-#         self.client.logout()
-
-#     def test_can_insert_my_label(self):
-#         num_entries = MyLabel.objects.count()
-#         dl = DrugLabel(
-#             source="EMA",
-#             product_name="Diffusia",
-#             generic_name="lorem ipsem",
-#             version_date="2022-03-15",
-#             source_product_number="ABC-123-DO-RE-ME",
-#             raw_text="Fake raw label text",
-#             marketer="Landau Pharma",
-#         )
-#         dl.save()
-
-#         ml = MyLabel(
-#             user=self.user,
-#             drug_label=dl,
-#         )
-#         ml.save()
-
-#         num_new_entries = MyLabel.objects.count()
-#         self.assertEqual(num_entries + 1, num_new_entries)
-
-#     def test_can_load_my_labels_html(self):
-#         response = self.client.get("/users/my_labels/", {"user": self.user})
-#         self.assertEqual(response.status_code, 200)
-#         self.assertTemplateUsed(response, "users/my_labels.html")
-
-#     def test_null_user_cannot_access_my_labels(self):
-#         self.logout_user()
-#         response = self.client.get("/users/my_labels/")
-#         self.assertEqual(response.status_code, 302)
+def unauthenticated_user_cannot_access_my_labels(client, http_service):
+    response = client.get("/users/my_labels/")
+    # TODO Check that we're actually not getting anything back, status code is only part of the story
+    assert response.status_code == 302
