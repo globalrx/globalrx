@@ -24,8 +24,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # can override settings in .env, see .env.example
 env = environ.Env()
-# environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
-environ.Env.read_env()
+environ.Env.read_env(env.str("envfile"), os.path.join(BASE_DIR, ".env"))
+# environ.Env.read_env()
 
 STATIC_ROOT = os.path.join(BASE_DIR, "static/")
 
