@@ -22,6 +22,7 @@ def test_insert_drug_label(client, http_service):
     new_num_entries = DrugLabel.objects.count()
     assert num_entries + 1 == new_num_entries
 
+
 @pytest.mark.django_db
 def test_insert_label_product(client, http_service):
     # TODO replace with a fixture so we only test Label Product insert
@@ -41,6 +42,7 @@ def test_insert_label_product(client, http_service):
     lp.save()
     new_num_entries = LabelProduct.objects.count()
     assert num_entries + 1 == new_num_entries
+
 
 @pytest.mark.django_db
 def test_can_insert_product_section(client, http_service):
@@ -74,6 +76,7 @@ def test_can_insert_product_section(client, http_service):
     assert num_entries + 3 == new_num_entries
 
 
+@pytest.mark.django_db
 def test_load_ema_data(client, http_service):
     num_dl_entries = DrugLabel.objects.count()
     management.call_command("load_ema_data", type="test")
@@ -82,7 +85,8 @@ def test_load_ema_data(client, http_service):
     assert num_dl_entries + 3 == num_new_dl_entries
 
 
-def test_can_insert_skilarence(self):
+@pytest.mark.django_db
+def test_can_insert_skilarence(client, http_service):
     """Verify that we can get the correct values from the pdf"""
     management.call_command("load_ema_data", type="test")
     dl = DrugLabel(
@@ -103,6 +107,8 @@ def test_can_insert_skilarence(self):
     assert dl.source_product_number == dl_saved.source_product_number
     assert dl.marketer == dl_saved.marketer
 
+
+@pytest.mark.django_db
 def test_unique_constraint(client, http_service):
         """Unique constraint on DrugLabel should prevent us from adding
         entries where all of the following are identical:
@@ -121,11 +127,12 @@ def test_unique_constraint(client, http_service):
             version_date="2022-03-08",
         )
         # See: https://github.com/pytest-dev/pytest-django/issues/754
-        with pytest.raises(IntegrityError) as excinfo:
-            # client.check_constraints()
-            print(excinfo.value)
+        with pytest.raises(IntegrityError) as error_info:
+            dl2.save()
+            print(error_info)
 
 
+@pytest.mark.django_db
 def test_raw_text_is_saved(client, http_service):
     """Verify that we can get the correct values from the pdf"""
     management.call_command("load_ema_data", type="test")
@@ -133,7 +140,8 @@ def test_raw_text_is_saved(client, http_service):
     assert len(dl_saved.raw_text) > 100
 
 
-def test_load_fda_data(self):
+@pytest.mark.django_db
+def test_load_fda_data(client, http_service):
     num_dl_entries = DrugLabel.objects.count()
     management.call_command("load_fda_data", type="test")
     # should insert at least 1 dl records
