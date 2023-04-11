@@ -1,14 +1,19 @@
-# from django.db import IntegrityError
-# from django.test import Client, TestCase
+from django.db import IntegrityError
 
 import pytest
 import requests
 
+# from data.models import DrugLabel
+from users.models import MyLabel, User
+
 from ..utils import is_responsive_404
 
 
-# from data.models import DrugLabel
-# from users.models import MyLabel, User
+# from django.test import Client, TestCase
+
+
+
+
 
 
 
@@ -29,6 +34,25 @@ def test_register_user(client, http_service):
     print(response)
     assert(response.status_code == 302)
 
+@pytest.mark.django_db
+def test_login_users(client, http_service):
+    username = "testuser"
+    email = "testuser@gmail.com"
+    password = "testuser"
+    try:
+        User.objects.create_user(username, email, password)
+    except IntegrityError:
+        pass
+
+    response = client.post(
+        "/users/login/",
+        {"username": "testuser", "password": "testuser"},
+    )
+    assert(response.status_code==302)
+
+def test_logout_users(client, http_service):
+    response = client.get("/users/logout/")
+    assert(response.status_code==302)
 
 # class UserTests(TestCase):
 #     def setUp(self):
@@ -56,20 +80,7 @@ def test_register_user(client, http_service):
 #         )
 #         self.assertEqual(response.status_code, 302)
 
-#     def test_login_users(self):
-#         username = "testuser"
-#         email = "testuser@gmail.com"
-#         password = "testuser"
-#         try:
-#             User.objects.create_user(username, email, password)
-#         except IntegrityError:
-#             pass
 
-#         response = self.client.post(
-#             "/users/login/",
-#             {"username": "testuser", "password": "testuser"},
-#         )
-#         self.assertEqual(response.status_code, 302)
 
 #     def test_logout_users(self):
 #         response = self.client.get("/users/logout/")
