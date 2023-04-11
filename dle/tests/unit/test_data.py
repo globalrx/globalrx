@@ -129,8 +129,8 @@ def test_unique_constraint(client, http_service):
         # See: https://github.com/pytest-dev/pytest-django/issues/754
         with pytest.raises(IntegrityError) as error_info:
             dl2.save()
-            print(error_info.value)
-        assert error_info.value.message.startswidth("UNIQUE constraint failed")
+            print(error_info)
+        assert error_info.startswith("UNIQUE constraint failed")
 
 
 @pytest.mark.django_db
