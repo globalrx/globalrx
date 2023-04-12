@@ -1,8 +1,11 @@
 
 header {
     box-shadow: 0px 2px 4px  rgba(0,0,0,.5);
-    background-color: #1f8ecd;
-    height: 80px;
+    /*background-color: #0fb3a8;*/
+    background-image: url("sea.jpg");
+    background-color: #cccccc;
+    fill-opacity: calc(50);
+    height: 100px;
     position: fixed;
     top: 0;
     width: 100%;
@@ -12,29 +15,37 @@ header {
 }
 
 .content {
-    margin: 80px 20px 20px 20px;
+    margin: 100px 20px 20px 20px;
 }
 
 .brand {
-    font-size: 2rem;
+    font-size: 12px;
     margin-top: 16px;
     margin-left: 40px;
-    padding-bottom: 16px;
+    padding-top: 20px;
+    padding-bottom: 20px;
     float: left;
 }
 
 .brand-logo {
     color: #fff;
+    font-family: 'Roboto';
+    font-style: medium;
+    font-weight: 400;
+    font-size: 36px;
+    line-height: 12px;
+
 }
 
 .brand-logo:hover {
-    color: #bbb;
-    border-bottom: 5px solid rgb(0, 149, 255);
+    color: #085d65;
+    border-bottom: 5px solid rgb(225, 231, 235);
     text-decoration: none;
 }
 
 .nav {
-    margin-top: 26px;
+    margin-top: 20px;
+    margin-bottom: 30px;
     margin-right: 40px;
     float: right;
 }
@@ -118,6 +129,8 @@ ul.nav li {
 
   .ais-MenuSelect-select {
     margin-bottom: 1rem;
+    border: 1px solid #F2F4F8;
+    border-radius: 8.30488px;
   }
 
   .ais-RefinementList-checkbox {
