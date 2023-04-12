@@ -5,7 +5,7 @@ ENV PYTHONUNBUFFERED=1
 
 # g++ for Pillow
 RUN apt-get update --fix-missing \
-    && apt-get install -y nginx python-psycopg2 postgresql \
+    && apt-get install -y nginx postgresql \
     libpq-dev gcc g++ firefox-esr unzip curl
 
 # Install geckodriver for Firefox Selenium

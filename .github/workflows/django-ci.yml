@@ -9,11 +9,6 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 4
-      matrix:
-        python-version: ['3.10']
-
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -21,6 +16,7 @@ jobs:
       - name: Run dockerized tests
         uses: cloudposse/github-action-docker-compose-test-run@main
         with:
-          file: dle/docker-compose-tests.yml
+          file: docker-compose-tests.yml
           service: django
-          command: dle/run-tests.sh
+          command: run-tests.sh
+          workdir: dle

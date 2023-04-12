@@ -62,6 +62,7 @@ SECRET_KEY = env.str("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DEBUG", False)
+LOG_LEVEL = env.str("LOG_LEVEL", "DEBUG")
 
 TESTS = env.bool("TESTS", False)
 
@@ -70,23 +71,24 @@ LOGIN_URL = "/users/login/"
 # Application definition
 
 INSTALLED_APPS = [
-    "users.apps.UsersConfig",
-    "data.apps.DataConfig",
-    "compare.apps.CompareConfig",
-    "api.apps.ApiConfig",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "search.apps.SearchConfig",
     "elasticsearch_django",
     "django_extensions",
+    "users",
+    "data",
+    "compare",
+    "api",
+    "search",
 ]
 
 AUTH_USER_MODEL = "users.User"
 
 MIDDLEWARE = [
+    "allow_cidr.middleware.AllowCIDRMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
