@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 
 import os
 import ssl
+import sys
 from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
@@ -24,7 +25,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # can override settings in .env, see .env.example
 env = environ.Env()
-environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
+# environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
+environ.Env.read_env()
+if "pytest" in sys.modules:
+    print("Running for pytest ...")
+    environ.Env.read_env(os.path.join(BASE_DIR, "tests/test.env"))
 
 STATIC_ROOT = os.path.join(BASE_DIR, "static/")
 
@@ -115,6 +120,8 @@ TEMPLATES = [
         },
     },
 ]
+
+FIXTURE_DIRS = [os.path.join(BASE_DIR, "tests/fixtures")]
 
 WSGI_APPLICATION = "dle.wsgi.application"
 

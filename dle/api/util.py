@@ -13,7 +13,7 @@ def load_bert_model(huggingface_model: str) -> str:
     Takes a HuggingFace model, e.g. 'pritamdeka/S-PubMedBert-MS-MARCO'.
     If a model does not already exist, it is downloaded.
     """
-    print(f"Model to be loaded: {huggingface_model}")
+    logger.info(f"Model to be loaded: {huggingface_model}")
 
     username, repo = [str(i) for i in huggingface_model.split("/")]
     MODEL_PATH = os.path.join(settings.NLP_MODELS, repo)
