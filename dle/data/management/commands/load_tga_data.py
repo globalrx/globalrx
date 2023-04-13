@@ -1,4 +1,3 @@
-import datetime
 import logging
 import random
 import re
@@ -20,11 +19,9 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 
 from data.models import DrugLabel, LabelProduct, ProductSection
+from data.util import convert_date_string
 
 from .pdf_parsing_helper import get_pdf_sections, read_pdf
-
-
-# from users.models import MyLabel
 
 
 logger = logging.getLogger(__name__)
@@ -121,6 +118,7 @@ class Command(BaseCommand):
         logger.info(f"import_type: {import_type}")
 
         if import_type == "test":
+            # top level pages for 0, 5, Y labels
             urls = [
                 "https://www.ebs.tga.gov.au/ebs/picmi/picmirepository.nsf/PICMI?OpenForm&t=PI&k=0&r=/",
                 "https://www.ebs.tga.gov.au/ebs/picmi/picmirepository.nsf/PICMI?OpenForm&t=PI&k=5&r=/",
@@ -177,16 +175,6 @@ class Command(BaseCommand):
         logger.info(self.style.SUCCESS("process complete"))
         return
 
-    def convert_date_string(self, date_string):
-        for date_format in ("%d %B %Y", "%d %b %Y", "%d/%m/%Y"):
-            try:
-                dt_obj = datetime.datetime.strptime(date_string, date_format)
-                converted_string = dt_obj.strftime("%Y-%m-%d")
-                return converted_string
-            except ValueError:
-                pass
-        return ""
-
     def get_drug_label_from_row(self, soup, row, cookies):
         dl = DrugLabel()  # empty object to populate as we go
         dl.source = "TGA"
@@ -202,26 +190,27 @@ class Command(BaseCommand):
 
         # get version date from the pdf
         dl.raw_text, label_text = self.get_and_parse_pdf(dl.link, dl.source_product_number, cookies)
-        dl.version_date = ""
+        parsed_date = None
         date_string = ""
         # First to look for date of revision, if it exists and contains a valid date, then store that date
         # Otherwise look for date of first approval, and store that date if it's available
         if "Date Of Revision" in label_text.keys():
             date_string = label_text["Date Of Revision"][0].split("\n")[0]
-            dl.version_date = self.convert_date_string(date_string)
-
-        if dl.version_date == "" and "Date Of First Approval" in label_text.keys():
+            parsed_date = convert_date_string(date_string)
+        if parsed_date is None and "Date Of First Approval" in label_text.keys():
             date_string = label_text["Date Of First Approval"][0].split("\n")[0]
-            dl.version_date = self.convert_date_string(date_string)
-
-        if dl.version_date == "" and "Date Of Most Recent Amendment" in label_text.keys():
+            parsed_date = convert_date_string(date_string)
+        if parsed_date is None and "Date Of Most Recent Amendment" in label_text.keys():
             date_string = label_text["Date Of Most Recent Amendment"][0].split("\n")[0]
-            dl.version_date = self.convert_date_string(date_string)
-
+            parsed_date = convert_date_string(date_string)
+        logger.debug(f"date_string: {date_string}; parsed_date: {parsed_date}")
         # Raise an error if the version date is still empty
-        if dl.version_date == "":
+        # TODO potentially save with a dummy version date and allow for manual corrections?
+        if parsed_date is None:
+            logger.debug(f"failed parsing date - label_text.keys(): {label_text.keys()}")
             raise AttributeError(f"Failed to parse for version date ({date_string}) from {dl.link}")
-
+        else:
+            dl.version_date = parsed_date
         dl.save()
         return dl, label_text
 

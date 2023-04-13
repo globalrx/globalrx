@@ -1,8 +1,11 @@
 # import json
+import datetime
 import math
 import re
 
+import dateparser
 import numpy as np
+from dateparser.search import search_dates
 
 
 def highlight_query_string(text: str, qstring: str) -> str:
@@ -108,3 +111,25 @@ def compute_section_embedding(text: str, model, word_count=256, normalize=True) 
         m = magnitude(avg_vec)
         # return the unit length vector instead
         return [x / m for x in avg_vec]
+
+
+def convert_date_string(date_string: str) -> datetime.datetime | None:
+    # for date_format in ("%d %B %Y", "%d %b %Y", "%d/%m/%Y"):
+    #     try:
+    #         dt_obj = datetime.datetime.strptime(date_string, date_format)
+    #         converted_string = dt_obj.strftime("%Y-%m-%d")
+    #         # TODO should we be returning a datetime object rather than string?
+    #         return converted_string
+    #     except ValueError:
+    #         pass
+    # return ""
+    parsed = dateparser.parse(date_string)
+    if parsed:
+        return parsed
+    else:
+        parsed = search_dates(date_string)
+        # single hit
+        if parsed and len(parsed) == 1:
+            return parsed[0][1]
+        # multiple or no hits, return nothing
+    return None
