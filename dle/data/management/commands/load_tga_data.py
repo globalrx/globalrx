@@ -20,7 +20,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 
 from data.models import DrugLabel, LabelProduct, ProductSection
-from data.util import convert_date_string, strfdelta
+from data.util import check_recently_updated, convert_date_string, strfdelta
 
 from .pdf_parsing_helper import get_pdf_sections, read_pdf
 
@@ -176,7 +176,7 @@ class Command(BaseCommand):
                     ).order_by("-updated_at")
                     if existing_labels.count() >= 1:
                         existing_label = existing_labels[0]
-                        if self.check_recently_updated(
+                        if check_recently_updated(
                             dl=existing_label, skip_timeframe=self.skip_labels_updated_within_span
                         ):
                             last_updated_ago = (
