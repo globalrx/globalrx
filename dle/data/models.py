@@ -185,7 +185,7 @@ class ParsingError(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     last_parsed = models.DateTimeField(auto_now=True)
     url = models.URLField(max_length=400, blank=False)
-    errorType = models.CharField(
+    error_type = models.CharField(
         max_length=30,
         choices=PARSING_ERROR_TYPES,
         default=None,

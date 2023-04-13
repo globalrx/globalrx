@@ -4,6 +4,7 @@ import random
 import re
 import string
 import time
+from distutils.util import strtobool
 
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -70,6 +71,7 @@ class Command(BaseCommand):
         self.total_to_process = 0
         self.processed_with_current_cookies = 0
         self.cookies = None
+        self.skip_errors = True
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -82,7 +84,13 @@ class Command(BaseCommand):
             "--skip_more_recent_than_n_hours",
             type=int,
             help="Skip re-scraping labels more recently imported than this number of hours old. Default is 168 (7 days)",
-            default=168,  # 7 days
+            default=168,  # 7 days; set to 0 to re-scrape everything
+        )
+        parser.add_argument(
+            "--skip_known_errors",
+            type=strtobool,
+            help="Skip labels that have previously had parsing errors. Default is True",
+            default=True,
         )
 
     def get_tga_cookies(self) -> dict:
@@ -109,6 +117,7 @@ class Command(BaseCommand):
         self.skip_labels_updated_within_span = datetime.timedelta(
             hours=int(options["skip_more_recent_than_n_hours"])
         )
+        self.skip_errors = options["skip_known_errors"]
         import_type = options["type"]
         if import_type not in ["full", "test"]:
             raise CommandError("'type' parameter must be 'full' or 'test'")
@@ -166,11 +175,25 @@ class Command(BaseCommand):
                 try:
                     pdf_link = TGA_BASE_URL + row.find_all("td")[1].find("a")["href"]
                 except IndexError:
+                    # Not saving to ParsingErrors, no URL to track down?
                     logger.warning(
                         "IndexError - could not generate PDF link to check if possible existing labels have been recently updated"
                     )
-                    # Not saving to ParsingErrors, no URL to track down?
+
                 if pdf_link:
+                    # first see if it's a label with a known error; if so, skip
+                    # TODO does version_date come into play here at all?
+                    if self.skip_errors:
+                        existing_errors = ParsingError.objects.filter(source="TGA", url=pdf_link)
+                        if existing_errors.count() >= 1:
+                            logger.warning(
+                                self.style.WARNING(
+                                    f"Label skipped. Known error: {existing_errors[0].error_type}"
+                                )
+                            )
+                            continue
+
+                    # next, see if it's a label that's been recently updated; if so, skip
                     # possibly multiple DLs with the same link (versions), so get the newest
                     existing_labels = DrugLabel.objects.filter(
                         source="TGA", link=pdf_link
@@ -210,17 +233,17 @@ class Command(BaseCommand):
                     logger.warning(self.style.ERROR(repr(e)))
                     msg = str(repr(e))
                     # TODO make error type parsing a function
-                    errorType = None
+                    error_type = None
                     if (
                         "Failed to parse for version date ()" in msg
                         or "Failed to parse for version date( )" in msg
                     ):
-                        errorType = "version_date_empty"
+                        error_type = "version_date_empty"
                     elif "Failed to parse for version date" in msg:
-                        errorType = "version_date_parse"
+                        error_type = "version_date_parse"
 
                     parsing_error, created = ParsingError.objects.get_or_create(
-                        url=pdf_link, message=msg, source="TGA", errorType=errorType
+                        url=pdf_link, message=msg, source="TGA", error_type=error_type
                     )
                     if created:
                         logger.warning(f"Created ParsingError {parsing_error}")
@@ -231,7 +254,7 @@ class Command(BaseCommand):
                     logger.warning(self.style.ERROR(repr(e)))
                     msg = str(repr(e))
                     created, parsing_error = ParsingError.objects.get_or_create(
-                        url=pdf_link, message=msg, source="TGA", errorType="pdf_error"
+                        url=pdf_link, message=msg, source="TGA", error_type="pdf_error"
                     )
                 except ValueError as e:
                     logger.warning(self.style.WARNING(repr(e)))
