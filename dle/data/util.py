@@ -196,3 +196,7 @@ def strfdelta(tdelta, fmt="{D:02}d {H:02}h {M:02}m {S:02}s", inputtype="timedelt
         if field in desired_fields and field in constants:
             values[field], remainder = divmod(remainder, constants[field])
     return f.format(fmt, **values)
+
+
+class PDFParseException(Exception):
+    """Exception raised for errors parsing PDFs."""

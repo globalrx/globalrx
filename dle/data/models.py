@@ -161,3 +161,50 @@ class ProductSection(SearchDocumentMixin, models.Model):
 
     def get_search_queryset(self, index="_all"):
         return self.get_queryset()
+
+
+PARSING_ERROR_TYPES = [
+    ("version_date_empty", "Version date empty"),
+    ("version_date_parse", "Version date parsed failure"),
+    ("pdf_error", "Failed to parse PDF"),
+    ("link_error", "Could not generate PDF link"),
+]
+
+AGENCY_CHOICES = [
+    ("TGA", "Therapeutic Goods Administration"),
+    ("FDA", "Food and Drug Administration"),
+    ("EMA", "European Medicines Agency"),
+]
+
+
+class ParsingError(models.Model):
+    """
+    Class to track known DrugLabel parsing errors for further improvements
+    """
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    last_parsed = models.DateTimeField(auto_now=True)
+    url = models.URLField(max_length=400, blank=False)
+    errorType = models.CharField(
+        max_length=30,
+        choices=PARSING_ERROR_TYPES,
+        default=None,
+        blank=True,
+    )
+    source = models.CharField(
+        max_length=10,
+        choices=AGENCY_CHOICES,
+        default=None,
+        blank=True,
+    )
+    message = models.TextField(blank=True)
+    # maybe it's possible to have a partial parsing error for a label that is good enough to save
+    label = models.ForeignKey(
+        DrugLabel,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+    )
+
+    def __str__(self):
+        return f"{self.url}: last parsed at {self.last_parsed.strftime('%m/%d/%Y, %H:%M:%S')}"

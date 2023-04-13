@@ -19,8 +19,8 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 
-from data.models import DrugLabel, LabelProduct, ProductSection
-from data.util import check_recently_updated, convert_date_string, strfdelta
+from data.models import DrugLabel, LabelProduct, ParsingError, ProductSection
+from data.util import PDFParseException, check_recently_updated, convert_date_string, strfdelta
 
 from .pdf_parsing_helper import get_pdf_sections, read_pdf
 
@@ -169,6 +169,7 @@ class Command(BaseCommand):
                     logger.warning(
                         "IndexError - could not generate PDF link to check if possible existing labels have been recently updated"
                     )
+                    # Not saving to ParsingErrors, no URL to track down?
                 if pdf_link:
                     # possibly multiple DLs with the same link (versions), so get the newest
                     existing_labels = DrugLabel.objects.filter(
@@ -205,9 +206,39 @@ class Command(BaseCommand):
                     logger.warning(self.style.WARNING("Label already in db"))
                     logger.debug(e, exc_info=True)
                 except AttributeError as e:
+                    # Typically: 'Failed to parse for version date () ...'
                     logger.warning(self.style.ERROR(repr(e)))
+                    msg = str(repr(e))
+                    # TODO make error type parsing a function
+                    errorType = None
+                    if (
+                        "Failed to parse for version date ()" in msg
+                        or "Failed to parse for version date( )" in msg
+                    ):
+                        errorType = "version_date_empty"
+                    elif "Failed to parse for version date" in msg:
+                        errorType = "version_date_parse"
+
+                    parsing_error, created = ParsingError.objects.get_or_create(
+                        url=pdf_link, message=msg, source="TGA", errorType=errorType
+                    )
+                    if created:
+                        logger.warning(f"Created ParsingError {parsing_error}")
+                    else:
+                        logger.info(f"ParsingError {parsing_error} already exists")
+                except PDFParseException as e:
+                    # Typically "Failed to parse pdf with both methods"
+                    logger.warning(self.style.ERROR(repr(e)))
+                    msg = str(repr(e))
+                    created, parsing_error = ParsingError.objects.get_or_create(
+                        url=pdf_link, message=msg, source="TGA", errorType="pdf_error"
+                    )
                 except ValueError as e:
                     logger.warning(self.style.WARNING(repr(e)))
+                    # TODO see what errors these are to create ParsingErrors for them
+                except Exception as e:
+                    logger.error(self.style.ERROR(repr(e)))
+                    # TODO see what errors these are to create ParsingErrors for them
                 # increment this regardless of success, still takes time
                 self.processed_with_current_cookies += 1
 
@@ -408,7 +439,7 @@ class Command(BaseCommand):
                     raw_text, OTHER_FORMATTED_SECTIONS
                 )
                 if len(headers) == 0:
-                    raise Exception("Failed to parse pdf with both methods")
+                    raise PDFParseException("Failed to parse pdf with both methods")
             for h, s in zip(headers, sections):
                 header = self.get_fixed_header(h)
                 if (header is not None) and (len(s) > 0):
