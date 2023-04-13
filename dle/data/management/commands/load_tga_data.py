@@ -69,6 +69,9 @@ class Command(BaseCommand):
         self.options = Options()
         self.options.add_argument("--headless")
         self.driver = webdriver.Firefox(options=self.options)
+        self.total_to_process = 0
+        self.processed_with_current_cookies = 0
+        self.cookies = None
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -77,6 +80,26 @@ class Command(BaseCommand):
             help="'full', 'test'",
             default="test",
         )
+
+    def get_tga_cookies(self) -> dict:
+        """Get cookies from TGA website
+        Accept the access terms
+        Store the cookies and include with BeautifulSoup requests
+        """
+        self.driver.delete_all_cookies()
+        self.driver.get(TGA_BASE_URL + "/pdf?OpenAgent")
+        time.sleep(1)
+        # This is the xpath to the accept button
+        button = self.driver.find_element(
+            by=By.XPATH, value="/html/body/form/div[2]/div[3]/div[1]/a[1]"
+        )
+        self.driver.execute_script("arguments[0].click();", button)
+        # Wait a bit for it to load
+        time.sleep(5)
+        driver_cookies = self.driver.get_cookies()
+        cookies = {c["name"]: c["value"] for c in driver_cookies}
+        logger.info("Got or renewed cookies")
+        return cookies
 
     def handle(self, *args, **options):
         import_type = options["type"]
@@ -107,21 +130,10 @@ class Command(BaseCommand):
             # Get full list of addresses to query
             urls = self.get_tga_pi_urls()
 
+        self.total_to_process = len(urls)
         logger.info(f"total urls to process: {len(urls)}")
 
-        # Before being able to access the PDFs, we have to accept the access terms
-        # Then store the cookies and pass it to the requests
-        self.driver.get(TGA_BASE_URL + "/pdf?OpenAgent")
-        time.sleep(1)
-        # This is the xpath to the accept button
-        button = self.driver.find_element(
-            by=By.XPATH, value="/html/body/form/div[2]/div[3]/div[1]/a[1]"
-        )
-        self.driver.execute_script("arguments[0].click();", button)
-        # Wait a bit for it to load
-        time.sleep(5)
-        driver_cookies = self.driver.get_cookies()
-        cookies = {c["name"]: c["value"] for c in driver_cookies}
+        self.cookies = self.get_tga_cookies()
 
         # Iterate all the query URLs
         for url in urls:
@@ -134,8 +146,13 @@ class Command(BaseCommand):
             rows = table_body.find_all("tr")
             # Iterate all the products in the table
             for row in rows:
+                # If we have processed a bunch of labels, get a new cookie so we don't time out
+                if self.processed_with_current_cookies >= 200:
+                    new_cookies = self.get_tga_cookies()
+                    self.cookies = new_cookies
+                    self.processed_with_current_cookies = 0
                 try:
-                    dl, label_text = self.get_drug_label_from_row(soup, row, cookies)
+                    dl, label_text = self.get_drug_label_from_row(soup, row, self.cookies)
                     logger.debug(repr(dl))
                     # dl.link is url of pdf
                     # for now, assume only one LabelProduct per DrugLabel
@@ -150,6 +167,8 @@ class Command(BaseCommand):
                     logger.warning(self.style.ERROR(repr(e)))
                 except ValueError as e:
                     logger.warning(self.style.WARNING(repr(e)))
+                # increment this regardless of success, still takes time
+                self.processed_with_current_cookies += 1
 
             for url in self.error_urls.keys():
                 logger.warning(self.style.WARNING(f"error parsing url: {url}"))
