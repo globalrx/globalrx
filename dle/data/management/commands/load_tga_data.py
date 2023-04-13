@@ -1,3 +1,4 @@
+import datetime
 import logging
 import random
 import re
@@ -19,7 +20,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 
 from data.models import DrugLabel, LabelProduct, ProductSection
-from data.util import convert_date_string
+from data.util import convert_date_string, strfdelta
 
 from .pdf_parsing_helper import get_pdf_sections, read_pdf
 
@@ -77,6 +78,12 @@ class Command(BaseCommand):
             help="'full', 'test'",
             default="test",
         )
+        parser.add_argument(
+            "--skip_more_recent_than_n_hours",
+            type=int,
+            help="Skip re-scraping labels more recently imported than this number of hours old. Default is 168 (7 days)",
+            default=168,  # 7 days
+        )
 
     def get_tga_cookies(self) -> dict:
         """Get cookies from TGA website
@@ -99,6 +106,9 @@ class Command(BaseCommand):
         return cookies
 
     def handle(self, *args, **options):
+        self.skip_labels_updated_within_span = datetime.timedelta(
+            hours=int(options["skip_more_recent_than_n_hours"])
+        )
         import_type = options["type"]
         if import_type not in ["full", "test"]:
             raise CommandError("'type' parameter must be 'full' or 'test'")
@@ -149,6 +159,39 @@ class Command(BaseCommand):
                     new_cookies = self.get_tga_cookies()
                     self.cookies = new_cookies
                     self.processed_with_current_cookies = 0
+
+                # if the label has been parsed recently, skip
+                # Get the PDF link
+                pdf_link = None
+                try:
+                    pdf_link = TGA_BASE_URL + row.find_all("td")[1].find("a")["href"]
+                except IndexError:
+                    logger.warning(
+                        "IndexError - could not generate PDF link to check if possible existing labels have been recently updated"
+                    )
+                if pdf_link:
+                    # possibly multiple DLs with the same link (versions), so get the newest
+                    existing_labels = DrugLabel.objects.filter(
+                        source="TGA", link=pdf_link
+                    ).order_by("-updated_at")
+                    if existing_labels.count() >= 1:
+                        existing_label = existing_labels[0]
+                        if self.check_recently_updated(
+                            dl=existing_label, skip_timeframe=self.skip_labels_updated_within_span
+                        ):
+                            last_updated_ago = (
+                                datetime.datetime.now(datetime.timezone.utc)
+                                - existing_label.updated_at
+                            )
+                            logger.warning(
+                                self.style.WARNING(
+                                    f"Label skipped. Updated {strfdelta(last_updated_ago)} ago, less than {self.skip_labels_updated_within_span}"
+                                )
+                            )
+                            continue
+                    else:
+                        logger.info("No existing labels with this PDF link, continuing parsing")
+
                 try:
                     dl, label_text = self.get_drug_label_from_row(soup, row, self.cookies)
                     logger.debug(repr(dl))
