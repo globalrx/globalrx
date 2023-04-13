@@ -32,6 +32,9 @@ class DrugLabel(models.Model):
     - `LabelProduct`s then have multiple `ProductSection`s
     """
 
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
     source = models.CharField(max_length=8, choices=SOURCES, db_index=True)
     product_name = models.CharField(max_length=255, db_index=True)
     generic_name = models.CharField(max_length=2048, db_index=True)
