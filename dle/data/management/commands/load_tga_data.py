@@ -462,6 +462,7 @@ class Command(BaseCommand):
                     raw_text, OTHER_FORMATTED_SECTIONS
                 )
                 if len(headers) == 0:
+                    # Not seeing this saved
                     raise PDFParseException("Failed to parse pdf with both methods")
             for h, s in zip(headers, sections):
                 header = self.get_fixed_header(h)
@@ -474,6 +475,10 @@ class Command(BaseCommand):
 
             info["Label Text"] = label_text
             self.records[product_code] = info
+        except PDFParseException as e:
+            logger.error(self.style.ERROR(repr(e)))
+            logger.error(self.style.ERROR(f"Failed to process {tga_file}, url = {pdf_url}"))
+            self.error_urls[pdf_url] = True
         except Exception as e:
             logger.error(self.style.ERROR(repr(e)))
             logger.error(self.style.ERROR(f"Failed to process {tga_file}, url = {pdf_url}"))
