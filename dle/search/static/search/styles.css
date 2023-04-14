@@ -123,3 +123,8 @@ ul.nav li {
   .ais-RefinementList-checkbox {
     margin-right: .5rem;
   }
+
+  /* hide compare labels form by default */
+  #compare-button-container {
+    display: none;
+  }
