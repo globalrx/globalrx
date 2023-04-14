@@ -52,6 +52,7 @@ const sk = new Searchkit({
                 attribute: "drug_label_generic_name",
             }
         ],
+        fragment_size: 300
     }
 })
 
@@ -110,7 +111,6 @@ search.addWidgets([
             globalSearchTerm = query;
             search(query);
         },
-        container: "#searchbox"
     }),
     instantsearch.widgets.currentRefinements({
         container: "#current-refinements"
