@@ -2,6 +2,8 @@
 
 // Basic auth with username/password is not supported - bug: see https://github.com/searchkit/searchkit/issues/1235
 var globalSearchTerm = '';
+var queryType = 'match'; // knn, simpleQueryString, match
+
 const sk = new Searchkit({
     connection: {
         host: ELASTIC_HOST, // Set by the Django template in which this file is embedded
@@ -52,9 +54,9 @@ const sk = new Searchkit({
                 attribute: "drug_label_generic_name",
             }
         ],
-        fragment_size: 300
+        fragment_size: 500
     }
-})
+}, {debug: true})
 
 async function vectorizeText(query) {
     const response = await fetch("http://localhost:8000/api/v1/vectorize", {
@@ -71,12 +73,37 @@ async function vectorizeText(query) {
 }
 
 client = SearchkitInstantsearchClient(sk, {
+    getQuery: (query, search_attributes) => {
+        if(queryType == 'simpleQueryString'){
+            console.log(query);
+            console.log(search_attributes);
+            return [
+                {
+                    simple_query_string: {
+                        query,
+                        fields: search_attributes
+                    }
+                }
+            ]
+        } else if (queryType=='match'){
+            return [
+                {
+                    multi_match: {
+                        query,
+                        fields: search_attributes
+                    }
+                    
+                }
+            ]
+        }
+
+    },
     hooks: {
         beforeSearch: async (searchRequests) => {
             const [uiRequest] = searchRequests
 
             query = uiRequest.request.params.query
-            if (!query) {
+            if (!query | !(queryType=='knn')) {
                 return searchRequests;
             }
 
@@ -99,6 +126,47 @@ client = SearchkitInstantsearchClient(sk, {
     }
 })
 
+// function createGenericNamesPlugin({
+//     client
+// }) {
+//     return {
+//         getSources({ query }) {
+//             return [
+//                 sourceId: "genericNamePlugin",
+//                 getItems() {
+//                     return getAlgoliaFacets({
+//                         client,
+//                         queries: [
+//                             indexName: "productsection",
+//                             facet: "drug_label_generic_name",
+//                             params: {
+//                                 facetName: "drug_label_generic_name",
+//                                 facetQuery: query,
+//                                 maxFacetHits: query ? 3 : 5
+//                             }
+//                         ]
+//                     })
+//                 },
+//                 templates: {
+//                     header() {
+//                         return (
+//                             <Fragment>
+//                                 <span className="aa-SourceHeaderTitle">Generic Name</span>
+//                                 <div className="aa-SourceHeaderLine" />
+//                             </Fragment>
+//                         )
+//                     }
+//                 },
+//                 item({ item, components }) {
+//                     return (
+//                         <div>{ item.label }</div>
+//                     )
+//                 }
+//             ]
+//         }
+//     }
+// }
+
 const search = instantsearch({
     indexName: "productsection",
     searchClient: client,
@@ -111,6 +179,11 @@ search.addWidgets([
             globalSearchTerm = query;
             search(query);
         },
+        container: "#searchbox",
+        searchAsYouType: false,
+        showReset: true,
+        showSubmit: true,
+        showLoadingIndicator: true
     }),
     instantsearch.widgets.currentRefinements({
         container: "#current-refinements"
@@ -119,12 +192,13 @@ search.addWidgets([
         container: "#section-name-filter",
         attribute: "section_name",
         field: "section_name.keyword",
-        limit: 100
+        limit: 1000
     }),
     instantsearch.widgets.refinementList({
         container: "#drug-label-source-filter",
         attribute: "drug_label_source",
-        field: "drug_label_source.keyword",
+        field: "drug_label_source",
+        limit: 10
     }),
     instantsearch.widgets.menuSelect({
         container: "#drug-label-product-name-filter",
@@ -187,4 +261,37 @@ search.addWidgets([
     })
 ]);
 
+// function setInstantSearchUiState(indexUiState) {
+//     search.setUiState((uiState) => {
+//       return {
+//         ...uiState,
+//         instant_search: {
+//           ...uiState["instant_search"],
+//           // We reset the page when the search state changes.
+//           page: 1,
+//           ...indexUiState
+//         }
+//       };
+//     });
+//   }
+
+// function startAutocomplete() {
+//     autocomplete({
+//       detachedMediaQuery: "none",
+//       container: "#drug-label-product-name-filter",
+//       placeholder: "Naveen",
+//       openOnFocus: true,
+//     //   plugins: [recentSearchesPlugin, querySuggestionsPlugin],
+//       onSubmit({ state }) {
+//         setInstantSearchUiState({ query: state.query });
+//       },
+//       onStateChange({ prevState, state }) {
+//         if (prevState.query !== state.query) {
+//           setInstantSearchUiState({ query: state.query });
+//         }
+//       }
+//     });
+//   }
+
 search.start();
+// startAutocomplete();

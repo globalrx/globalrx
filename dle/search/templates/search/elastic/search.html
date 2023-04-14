@@ -1,7 +1,7 @@
 {% extends "search/base.html" %}
 {% block head %}
 {% load static %}
-<!-- Searchkit assets -->
+<!-- Searchkit and Algolia Instantsearch assets -->
 <script src="https://cdn.jsdelivr.net/npm/@searchkit/instantsearch-client@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/instantsearch.js@4"></script>
 <!-- 
@@ -9,8 +9,14 @@
   See: https://github.com/searchkit/searchkit/pull/1253
   <script src="https://cdn.jsdelivr.net/npm/searchkit@latest"></script>
 -->
-<script type="text/javascript" src="{% static 'search/index.global.js' %}"></script>
+<script type="text/javascript" src="{% static 'search/searchkit-dev/index.global.js' %}"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7/themes/algolia-min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/@algolia/autocomplete-js"></script>
+<script>
+  const { autocomplete } = window['@algolia/autocomplete-js'];
+  const { getAlgoliaFacets } = window['@algolia/autocomplete-js']
+</script>
+
 <link href="../../static/search/styles.css" rel="stylesheet" />
 
 {% endblock %}
