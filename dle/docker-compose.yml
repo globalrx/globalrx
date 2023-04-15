@@ -120,7 +120,7 @@ services:
       - xpack.security.transport.ssl.verification_mode=certificate
       - xpack.license.self_generated.type=${LICENSE}
       - ingest.geoip.downloader.enabled=false
-      - xpack.ml.enabled=true
+      - xpack.ml.enabled=false
       - "http.cors.allow-origin='*'"
       - "http.cors.enabled=true"
       - "http.cors.allow-credentials=true"
@@ -160,7 +160,7 @@ services:
       - ELASTICSEARCH_USERNAME=kibana_system
       - ELASTICSEARCH_PASSWORD=${KIBANA_PASSWORD}
       - ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES=config/certs/ca/ca.crt
-      - xpack.ml.enabled=true
+      - xpack.ml.enabled=false
     mem_limit: ${KIBANA_MEM_LIMIT}
     healthcheck:
       test:
