@@ -3,6 +3,8 @@
 set -o errexit
 set -o pipefail
 
+sed "s/API_ENDPOINT/$API_ENDPOINT/g" -i search/static/search/es_search.js
+
 until python3 /app/postgres_ready.py; do
   >&2 echo "Waiting for PostgreSQL to become available..."
   sleep 1

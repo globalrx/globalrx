@@ -56,8 +56,7 @@ const sk = new Searchkit({
 })
 
 async function vectorizeText(query) {
-    os.environ.get("API_ENDPOINT")
-    const response = await fetch("http://"+API_ENDPOINT+":8000/api/v1/vectorize", {
+    const response = await fetch("http://API_ENDPOINT:8000/api/v1/vectorize", {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
