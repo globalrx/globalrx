@@ -41,10 +41,11 @@ MEDIA_ROOT = BASE_DIR / "media"
 STATIC_URL = "/static/"
 
 NLP_MODELS = os.path.join(BASE_DIR, "api/bert_models")
-
+URL = os.environ.get("SEARCHRX_URL")
 # Hosts and CIDR (AWS subnets)
 try:
     ALLOWED_HOSTS = [
+        URL,
         "druglabelexplorer.org",
         "www.druglabelexplorer.org",
         "127.0.0.1",
@@ -52,7 +53,7 @@ try:
         "testserver",
     ] + env.list("ALLOWED_HOSTS")
 except ImproperlyConfigured:
-    ALLOWED_HOSTS = ["localhost", "0.0.0.0", "127.0.0.1"]
+    ALLOWED_HOSTS = [URL, "localhost", "0.0.0.0", "127.0.0.1"]
 try:
     ALLOWED_CIDR_NETS = env.list("ALLOWED_CIDR_NETS")
     print(f"ALLOWED_CIDR_NETS: {ALLOWED_CIDR_NETS}")
