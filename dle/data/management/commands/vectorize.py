@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from datetime import datetime
@@ -9,6 +10,7 @@ from elasticsearch import logger as es_logger
 from elasticsearch.helpers import streaming_bulk
 from elasticsearch_django.settings import get_client
 from tqdm import tqdm
+from tqdm.asyncio import tqdm_asyncio
 
 from api.apps import ApiConfig
 from data.models import ProductSection
@@ -17,6 +19,13 @@ from data.util import compute_section_embedding
 
 es_logger.setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
+
+
+def background(f):
+    def wrapped(*args, **kwargs):
+        return asyncio.get_event_loop().run_in_executor(None, f, *args, **kwargs)
+
+    return wrapped
 
 
 class Command(BaseCommand):
@@ -51,6 +60,12 @@ class Command(BaseCommand):
             type=str,
             help="If a file is passed, insert the existing vectors, then ingest",
         )
+
+    @background
+    def compute_section_vector_wrapper(self, section):
+        vec = compute_section_embedding(text=section.section_text, model=self.model, normalize=True)
+        section.bert_vector = json.dumps(vec)
+        section.save()
 
     def handle(self, *args, **options):
         agency = options["agency"]
@@ -103,21 +118,33 @@ class Command(BaseCommand):
             sections = ProductSection.objects.filter(label_product__drug_label__source=agency).all()
             self.total_sections = sections.count()
 
+            # start = datetime.now()
+            # subset = sections[0:1000]
+            # # TODO use Asyncio and find out why vectorization within Docker is abysmally slow
+            # for section in subset:
+            #     section.bert_vector = json.dumps(
+            #         compute_section_embedding(
+            #             section.section_text, model=self.model, normalize=True
+            #         )
+            #     )
+            #     section.save()
+            # end = datetime.now()
+            # elapsed = end - start
+            # print(
+            #     f"------------- computed {subset.count()} sections { int(elapsed.total_seconds()) } seconds"
+            # )
             start = datetime.now()
-            subset = sections[0:1000]
-            # TODO use Asyncio and find out why vectorization within Docker is abysmally slow
-            for section in subset:
-                section.bert_vector = json.dumps(
-                    compute_section_embedding(
-                        section.section_text, model=self.model, normalize=True
-                    )
-                )
-                section.save()
+            loop = asyncio.get_event_loop()
+            # looper = asyncio.gather(*[self.compute_section_vector_wrapper(s) for s in sections]) # type: ignore
+            looper = tqdm_asyncio.gather(*[self.compute_section_vector_wrapper(s) for s in sections])  # type: ignore
+            results = loop.run_until_complete(looper)
             end = datetime.now()
             elapsed = end - start
-            print(
-                f"------------- computed {subset.count()} sections { int(elapsed.total_seconds()) } seconds"
+
+            logger.info(
+                f"finished computing vectors ------------- { int(elapsed.total_seconds()) } seconds"
             )
+            logger.info(results)
 
         # Only try to do this if we haven't already imported vectors from the file
         # TODO test bulk API for ingest
