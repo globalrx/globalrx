@@ -74,14 +74,14 @@ class Command(BaseCommand):
         parser.add_argument(
             "--type",
             type=str,
-            help="'full'",
-            default="full",
+            help="'full', 'test'",
+            default="test",
         )
 
     def handle(self, *args, **options):
         import_type = options["type"]
-        if import_type not in ["full"]:
-            raise CommandError("'type' parameter must be 'full'")
+        if import_type not in ["full", "test"]:
+            raise CommandError("'type' parameter must be 'full' or 'test'")
 
         # basic logging config is in settings.py
         # verbosity is 1 by default, gives critical, error and warning output
@@ -141,12 +141,17 @@ class Command(BaseCommand):
         # Wait a bit for it to load
         time.sleep(5)
 
-        # Grab the result webpage
-        soup = BeautifulSoup(self.driver.page_source, "html.parser")
-        table = soup.find("table")
-        table_attrs = json.loads(table.get("data-wb-tables"))
-        # num_displayed_results = table_attrs["iDisplayLength"]
-        num_total_results = table_attrs["iDeferLoading"]
+        if import_type == "test":
+            # Test with the first 25 results
+            num_total_results = 25
+        else:
+            # else get the total number of results and parse all of them
+            # Grab the result webpage
+            soup = BeautifulSoup(self.driver.page_source, "html.parser")
+            table = soup.find("table")
+            table_attrs = json.loads(table.get("data-wb-tables"))
+            # num_displayed_results = table_attrs["iDisplayLength"]
+            num_total_results = table_attrs["iDeferLoading"]
 
         drug_label_parsed = 0
         # Iterate all the drugs in the table
