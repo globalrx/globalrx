@@ -6,9 +6,6 @@ from distutils.util import strtobool
 
 from django.core.management.base import BaseCommand, CommandError
 
-from elasticsearch import logger as es_logger
-from elasticsearch.helpers import streaming_bulk
-from elasticsearch_django.settings import get_client
 from tqdm import tqdm
 from tqdm.asyncio import tqdm_asyncio
 
@@ -17,7 +14,6 @@ from data.models import ProductSection
 from data.util import compute_section_embedding
 
 
-es_logger.setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 
@@ -44,12 +40,6 @@ class Command(BaseCommand):
             help="'TGA', 'FDA', 'EMA'",
         )
         parser.add_argument(
-            "--elasticingest",
-            type=strtobool,
-            help="Whether to ingest texts into Elastic",
-            default=True,
-        )
-        parser.add_argument(
             "--vectorize_in_docker",
             type=strtobool,
             help="Forces vectorization within Docker, which runs very slow on M1 at least",
@@ -69,7 +59,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         agency = options["agency"]
-        elasticingest = options["elasticingest"]
         vectorize_in_docker = options["vectorize_in_docker"]
         vector_filename = options["vector_file"]
 
@@ -112,30 +101,12 @@ class Command(BaseCommand):
                                 f"Found multiple ProductSections based on: section_name={section_name}, label_product__drug_label__source_product_number={source_product_id}, and label_product__drug_label__version_date={datetime.strptime(version, '%Y/%m/%d')} "
                             )
 
-        # Get QuerySet of ProductSections to process
-        # If QuerySet is too large, may need to use iterator() to disable QuerySet caching
         if vectorize_in_docker:
             sections = ProductSection.objects.filter(label_product__drug_label__source=agency).all()
             self.total_sections = sections.count()
 
-            # start = datetime.now()
-            # subset = sections[0:1000]
-            # # TODO use Asyncio and find out why vectorization within Docker is abysmally slow
-            # for section in subset:
-            #     section.bert_vector = json.dumps(
-            #         compute_section_embedding(
-            #             section.section_text, model=self.model, normalize=True
-            #         )
-            #     )
-            #     section.save()
-            # end = datetime.now()
-            # elapsed = end - start
-            # print(
-            #     f"------------- computed {subset.count()} sections { int(elapsed.total_seconds()) } seconds"
-            # )
             start = datetime.now()
             loop = asyncio.get_event_loop()
-            # looper = asyncio.gather(*[self.compute_section_vector_wrapper(s) for s in sections]) # type: ignore
             looper = tqdm_asyncio.gather(*[self.compute_section_vector_wrapper(s) for s in sections])  # type: ignore
             results = loop.run_until_complete(looper)
             end = datetime.now()
@@ -145,49 +116,3 @@ class Command(BaseCommand):
                 f"finished computing vectors ------------- { int(elapsed.total_seconds()) } seconds"
             )
             logger.info(results)
-
-        # Only try to do this if we haven't already imported vectors from the file
-        # TODO test bulk API for ingest
-        if elasticingest:
-            sections_w_vectors = ProductSection.objects.filter(
-                label_product__drug_label__source=agency
-            ).filter(bert_vector__isnull=False)
-
-            def generate_actions():
-                """For each agency's section that has a BERT vector, yield a document"""
-                # Only ingest ProductSections with existing vector representations
-                for section in sections_w_vectors:
-                    doc = section.as_search_document()
-                    doc["_id"] = section.id
-                    yield doc
-
-            logger.info("Ingesting vector docs into Elasticsearch")
-            es = get_client()
-
-            progress = tqdm(unit="docs", total=sections_w_vectors.count())
-            successes = 0
-            for ok, action in streaming_bulk(
-                client=es,
-                index="productsection",
-                actions=generate_actions(),
-            ):
-                progress.update(1)
-                successes += ok
-            logger.info(
-                self.style.SUCCESS(f"Indexed {successes} / {sections_w_vectors.count()} documents")
-            )
-
-        # Results - not parallelized - containerized with 6CPU / 16GB RAM, 4GB for ES and 1GB for Kibana so ~11GB for Django ...
-        # Ridiculously long. Like ~7.5 minutes to do a single section, without saving to DB
-
-        # Results - Jupyter Notebook, not parallelized
-        # 51:31 for 500 labels / 11275 sections
-        # 500 drug labels processed: 6.182 seconds per drug
-        # 11275 sections processed: 0.27414634146341466 seconds per section
-
-        # Results - Jupyter Notebook, Asyncio
-        # 26:41 for 500 labels / 11593 sections
-        # 500 drug labels processed: 3.202 seconds per drug
-        # 11593 sections processed: 0.13810057793496075 seconds per section
-
-        # ES Ingest (before bulk): ~35 minutes for 30659 sections, choppy
