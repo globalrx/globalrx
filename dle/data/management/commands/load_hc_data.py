@@ -33,9 +33,12 @@ HC_RESULT_URL = "https://health-products.canada.ca/dpd-bdpp/dispatch-repartition
 
 OTHER_FORMATTED_SECTIONS = [
     r"^SUMMARY PRODUCT INFORMATION$",
-    r"^INDICATIONS AND CLINICAL USE$",
+    r"^DESCRIPTION$",
+    r"^INDICATIONS AND (?:CLINICAL USE|USAGE)$",
     r"^CONTRAINDICATIONS$",
     r"^WARNINGS AND PRECAUTIONS$",
+    r"^WARNINGS$",
+    r"^PRECAUTIONS$",
     r"^ADVERSE REACTIONS$",
     r"^DRUG INTERACTIONS$",
     r"^DOSAGE AND ADMINISTRATION$",
@@ -351,6 +354,7 @@ class Command(BaseCommand):
         "Supporting Product Monographs",
         "Summary Product Information",
         "Toxicology",
+        "Description",
     ]
     # note: maybe we should manually merge these pairs:
     #   FERTILITY, PREGNANCY AND LACTATION
@@ -377,6 +381,17 @@ class Command(BaseCommand):
 
         try:
             raw_text = read_pdf(hc_file, no_annex=False)
+
+            # Skip over the table of content if there's one
+            counter = 0
+            for i, line in enumerate(raw_text):
+                if re.match(r"PART I: HEALTH PROFESSIONAL INFORMATION", line):
+                    counter  += 1
+                    # The first match would be in the table of content, 
+                    #  and the second match would be the start of the actual content
+                    if counter == 2:
+                        raw_text = raw_text[i:]
+                        break
             info = {}
             product_code = source_product_number
             # row = self.df[self.df["Product number"] == product_code]
@@ -385,7 +400,7 @@ class Command(BaseCommand):
             headers, sections = [], []
             headers, sections = get_pdf_sections(raw_text, pattern=r"^[1-9][0-9]?\.?\s+[A-Z].*")
 
-            # With the above method, it should at least find 20 sections, if less than that,
+            # With the above method, it should at least find 15 sections, if less than that,
             #  then parse it with other method
             if len(headers) < 15:
                 logger.info("Failed to parse. Using another method...")

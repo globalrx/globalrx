@@ -12,14 +12,14 @@ def get_pdf_sections(text, pattern, headers_filter=True):
             headers += [line.strip()]
 
     if headers_filter and len(headers) != 0:
-        # in headers, must increment or restart, and not end in punctuation
-        idx_valid, headers_valid = [idx[0]], [headers[0]]
-        for n in range(1, len(headers)):
+        idx_valid, headers_valid = [], []
+        for n in range(0, len(headers)):
             lastchar = headers[n].strip()[-1].lower()
             # 1. Headers must not end in punctuation
             # 2. All the dots ('.') must be from the section numbers
             # 3. The word "see" must not be in the headers
             # 4. "safe dose" is not a header
+            # 5. Shouldn't have any slash ('/')
             valid = (
                 (lastchar in "qwertyuiopasdfghjklzxcvbnm()")
                 and (
@@ -28,6 +28,7 @@ def get_pdf_sections(text, pattern, headers_filter=True):
                 )
                 and (headers[n].strip().lower().find("see") == -1)
                 and ("safe dose" not in headers[n].strip().lower())
+                and (headers[n].strip().lower().find(r"/") == -1)
             )
             if valid:
                 idx_valid.append(idx[n])
