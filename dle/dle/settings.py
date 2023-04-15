@@ -121,7 +121,10 @@ TEMPLATES = [
     },
 ]
 
-FIXTURE_DIRS = [os.path.join(BASE_DIR, "tests/fixtures")]
+FIXTURE_DIRS = [
+    os.path.join(BASE_DIR, "tests/fixtures"),
+    os.path.join(BASE_DIR, "data/fixtures"),
+]
 
 WSGI_APPLICATION = "dle.wsgi.application"
 
