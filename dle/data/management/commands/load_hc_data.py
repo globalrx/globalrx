@@ -391,8 +391,8 @@ class Command(BaseCommand):
             counter = 0
             for i, line in enumerate(raw_text):
                 if re.match(r"PART I: HEALTH PROFESSIONAL INFORMATION", line):
-                    counter  += 1
-                    # The first match would be in the table of content, 
+                    counter += 1
+                    # The first match would be in the table of content,
                     #  and the second match would be the start of the actual content
                     if counter == 2:
                         raw_text = raw_text[i:]
