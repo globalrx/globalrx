@@ -13,7 +13,6 @@ from django.db import IntegrityError
 import requests
 from bs4 import BeautifulSoup
 from Levenshtein import distance as levdistance
-from requests.exceptions import ChunkedEncodingError
 from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
@@ -31,10 +30,10 @@ HC_BASE_URL = "https://health-products.canada.ca"
 HC_SEARCH_URL = "https://health-products.canada.ca/dpd-bdpp/search/"
 HC_RESULT_URL = "https://health-products.canada.ca/dpd-bdpp/dispatch-repartition"
 
+# The following sections are assumed to be in this order in the pdf when they are parsed
 OTHER_FORMATTED_SECTIONS = [
-    r"^SUMMARY PRODUCT INFORMATION$",
+    r"^(?:SUMMARY PRODUCT INFORMATION|ACTIONS?(?: AND CLINICAL PHARMACOLOGY)?)$",
     r"^DESCRIPTION$",
-    r"^ACTIONS(?: AND CLINICAL PHARMACOLOGY)?$",
     r"^INDICATIONS(?: AND (?:CLINICAL USES?|USAGE))?$",
     r"^CONTRAINDICATIONS$",
     r"^WARNINGS AND PRECAUTIONS$",
@@ -44,7 +43,7 @@ OTHER_FORMATTED_SECTIONS = [
     r"^DRUG INTERACTIONS$",
     r"^DOSAGE AND ADMINISTRATION$",
     r"^OVERDOSAGE$",
-    r"^ACTION AND CLINICAL PHARMACOLOGY$",
+    r"^ACTIONS? AND CLINICAL PHARMACOLOGY$",
     r"^STORAGE AND STABILITY$",
     r"^DOSAGE FORMS, COMPOSITION AND PACKAGING$",
     r"^PHARMACEUTICAL INFORMATION$",
@@ -220,7 +219,10 @@ class Command(BaseCommand):
         # The column under DIN is a clickable link to the drug details
         link_to_drug_details = HC_BASE_URL + columns[1].find("a")["href"]
         logger.info(f"Scraping URL {link_to_drug_details}")
-        response = requests.get(link_to_drug_details)
+        response = self.requests_with_retries(link_to_drug_details)
+        if not response:
+            raise ValueError(f"unable to grab url contents {link_to_drug_details}")
+
         soup = BeautifulSoup(response.text, "html.parser")
         divs = soup.findAll("div", attrs={"class": "row"})
         # Get the version date and the pdf link
@@ -272,18 +274,21 @@ class Command(BaseCommand):
         for i in range(tries - 1):
             yield 2**i + random.uniform(0, 1)
 
-    def get_and_parse_pdf(self, pdf_url, source_product_number, lp):
+    def requests_with_retries(self, url):
         # have a backoff time for pulling the pdf from the website
         for t in self.get_backoff_time(5):
             try:
                 logger.info(f"time to sleep: {t}")
                 time.sleep(t)
-                response = requests.get(pdf_url)
+                response = requests.get(url)
                 break  # no Exception means we were successful
-            except (ValueError, ChunkedEncodingError) as e:
-                logger.error(self.style.ERROR(f"caught error: {e.__class__.__name__}"))
-                logger.warning(self.style.WARNING("Unable to read url, may continue"))
+            except:
+                logger.error(f"Failed. Retry to request {url}")
                 response = None
+        return response
+
+    def get_and_parse_pdf(self, pdf_url, source_product_number, lp):
+        response = self.requests_with_retries(pdf_url)
         if not response:
             logger.error(self.style.ERROR("unable to grab url contents"))
             self.error_urls[pdf_url] = True
@@ -360,6 +365,18 @@ class Command(BaseCommand):
         else:
             return self.centers[ix]
 
+    def fix_headers(self, headers, sections):
+        label_text = {}
+        for h, s in zip(headers, sections):
+            header = self.get_fixed_header(h)
+            if (header is not None) and (len(s) > 0):
+                logger.info(f"Found original header ({h}) fixed to {header}")
+                if header not in label_text.keys():
+                    label_text[header] = [s]
+                else:
+                    label_text[header].append(s)
+        return label_text
+
     def process_hc_pdf_file(self, hc_file, source_product_number, lp, pdf_url=""):
         raw_text = []
         label_text = {}  # next level = product page w/ metadata
@@ -373,26 +390,19 @@ class Command(BaseCommand):
             headers, sections = [], []
             # Match headers that start with section numbers (e,g, 4.1)
             headers, sections = get_pdf_sections(raw_text, pattern=r"^[1-9][0-9]?\.?\s+[A-Z].*")
+            label_text = self.fix_headers(headers, sections)
 
             # With the above method, it should at least find 10 sections, if less than that,
             #  then parse it with other method
-            if len(headers) < 10:
+            if len(label_text) < 10:
                 logger.info("Failed to parse. Using another method...")
                 # Method that parses for headers with more rigid regular expressions
                 headers, sections = self.get_pdf_sections_with_format(
                     raw_text, OTHER_FORMATTED_SECTIONS
                 )
-                if len(headers) == 0:
+                label_text = self.fix_headers(headers, sections)
+                if len(label_text) == 0:
                     raise Exception("Failed to parse pdf with both methods")
-
-            for h, s in zip(headers, sections):
-                header = self.get_fixed_header(h)
-                if (header is not None) and (len(s) > 0):
-                    logger.info(f"Found original header ({h}) fixed to {header}")
-                    if header not in label_text.keys():
-                        label_text[header] = [s]
-                    else:
-                        label_text[header].append(s)
 
             for index, key in enumerate(label_text):
                 text_block = ""
