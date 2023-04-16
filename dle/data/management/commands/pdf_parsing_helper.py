@@ -2,6 +2,7 @@ import re
 
 import pdfplumber
 
+
 # Function to filter invalid headers
 # 1. Headers must not end in punctuation
 # 2. All the dots ('.') must be from the section numbers
@@ -26,6 +27,7 @@ def filter_headers(idx, headers):
             idx_valid.append(idx[n])
             headers_valid.append(headers[n])
     return idx_valid, headers_valid
+
 
 # function: input text, output list of section headers and content
 def get_pdf_sections(text, pattern, headers_filter=True):

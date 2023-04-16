@@ -34,7 +34,7 @@ HC_RESULT_URL = "https://health-products.canada.ca/dpd-bdpp/dispatch-repartition
 OTHER_FORMATTED_SECTIONS = [
     r"^SUMMARY PRODUCT INFORMATION$",
     r"^DESCRIPTION$",
-    r"^ACTIONS(?: AND CLINICAL PHARMACOLOGY)?$"
+    r"^ACTIONS(?: AND CLINICAL PHARMACOLOGY)?$",
     r"^INDICATIONS(?: AND (?:CLINICAL USES?|USAGE))?$",
     r"^CONTRAINDICATIONS$",
     r"^WARNINGS AND PRECAUTIONS$",
@@ -329,6 +329,8 @@ class Command(BaseCommand):
         "Overdosage",
         "Dosage Forms, Strenths, Composition, and Packaging",
         "Warnings and Precautions",
+        "Warnings",
+        "Precautions",
         "Adverse Reactions",
         "Drug Interactions",
         "Clinical Pharmacology",
@@ -343,12 +345,6 @@ class Command(BaseCommand):
         "Toxicology",
         "Description",
     ]
-    # note: maybe we should manually merge these pairs:
-    #   FERTILITY, PREGNANCY AND LACTATION
-    #   PREGNANCY AND LACTATION
-    #   SPECIAL PRECAUTIONS FOR DISPOSAL AND OTHER HANDLING
-    #   SPECIAL PRECAUTIONS FOR DISPOSAL
-    # but not doing so lets the similarity computation do its thing
 
     # improved initial text parsing step so this clustering problem wasn't so messy
     def get_fixed_header(self, text):
@@ -371,16 +367,16 @@ class Command(BaseCommand):
 
             info = {}
             product_code = source_product_number
-            # row = self.df[self.df["Product number"] == product_code]
-            # info["metadata"] = row.iloc[0].apply(str).to_dict()
 
             headers, sections = [], []
+            # Match headers that start with section numbers (e,g, 4.1)
             headers, sections = get_pdf_sections(raw_text, pattern=r"^[1-9][0-9]?\.?\s+[A-Z].*")
 
             # With the above method, it should at least find 15 sections, if less than that,
             #  then parse it with other method
             if len(headers) < 15:
                 logger.info("Failed to parse. Using another method...")
+                # Method that parses for headers with more rigid regular expressions
                 headers, sections = self.get_pdf_sections_with_format(
                     raw_text, OTHER_FORMATTED_SECTIONS
                 )
