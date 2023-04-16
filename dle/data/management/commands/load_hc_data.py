@@ -22,7 +22,7 @@ from selenium.webdriver.firefox.options import Options
 
 from data.models import DrugLabel, LabelProduct, ProductSection
 
-from .pdf_parsing_helper import get_pdf_sections, read_pdf
+from .pdf_parsing_helper import filter_headers, get_pdf_sections, read_pdf
 
 
 logger = logging.getLogger(__name__)
@@ -34,7 +34,8 @@ HC_RESULT_URL = "https://health-products.canada.ca/dpd-bdpp/dispatch-repartition
 OTHER_FORMATTED_SECTIONS = [
     r"^SUMMARY PRODUCT INFORMATION$",
     r"^DESCRIPTION$",
-    r"^INDICATIONS AND (?:CLINICAL USE|USAGE)$",
+    r"^ACTIONS(?: AND CLINICAL PHARMACOLOGY)?$"
+    r"^INDICATIONS(?: AND (?:CLINICAL USES?|USAGE))?$",
     r"^CONTRAINDICATIONS$",
     r"^WARNINGS AND PRECAUTIONS$",
     r"^WARNINGS$",
@@ -182,7 +183,7 @@ class Command(BaseCommand):
                 except ValueError as e:
                     logger.warning(self.style.WARNING(repr(e)))
                 # logger.info(f"sleep 1s")
-                # time.sleep(1)
+                time.sleep(0.5)
                 drug_label_parsed += 1
             # Click the next button
             next_button = self.driver.find_element(by=By.ID, value="results_next")
@@ -218,6 +219,7 @@ class Command(BaseCommand):
 
         # The column under DIN is a clickable link to the drug details
         link_to_drug_details = HC_BASE_URL + columns[1].find("a")["href"]
+        logger.info(f"Scraping URL {link_to_drug_details}")
         response = requests.get(link_to_drug_details)
         soup = BeautifulSoup(response.text, "html.parser")
         divs = soup.findAll("div", attrs={"class": "row"})
@@ -302,33 +304,13 @@ class Command(BaseCommand):
         start_idx = 0
         for section in section_format:
             for i, line in enumerate(text[start_idx:], start=start_idx):
-                if re.match(section, line):
+                if re.match(section, line.upper()):
                     start_idx = i + 1  # +1 to start at next line
                     idx += [i]
                     headers += [line.strip()]
 
         if len(headers) != 0:
-            # in headers, must increment or restart, and not end in punctuation
-            idx_valid, headers_valid = [idx[0]], [headers[0]]
-            for n in range(1, len(headers)):
-                lastchar = headers[n].strip()[-1].lower()
-                # 1. Headers must not end in punctuation
-                # 2. All the dots ('.') must be from the section numbers
-                # 3. The word "see" must not be in the headers
-                # 4. "safe dose" is not a header
-                valid = (
-                    (lastchar in "qwertyuiopasdfghjklzxcvbnm()")
-                    and (
-                        len(headers[n].split())
-                        and headers[n].split()[0].count(".") == headers[n].strip().count(".")
-                    )
-                    and (headers[n].strip().lower().find("see") == -1)
-                    and ("safe dose" not in headers[n].strip().lower())
-                )
-                if valid:
-                    idx_valid.append(idx[n])
-                    headers_valid.append(headers[n])
-            idx, headers = idx_valid, headers_valid
+            idx, headers = filter_headers(idx, headers)
 
         for n, h in enumerate(headers):
             if (n + 1) < len(headers):
@@ -387,16 +369,6 @@ class Command(BaseCommand):
         try:
             raw_text = read_pdf(hc_file, no_annex=False)
 
-            # Skip over the table of content if there's one
-            counter = 0
-            for i, line in enumerate(raw_text):
-                if re.match(r"PART I: HEALTH PROFESSIONAL INFORMATION", line):
-                    counter += 1
-                    # The first match would be in the table of content,
-                    #  and the second match would be the start of the actual content
-                    if counter == 2:
-                        raw_text = raw_text[i:]
-                        break
             info = {}
             product_code = source_product_number
             # row = self.df[self.df["Product number"] == product_code]
@@ -414,6 +386,7 @@ class Command(BaseCommand):
                 )
                 if len(headers) == 0:
                     raise Exception("Failed to parse pdf with both methods")
+
             for h, s in zip(headers, sections):
                 header = self.get_fixed_header(h)
                 if (header is not None) and (len(s) > 0):
@@ -433,10 +406,10 @@ class Command(BaseCommand):
 
             info["Label Text"] = label_text
             self.records[product_code] = info
+            logger.info(f"{hc_file} parsed Successfully")
         except Exception as e:
             logger.error(self.style.ERROR(repr(e)))
             logger.error(self.style.ERROR(f"Failed to process {hc_file}, url = {pdf_url}"))
             self.error_urls[pdf_url] = True
 
-        logger.info(f"{hc_file} parsed Successfully")
         return raw_text

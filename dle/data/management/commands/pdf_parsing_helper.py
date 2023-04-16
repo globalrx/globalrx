@@ -2,6 +2,30 @@ import re
 
 import pdfplumber
 
+# Function to filter invalid headers
+# 1. Headers must not end in punctuation
+# 2. All the dots ('.') must be from the section numbers
+# 3. The word "see" must not be in the headers
+# 4. "safe dose" is not a header
+# 5. Shouldn't have any slash ('/')
+def filter_headers(idx, headers):
+    idx_valid, headers_valid = [], []
+    for n in range(0, len(headers)):
+        lastchar = headers[n].strip()[-1].lower()
+        valid = (
+            (lastchar in "qwertyuiopasdfghjklzxcvbnm()")
+            and (
+                len(headers[n].split())
+                and headers[n].split()[0].count(".") == headers[n].strip().count(".")
+            )
+            and (headers[n].strip().lower().find("see") == -1)
+            and ("safe dose" not in headers[n].strip().lower())
+            and (headers[n].strip().lower().find(r"/") == -1)
+        )
+        if valid:
+            idx_valid.append(idx[n])
+            headers_valid.append(headers[n])
+    return idx_valid, headers_valid
 
 # function: input text, output list of section headers and content
 def get_pdf_sections(text, pattern, headers_filter=True):
@@ -12,28 +36,7 @@ def get_pdf_sections(text, pattern, headers_filter=True):
             headers += [line.strip()]
 
     if headers_filter and len(headers) != 0:
-        idx_valid, headers_valid = [], []
-        for n in range(0, len(headers)):
-            lastchar = headers[n].strip()[-1].lower()
-            # 1. Headers must not end in punctuation
-            # 2. All the dots ('.') must be from the section numbers
-            # 3. The word "see" must not be in the headers
-            # 4. "safe dose" is not a header
-            # 5. Shouldn't have any slash ('/')
-            valid = (
-                (lastchar in "qwertyuiopasdfghjklzxcvbnm()")
-                and (
-                    len(headers[n].split())
-                    and headers[n].split()[0].count(".") == headers[n].strip().count(".")
-                )
-                and (headers[n].strip().lower().find("see") == -1)
-                and ("safe dose" not in headers[n].strip().lower())
-                and (headers[n].strip().lower().find(r"/") == -1)
-            )
-            if valid:
-                idx_valid.append(idx[n])
-                headers_valid.append(headers[n])
-        idx, headers = idx_valid, headers_valid
+        idx, headers = filter_headers(idx, headers)
 
     for n, h in enumerate(headers):
         if (n + 1) < len(headers):
