@@ -79,11 +79,12 @@ def remove_margins(page, dpi=72, size=0.7):
 
 
 # function: input file, output text of annex 1
-def read_pdf(filename, no_blanks=False, no_tables=False, no_annex=True):
+def read_pdf(filename, no_margins=True, no_blanks=False, no_tables=False, no_annex=True):
     text = []
     with pdfplumber.open(filename) as pdf:
         for page in pdf.pages:
-            page = remove_margins(page)
+            if no_margins:
+                page = remove_margins(page)
 
             if no_tables:
                 page = remove_tables(page)

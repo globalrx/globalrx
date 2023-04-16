@@ -308,6 +308,7 @@ class Command(BaseCommand):
                     start_idx = i + 1  # +1 to start at next line
                     idx += [i]
                     headers += [line.strip()]
+                    break
 
         if len(headers) != 0:
             idx, headers = filter_headers(idx, headers)
@@ -323,6 +324,7 @@ class Command(BaseCommand):
 
     centers = [
         "Indications",
+        "Indications and Clinical Use",
         "Contraindications",
         "Serious Warnings and Precautions Box",
         "Dosage And Administration",
@@ -363,7 +365,7 @@ class Command(BaseCommand):
         label_text = {}  # next level = product page w/ metadata
 
         try:
-            raw_text = read_pdf(hc_file, no_annex=False)
+            raw_text = read_pdf(hc_file, no_margins=False, no_annex=False)
 
             info = {}
             product_code = source_product_number
@@ -372,9 +374,9 @@ class Command(BaseCommand):
             # Match headers that start with section numbers (e,g, 4.1)
             headers, sections = get_pdf_sections(raw_text, pattern=r"^[1-9][0-9]?\.?\s+[A-Z].*")
 
-            # With the above method, it should at least find 15 sections, if less than that,
+            # With the above method, it should at least find 10 sections, if less than that,
             #  then parse it with other method
-            if len(headers) < 15:
+            if len(headers) < 10:
                 logger.info("Failed to parse. Using another method...")
                 # Method that parses for headers with more rigid regular expressions
                 headers, sections = self.get_pdf_sections_with_format(
