@@ -1,5 +1,17 @@
 /* global instantsearch algoliasearch */
 
+/* import lib*/
+import client from "@searchkit/instantsearch-client";
+import {
+  getAlgoliaResults
+} from "@algolia/autocomplete-js";
+ 
+const searchClient = client({
+  url: "https://ises-cfw.searchkit.workers.dev"
+});
+
+
+
 // Basic auth with username/password is not supported - bug: see https://github.com/searchkit/searchkit/issues/1235
 var globalSearchTerm = '';
 const sk = new Searchkit({
