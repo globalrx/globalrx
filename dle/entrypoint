@@ -23,7 +23,7 @@ if [[ ($INIT_SUPERUSER) && ("$INIT_SUPERUSER" = "True") ]]; then
   # Uses the DJANGO_SUPERUSER_* environment variables to create a superuser
   # TODO find a way to only run createsuperuser if it doesn't already exist
   echo "Creating superuser"
-  python3 manage.py createsuperuser --noinput
+  python3 manage.py create_superuser_if_none_exists --user $DJANGO_SUPERUSER_USERNAME --email $DJANGO_SUPERUSER_EMAIL --password $DJANGO_SUPERUSER_PASSWORD
 fi
 
 
@@ -81,7 +81,6 @@ fi
 
 
 # see docs/readme.md
-# TODO possible race condition here if the Elasticsearch container is not ready, make Django dependent on it?
 if [[ ($PROVISION_ES) && ("$PROVISION_ES" = "True")]]; then
   echo "Provisioning and populating Elasticsearch"
   python3 manage.py provision_elastic --agency all --create_index True --mapping_file "/app/search/mappings/provision.json"
