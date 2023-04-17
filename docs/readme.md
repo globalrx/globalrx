@@ -18,6 +18,14 @@ The project is containerized so that it can be run locally or deployed to a clou
 3. Set environment variables; see [env.example](./env.example) for a list of required variables. Some of these variables control whether setup scripts (e.g. Django migrations) are run.
     - Copy `env.example` to `.env` and update the values
     - For a first run, set `MIGRATE`, `LOAD`, and `INIT_SUPERUSER` to `True`
+        - This will take a long time. Check out what is happening in the `entrypoint` script:
+            - Wait for PSQL to be ready
+            - Django migrations: `makemigrations` and `migrate`
+            - Copy assets: `collectstatic`
+            - Create superuser
+            - Load data (EMA, FDA, TGA right now) and `update_latest_drug_labels`. This can take a really long time to run all the way through.
+            - Potentially load vectors, if you have pre-computed them (too slow to vectorize within Docker)
+            - Run the application server with `runserver` or `Gunicorn` + `nginx`
     - After data is loaded, set `LOAD` and `INIT_SUPERUSER` to `False`
     - Make sure `ES_AUTO_SYNC=False`
     - ~~If you are working on BERT model, you will need to start an Elasticsearch trial license; you can either try to set the `LICENSE` variable to `trial`, or POST this to Elasticsearch after it starts up either in Kibana: or via `curl`: `/_license/start_trial?acknowledge=true`~~ We are no longer using Elastic's NLP pipeline. Set `LICENSE=basic`

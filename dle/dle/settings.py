@@ -25,8 +25,8 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # can override settings in .env, see .env.example
 env = environ.Env()
-# environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
-environ.Env.read_env()
+# environ.Env.read_env()
+environ.Env.read_env(os.path.join(BASE_DIR, ".env"))
 if "pytest" in sys.modules:
     print("Running for pytest ...")
     environ.Env.read_env(os.path.join(BASE_DIR, "tests/test.env"))
@@ -67,7 +67,7 @@ SECRET_KEY = env.str("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DEBUG", False)
-LOG_LEVEL = env.str("LOG_LEVEL", "DEBUG")
+LOG_LEVEL = env.str("LOG_LEVEL", "INFO")
 
 TESTS = env.bool("TESTS", False)
 
@@ -189,7 +189,7 @@ LOGGING = {
     },
     "root": {
         "handlers": ["console"],
-        "level": "INFO",  # TODO set to WARNING if we are in production
+        "level": LOG_LEVEL,
     },
 }
 
