@@ -17,6 +17,7 @@ services:
     image: dle-django
     depends_on:
       - postgres
+      - es01
     links:
       - postgres
     env_file:

@@ -22,7 +22,7 @@ def create_index(index_name: str, mapping_file: str) -> JsonResponse:
         logger.info(
             f"Creating index {index_name} with the following schema: {json.dumps(mapping, indent=2)}"
         )
-        res = es.indices.create(index=index_name, mappings=mapping)
+        res = es.indices.create(index=index_name, mappings=mapping, settings={})
         return JsonResponse(dict(res))
     else:
         return JsonResponse({})
