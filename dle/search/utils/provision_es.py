@@ -18,7 +18,7 @@ def create_index(index_name: str, mapping_file: str) -> JsonResponse:
     # open mapping_file
     with open(mapping_file, "r") as f:
         mapping = json.load(f)
-    if not es.indices.exists(index_name):
+    if not es.indices.exists(index=index_name):
         logger.info(
             f"Creating index {index_name} with the following schema: {json.dumps(mapping, indent=2)}"
         )
