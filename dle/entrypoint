@@ -37,6 +37,9 @@ if [[ ($LOAD) && ("$LOAD" = "True") ]]; then
   python3 manage.py load_tga_data --type full
   echo "Finished loading TGA (Australia) data"
   echo "Updating latest drug labels"
+  echo "Loading HC (Health Canada) data"
+  python3 manage.py load_hc_data --type full
+  echo "Finished loading HC (Health Canada) data"
   python3 manage.py update_latest_drug_labels
   echo "Finished updating latest drug labels"
   echo "Ended the Django data ingest"

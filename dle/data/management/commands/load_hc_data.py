@@ -1,8 +1,10 @@
+import datetime
 import json
 import logging
 import random
 import re
 import time
+from distutils.util import strtobool
 
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -13,13 +15,15 @@ from django.db import IntegrityError
 import requests
 from bs4 import BeautifulSoup
 from Levenshtein import distance as levdistance
+from psycopg import DataError
 from selenium import webdriver
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.firefox.options import Options
 
-from data.models import DrugLabel, LabelProduct, ProductSection
+from data.models import DrugLabel, LabelProduct, ParsingError, ProductSection
+from data.util import PDFParseException, check_recently_updated, strfdelta
 
 from .pdf_parsing_helper import filter_headers, get_pdf_sections, read_pdf
 
@@ -77,8 +81,24 @@ class Command(BaseCommand):
             help="'full', 'test'",
             default="test",
         )
+        parser.add_argument(
+            "--skip_more_recent_than_n_hours",
+            type=int,
+            help="Skip re-scraping labels more recently imported than this number of hours old. Default is 168 (7 days)",
+            default=168,  # 7 days; set to 0 to re-scrape everything
+        )
+        parser.add_argument(
+            "--skip_known_errors",
+            type=strtobool,
+            help="Skip labels that have previously had parsing errors. Default is True",
+            default=True,
+        )
 
     def handle(self, *args, **options):
+        self.skip_labels_updated_within_span = datetime.timedelta(
+            hours=int(options["skip_more_recent_than_n_hours"])
+        )
+        self.skip_errors = options["skip_known_errors"]
         import_type = options["type"]
         if import_type not in ["full", "test"]:
             raise CommandError("'type' parameter must be 'full' or 'test'")
@@ -149,6 +169,7 @@ class Command(BaseCommand):
             # Grab the result webpage
             soup = BeautifulSoup(self.driver.page_source, "html.parser")
             table = soup.find("table")
+            # TODO investigate why this is sometimes None: AttributeError: 'NoneType' object has no attribute 'get'
             table_attrs = json.loads(table.get("data-wb-tables"))
             # num_displayed_results = table_attrs["iDisplayLength"]
             num_total_results = table_attrs["iDeferLoading"]
@@ -162,6 +183,38 @@ class Command(BaseCommand):
             rows = table_body.find_all("tr")
             # Iterate all the products in the table
             for row in rows:
+                source_product_number = row.find_all("td")[1].text.strip()
+                # first see if it's a label with a known error; if so, skip it
+                if self.skip_errors:
+                    existing_errors = ParsingError.objects.filter(
+                        source="HC", source_product_number=source_product_number
+                    )
+                    if existing_errors.count() >= 1:
+                        logger.warning(
+                            self.style.WARNING(
+                                f"Label skipped. Known error: {existing_errors[0].error_type}"
+                            )
+                        )
+                        continue
+                # then see if it's a label we've already parsed recently; if so, skip it
+                existing_labels = DrugLabel.objects.filter(
+                    source="HC", source_product_number=source_product_number
+                ).order_by("-updated_at")
+                if existing_labels.count() >= 1:
+                    existing_label = existing_labels[0]
+                    if check_recently_updated(
+                        dl=existing_label, skip_timeframe=self.skip_labels_updated_within_span
+                    ):
+                        last_updated_ago = (
+                            datetime.datetime.now(datetime.timezone.utc) - existing_label.updated_at
+                        )
+                        logger.warning(
+                            self.style.WARNING(
+                                f"Label skipped. Updated {strfdelta(last_updated_ago)} ago, less than {self.skip_labels_updated_within_span}"
+                            )
+                        )
+                        continue
+
                 try:
                     dl = self.get_drug_label_from_row(row)
                     logger.debug(repr(dl))
@@ -179,9 +232,56 @@ class Command(BaseCommand):
                     logger.debug(e, exc_info=True)
                 except AttributeError as e:
                     logger.warning(self.style.ERROR(repr(e)))
+                    # TODO add to error table - need the PDF url?
+                    msg = str(repr(e))
+                    parsing_error, created = ParsingError.objects.get_or_create(
+                        source="HC",
+                        message=msg,
+                        source_product_number=source_product_number,
+                        error_type="attribute_error",
+                    )
+                    if created:
+                        logger.warning(f"Created ParsingError {parsing_error}")
+                    else:
+                        logger.warning(
+                            f"Failed to create ParsingError {parsing_error} - likely already exists"
+                        )
                 except ValueError as e:
+                    # Typically ValueError("AG-TOPIRAMATE TABLETS 200 MG doesn't have a PDF label")
                     logger.warning(self.style.WARNING(repr(e)))
-                # logger.info(f"sleep 1s")
+                    msg = str(repr(e))
+                    parsing_error, created = ParsingError.objects.get_or_create(
+                        source_product_number=source_product_number,
+                        message=msg,
+                        source="HC",
+                        error_type="no_pdf",
+                    )
+                    if created:
+                        logger.warning(f"Created ParsingError {parsing_error}")
+                    else:
+                        logger.warning(
+                            f"Failed to create ParsingError {parsing_error} - likely already exists"
+                        )
+                except DataError as e:
+                    # Got one Data Error:
+                    # 2023-04-18 06:12:49,645 ERROR DataError('PostgreSQL text fields cannot contain NUL (0x00) bytes')
+                    # 2023-04-18 06:12:49,645 ERROR Failed to process /app/media/hc_dV1W8Qo.pdf, url = https://pdf.hres.ca/dpd_pm/00058978.PDF
+                    # Could try to clean it? https://stackoverflow.com/questions/57371164/django-postgres-a-string-literal-cannot-contain-nul-0x00-characters
+                    logger.error(self.style.ERROR(e))
+                    msg = str(repr(e))
+                    parsing_error, created = ParsingError.objects.get_or_create(
+                        source="HC",
+                        source_product_number=source_product_number,
+                        message=msg,
+                        error_type="data_error",
+                    )
+                    if created:
+                        logger.warning(f"Created ParsingError {parsing_error}")
+                    else:
+                        logger.warning(
+                            f"Failed to create ParsingError {parsing_error} - likely already exists"
+                        )
+
                 time.sleep(0.5)
                 drug_label_parsed += 1
             # Click the next button
@@ -402,7 +502,7 @@ class Command(BaseCommand):
                 )
                 label_text = self.fix_headers(headers, sections)
                 if len(label_text) == 0:
-                    raise Exception("Failed to parse pdf with both methods")
+                    raise PDFParseException("Failed to parse pdf with both methods")
 
             for index, key in enumerate(label_text):
                 text_block = ""
@@ -415,9 +515,24 @@ class Command(BaseCommand):
             info["Label Text"] = label_text
             self.records[product_code] = info
             logger.info(f"{hc_file} parsed Successfully")
+        except PDFParseException as e:
+            logger.error(self.style.ERROR(repr(e)))
+            logger.error(self.style.ERROR(f"Failed to process {hc_file}, url = {pdf_url}"))
+            self.error_urls[pdf_url] = True
+            parsing_error, created = ParsingError.objects.get_or_create(
+                url=pdf_url,
+                message=repr(e),
+                source_product_number=source_product_number,
+                error_type="pdf_error",
+            )
+            if created:
+                logger.warning(f"Created ParsingError {parsing_error}")
+            else:
+                logger.warning(
+                    f"Failed to create ParsingError {parsing_error} - likely already exists"
+                )
         except Exception as e:
             logger.error(self.style.ERROR(repr(e)))
             logger.error(self.style.ERROR(f"Failed to process {hc_file}, url = {pdf_url}"))
             self.error_urls[pdf_url] = True
-
         return raw_text
