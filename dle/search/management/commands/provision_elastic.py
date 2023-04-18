@@ -32,7 +32,7 @@ class Command(BaseCommand):
             "--mapping_file",
             type=str,
             help="Path to the mapping file",
-            default="/app/search/mappings/productsection.json",
+            default="/app/search/mappings/provision.json",
         )
 
     def handle(self, *args, **options):

@@ -22,7 +22,8 @@ def create_index(index_name: str, mapping_file: str) -> JsonResponse:
         logger.info(
             f"Creating index {index_name} with the following schema: {json.dumps(mapping, indent=2)}"
         )
-        res = es.indices.create(index=index_name, mappings=mapping, settings={})
+        settings = {"index": {"routing.allocation.total_shards_per_node": 5}}
+        res = es.indices.create(index=index_name, mappings=mapping, settings=settings)
         return JsonResponse(dict(res))
     else:
         return JsonResponse({})
@@ -45,7 +46,8 @@ def populate_index(index_name: str = "productsection", agency: str = "all"):
     def generate_actions():
         """For each agency's section that has a BERT vector, yield a document"""
         # Only ingest ProductSections with existing vector representations
-        for section in sections_w_vectors:
+        # Use iterator to avoid loading all sections into memory which was causing the job to get killed
+        for section in sections_w_vectors.iterator():
             doc = section.as_search_document()
             doc["_id"] = section.id
             yield doc
@@ -59,7 +61,14 @@ def populate_index(index_name: str = "productsection", agency: str = "all"):
         client=es,
         index=index_name,
         actions=generate_actions(),
+        chunk_size=1000,
+        max_retries=3,
+        max_backoff=60,
+        raise_on_exception=False,
+        raise_on_error=False,
     ):
+        if not ok:
+            logger.error(f"Failed to index document: {action}")
         progress.update(1)
         successes += ok
     logger.info((f"Indexed {successes} out of {sections_w_vectors.count()} documents"))
