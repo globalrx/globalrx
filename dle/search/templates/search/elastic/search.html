@@ -30,7 +30,13 @@
           {{ form }}        
           <input class="btn btn-primary" type="submit" value="Submit">
         </form>
-        {% endif %}        
+        {% endif %}
+        <div id="compare-button-container">
+          <h2>Compare Result Labels</h2>
+          <form>
+            <input class="btn btn-primary" type="button" value="Compare Selected Labels" onclick="javascript: compareLabels();"/>
+          </form>
+        </div>
     </div>
     <div class="right-panel">
       <div id="searchbox" class="ais-SearchBox"></div>
@@ -59,5 +65,38 @@
   window.addEventListener('load', getUrl);
   document.body.addEventListener('click', getUrl, true); 
   document.body.addEventListener('keyup', getUrl, true);
+  document.body.addEventListener('click', shouldLabelsBeShown, true);
+
+  function shouldLabelsBeShown() {
+    var checkedBoxes = document.querySelectorAll('input[name=compare]:checked');
+    var link = document.getElementById('compare-button-container');
+
+    if(checkedBoxes.length == 2 || checkedBoxes.length == 3) {
+      link.style.display = 'inline-block';
+      link.style.visibility = 'visible';
+    } else {
+      link.style.display = 'none';
+      link.style.visibility = 'hidden';
+    }
+  }
+
+  function compareLabels() {
+    var checkedBoxes = document.querySelectorAll('input[name=compare]:checked');
+    var compareUrl = '../compare/compare_labels?';
+    var searchTerm = document.querySelector('.ais-SearchBox-input').value;
+
+    compareUrl += 'search_text=' + searchTerm;
+
+    for (i = 0; i < checkedBoxes.length; i++) {
+      if(i == 0) {
+        compareUrl += `&first-label=${checkedBoxes[0].value}`;
+      } else if(i == 1) {
+        compareUrl += `&second-label=${checkedBoxes[1].value}`;
+      } else if(i == 2) {
+        compareUrl += `&third-label=${checkedBoxes[2].value}`;
+      }
+    }
+    location.href = compareUrl;
+  }
 </script>
 {% endblock %}

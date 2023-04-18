@@ -7,9 +7,10 @@
 <link href="{% static 'compare/styles.css' %}" rel="stylesheet">
 {% endblock %}
 
+/* compare two or more-three reault */
 {% block content %}
     <div class="container-fluid">
-        <div class="row">
+        <div class="column">
             {% if dl3 %}
             <h6> Comparing drugs 
                 <b>{{dl1.product_name|title}}</b>, 
@@ -24,7 +25,7 @@
             {% endif %}
         </div>
         <br>
-        <div class="row">
+        <div class="column">
             <table id="headerTable">
             <tr>
                 <td class="section-td">
@@ -63,7 +64,7 @@
             </table>
         </div>
         <hr>
-        <div class="row" id="sectionFilterContainer"> 
+        <div class="column" id="sectionFilterContainer"> 
             <div class="col-lg">
                 <label for="section-filter">Select Section: </label>
                 <select name="section-filter" id="sectionFilter" onchange="showSection()">
