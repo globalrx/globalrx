@@ -1,4 +1,4 @@
-FROM python:3.10.10-slim-buster as python-build
+FROM python:3.11-slim-buster as python-build
 WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
@@ -6,7 +6,8 @@ ENV PYTHONUNBUFFERED=1
 # g++ for Pillow
 RUN apt-get update --fix-missing \
     && apt-get install -y nginx postgresql \
-    libpq-dev gcc g++ firefox-esr unzip curl
+    libpq-dev gcc g++ firefox-esr unzip curl \
+    libxml2-dev libxslt1-dev
 
 # Install geckodriver for Firefox Selenium
 # Compatibility chart: https://firefox-source-docs.mozilla.org/testing/geckodriver/Support.html
