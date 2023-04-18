@@ -4,7 +4,7 @@
 var globalSearchTerm = '';
 const sk = new Searchkit({
     connection: {
-        host: ELASTIC_HOST, // Set by the Django template in which this file is embedded
+        host: SEARCHKIT_SERVICE, // Set by the Django template in which this file is embedded
     },
     search_settings: {
         highlight_attributes: [
@@ -56,7 +56,7 @@ const sk = new Searchkit({
 })
 
 async function vectorizeText(query) {
-    const response = await fetch("http://API_ENDPOINT:8000/api/v1/vectorize", {
+    const response = await fetch(VECTORIZE_SERVICE, {
         method: "POST",
         headers: {
             "Content-Type": "application/json"

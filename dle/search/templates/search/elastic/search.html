@@ -44,10 +44,10 @@
 {% block footer_scripts %}
 {% load static %}
 
-{{ ELASTIC_HOST|json_script:"ELASTIC_HOST" }}
+{{ SEARCHKIT_SERVICE|json_script:"SEARCHKIT_SERVICE" }}
 {{ VECTORIZE_SERVICE|json_script:"VECTORIZE_SERVICE"}}
 <script>
-  const ELASTIC_HOST = JSON.parse(document.getElementById('ELASTIC_HOST').textContent);
+  const SEARCHKIT_SERVICE = JSON.parse(document.getElementById('SEARCHKIT_SERVICE').textContent);
   const VECTORIZE_SERVICE = JSON.parse(document.getElementById('VECTORIZE_SERVICE').textContent);
 </script>
 <script type="text/javascript" src="{% static 'search/es_search.js' %}"></script>
