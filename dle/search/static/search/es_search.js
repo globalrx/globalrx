@@ -8,7 +8,7 @@ var queryType = 'match'; // knn, simpleQueryString, match
 
 const sk = new Searchkit({
     connection: {
-        host: ELASTIC_HOST, // Set by the Django template in which this file is embedded
+        host: SEARCHKIT_SERVICE, // Set by the Django template in which this file is embedded
     },
     // Need to figure out how to disable caching. Caching doesn't seem to work if we change
     // the search type, e.g. from match to simple_query_string or knn
@@ -76,7 +76,7 @@ const sk = new Searchkit({
 }, {debug: true})
 
 async function vectorizeText(query) {
-    const response = await fetch("http://localhost:8000/api/v1/vectorize", {
+    const response = await fetch(VECTORIZE_SERVICE, {
         method: "POST",
         headers: {
             "Content-Type": "application/json"
@@ -85,8 +85,8 @@ async function vectorizeText(query) {
             "query": query
         })
     })
-    const vector = await response.json();
-    return vector;
+  const vector = await response.json();
+  return vector;
 }
 
 const client = SearchkitInstantsearchClient(sk, {
@@ -125,29 +125,29 @@ const client = SearchkitInstantsearchClient(sk, {
                 return searchRequests;
             }
 
-            const vectorizationRes = await vectorizeText(query);
-            return searchRequests.map((sr) => {
-                return {
-                    ...sr,
-                    body: {
-                        ...sr.body,
-                        knn: {
-                            "field": "text_embedding",
-                            "query_vector": vectorizationRes.vector,
-                            "k": 10,
-                            "num_candidates": 100
-                        }
-                    }
-                }
-            })
+      const vectorizationRes = await vectorizeText(query);
+      return searchRequests.map((sr) => {
+        return {
+          ...sr,
+          body: {
+            ...sr.body,
+            knn: {
+              "field": "text_embedding",
+              "query_vector": vectorizationRes.vector,
+              "k": 10,
+              "num_candidates": 100
+            }
+          }
         }
+      })
     }
+  }
 })
 
 const search = instantsearch({
-    indexName: "productsection",
-    searchClient: client,
-    routing: true
+  indexName: "productsection",
+  searchClient: client,
+  routing: true
 });
 
 search.addWidgets([
@@ -220,6 +220,7 @@ search.addWidgets([
                     singleItemUrl = `../data/single_label_view/${hit.drug_label_id}, ${globalSearchTerm}`;
                 }
                 return html `
+                      <input type="checkbox" name="compare" value="${hit.drug_label_id}" />
                       <a href="${singleItemUrl}"style='font-weight:bold'>${components.Highlight({ attribute: 'drug_label_product_name', hit })}</a> <br />
                       ${components.Highlight({ attribute: 'drug_label_generic_name', hit })}<br />
                       Section Name: ${components.Highlight({ attribute: 'section_name', hit })} <br />
@@ -230,29 +231,29 @@ search.addWidgets([
                       Source Link: <a href="${hit.drug_label_link}">${hit.drug_label_link}</a><br />
                       <p>${components.Snippet({ attribute: 'section_text', hit })}</p>
                       `;
-            }
-        }
-    }),
-    instantsearch.widgets.pagination({
-        container: "#pagination"
-    }),
-    instantsearch.widgets.hitsPerPage({
-        container: '#hits-per-page',
-        items: [{
-                label: '10 hits per page',
-                value: 10,
-                default: true
-            },
-            {
-                label: '20 hits per page',
-                value: 20
-            },
-            {
-                label: '50 hits per page',
-                value: 50
-            }
-        ],
-    })
+      }
+    }
+  }),
+  instantsearch.widgets.pagination({
+    container: "#pagination"
+  }),
+  instantsearch.widgets.hitsPerPage({
+    container: '#hits-per-page',
+    items: [{
+      label: '10 hits per page',
+      value: 10,
+      default: true
+    },
+    {
+      label: '20 hits per page',
+      value: 20
+    },
+    {
+      label: '50 hits per page',
+      value: 50
+    }
+    ],
+  })
 ]);
 
 search.start();
