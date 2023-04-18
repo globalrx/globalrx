@@ -168,6 +168,8 @@ PARSING_ERROR_TYPES = [
     ("version_date_parse", "Version date parsed failure"),
     ("pdf_error", "Failed to parse PDF"),
     ("link_error", "Could not generate PDF link"),
+    ("data_error", "DataError"),
+    ("no_pdf", "No PDF"),
 ]
 
 AGENCY_CHOICES = [
@@ -185,6 +187,7 @@ class ParsingError(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     last_parsed = models.DateTimeField(auto_now=True)
     url = models.URLField(max_length=400, blank=False)
+    source_product_number = models.CharField(max_length=100, blank=True)
     error_type = models.CharField(
         max_length=30,
         choices=PARSING_ERROR_TYPES,
