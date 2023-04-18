@@ -1,6 +1,8 @@
 /* global instantsearch algoliasearch */
 
-// Basic auth with username/password is not supported - bug: see https://github.com/searchkit/searchkit/issues/1235
+// See below - need to figure out how to disable caching
+// import { createNullCache } from 'https://cdn.jsdelivr.net/npm/@algolia/cache-common/+esm';
+
 var globalSearchTerm = '';
 var queryType = 'match'; // knn, simpleQueryString, match
 
@@ -8,13 +10,21 @@ const sk = new Searchkit({
     connection: {
         host: ELASTIC_HOST, // Set by the Django template in which this file is embedded
     },
+    // Need to figure out how to disable caching. Caching doesn't seem to work if we change
+    // the search type, e.g. from match to simple_query_string or knn
+    // See: https://www.algolia.com/doc/api-client/getting-started/customize/javascript/?client=javascript#caching-the-state-of-hosts
+    // For now, running search.refresh() when we change the search type which seems to work
+    // responsesCache: createNullCache(),
+    // requestsCache: createNullCache(),
     search_settings: {
         highlight_attributes: [
             "section_name",
             "drug_label_product_name", 
             "drug_label_generic_name"
         ],
-        snippet_attributes: ["section_text"],
+        snippet_attributes: [
+            "section_text:300"
+        ],
         search_attributes: [
             "drug_label_product_name",
             "section_name",
@@ -48,13 +58,13 @@ const sk = new Searchkit({
                 field: "drug_label_product_name.keyword",
                 type: "string",
                 attribute: "drug_label_product_name",
+                // searchable: true - this works but only with refinementList widgets
             }, {
                 field: "drug_label_generic_name.keyword",
                 type: "string",
                 attribute: "drug_label_generic_name",
             }
         ],
-        fragment_size: 500
     }
 }, {debug: true})
 
@@ -72,10 +82,10 @@ async function vectorizeText(query) {
     return vector;
 }
 
-client = SearchkitInstantsearchClient(sk, {
+const client = SearchkitInstantsearchClient(sk, {
     getQuery: (query, search_attributes) => {
         if(queryType == 'simpleQueryString'){
-            console.log(query);
+            console.log(`getQuery - simpleQueryString - ${query}`);
             console.log(search_attributes);
             return [
                 {
@@ -102,7 +112,8 @@ client = SearchkitInstantsearchClient(sk, {
         beforeSearch: async (searchRequests) => {
             const [uiRequest] = searchRequests
 
-            query = uiRequest.request.params.query
+            var query = uiRequest.request.params.query
+            console.log(`beforeSearch: ${query}`)
             if (!query | !(queryType=='knn')) {
                 return searchRequests;
             }
@@ -125,47 +136,6 @@ client = SearchkitInstantsearchClient(sk, {
         }
     }
 })
-
-// function createGenericNamesPlugin({
-//     client
-// }) {
-//     return {
-//         getSources({ query }) {
-//             return [
-//                 sourceId: "genericNamePlugin",
-//                 getItems() {
-//                     return getAlgoliaFacets({
-//                         client,
-//                         queries: [
-//                             indexName: "productsection",
-//                             facet: "drug_label_generic_name",
-//                             params: {
-//                                 facetName: "drug_label_generic_name",
-//                                 facetQuery: query,
-//                                 maxFacetHits: query ? 3 : 5
-//                             }
-//                         ]
-//                     })
-//                 },
-//                 templates: {
-//                     header() {
-//                         return (
-//                             <Fragment>
-//                                 <span className="aa-SourceHeaderTitle">Generic Name</span>
-//                                 <div className="aa-SourceHeaderLine" />
-//                             </Fragment>
-//                         )
-//                     }
-//                 },
-//                 item({ item, components }) {
-//                     return (
-//                         <div>{ item.label }</div>
-//                     )
-//                 }
-//             ]
-//         }
-//     }
-// }
 
 const search = instantsearch({
     indexName: "productsection",
@@ -200,17 +170,27 @@ search.addWidgets([
         field: "drug_label_source",
         limit: 10
     }),
+    // Checkbox widget
+    // instantsearch.widgets.refinementList({
+    //     container: "#drug-label-product-name-filter",
+    //     attribute: "drug_label_product_name",
+    //     field: "drug_label_product_name.keyword",
+    //     limit: 10,
+    //     searchable: true,
+    //     showMore: true,
+    //     showMoreLimit: 10000
+    // }),
     instantsearch.widgets.menuSelect({
         container: "#drug-label-product-name-filter",
         attribute: "drug_label_product_name",
         field: "drug_label_product_name.keyword",
-        limit: 10000
+        limit: 10000,
     }),
     instantsearch.widgets.menuSelect({
         container: "#drug-label-generic-name-filter",
         attribute: "drug_label_generic_name",
         field: "drug_label_generic_name.keyword",
-        limit: 10000
+        limit: 10000,
     }),
     instantsearch.widgets.hits({
         container: "#hits",
@@ -261,37 +241,18 @@ search.addWidgets([
     })
 ]);
 
-// function setInstantSearchUiState(indexUiState) {
-//     search.setUiState((uiState) => {
-//       return {
-//         ...uiState,
-//         instant_search: {
-//           ...uiState["instant_search"],
-//           // We reset the page when the search state changes.
-//           page: 1,
-//           ...indexUiState
-//         }
-//       };
-//     });
-//   }
-
-// function startAutocomplete() {
-//     autocomplete({
-//       detachedMediaQuery: "none",
-//       container: "#drug-label-product-name-filter",
-//       placeholder: "Naveen",
-//       openOnFocus: true,
-//     //   plugins: [recentSearchesPlugin, querySuggestionsPlugin],
-//       onSubmit({ state }) {
-//         setInstantSearchUiState({ query: state.query });
-//       },
-//       onStateChange({ prevState, state }) {
-//         if (prevState.query !== state.query) {
-//           setInstantSearchUiState({ query: state.query });
-//         }
-//       }
-//     });
-//   }
-
 search.start();
-// startAutocomplete();
+
+// Update querytype when radio button is changed
+const radioGroup = document.getElementsByName("search-type");
+radioGroup.forEach(function(radio) {
+    radio.addEventListener("change", function() {
+        if(this.checked){
+            queryType = this.value;
+            console.log(queryType);
+        }
+        // Empty the search cache when the query type changes
+        // This must occur after changing the query type
+        search.refresh();
+    });
+})
