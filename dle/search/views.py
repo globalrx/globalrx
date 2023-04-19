@@ -9,6 +9,7 @@ from django.views.decorators.cache import cache_page
 from data.models import DrugLabel
 from search.models import SearchRequest
 from users.forms import SavedSearchForm
+from users.models import MyLabel
 
 from . import services as SearchService
 from .services import get_type_ahead_mapping
@@ -90,11 +91,16 @@ def list_search_results_impl(request: HttpRequest) -> HttpResponse:
 def es_search(request: HttpRequest) -> HttpResponse:
     """Search results list view"""
     form = SavedSearchForm()
+    if request.user.is_authenticated:
+        my_labels = MyLabel.objects.filter(user=request.user).all()
+    else:
+        my_labels = []
 
     context = {
         "ELASTIC_HOST": reverse("api:searchkit_root"),
         "VECTORIZE_SERVICE": reverse("api:vectorize"),
         "form": form,
+        "my_labels": my_labels,
     }
 
     return render(request, "search/elastic/search.html", context=context)
