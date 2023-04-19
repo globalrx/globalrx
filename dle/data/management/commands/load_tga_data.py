@@ -253,7 +253,7 @@ class Command(BaseCommand):
                     # Typically "Failed to parse pdf with both methods"
                     logger.warning(self.style.ERROR(repr(e)))
                     msg = str(repr(e))
-                    created, parsing_error = ParsingError.objects.get_or_create(
+                    parsing_error, created = ParsingError.objects.get_or_create(
                         url=pdf_link, message=msg, source="TGA", error_type="pdf_error"
                     )
                 except ValueError as e:
