@@ -20,6 +20,7 @@ SOURCES = [
     ("FDA", "USA - Federal Drug Administration"),
     ("EMA", "EU - European Medicines Agency"),
     ("TGA", "AU - Therapeutic Goods Administration"),
+    ("HC", "HC - Health Canada"),
 ]
 
 

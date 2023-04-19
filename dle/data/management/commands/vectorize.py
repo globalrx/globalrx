@@ -37,7 +37,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--agency",
             type=str,
-            help="'TGA', 'FDA', 'EMA'",
+            help="'TGA', 'FDA', 'EMA', 'HC'",
         )
         parser.add_argument(
             "--vectorize_in_docker",
@@ -62,7 +62,7 @@ class Command(BaseCommand):
         vectorize_in_docker = options["vectorize_in_docker"]
         vector_filename = options["vector_file"]
 
-        if agency not in ["EMA", "FMA", "TGA"]:
+        if agency not in ["EMA", "FMA", "TGA", "HC"]:
             raise CommandError("'agency' parameter must be an agency")
 
         logger.info(self.style.SUCCESS("start vectorizing"))

@@ -23,7 +23,7 @@ The project is containerized so that it can be run locally or deployed to a clou
             - Django migrations: `makemigrations` and `migrate`
             - Copy assets: `collectstatic`
             - Create superuser
-            - Load data (EMA, FDA, TGA right now) and `update_latest_drug_labels`. This can take a really long time to run all the way through.
+            - Load data (EMA, FDA, TGA, HC right now) and `update_latest_drug_labels`. This can take a really long time to run all the way through.
             - Potentially load vectors, if you have pre-computed them (too slow to vectorize within Docker)
             - Run the application server with `runserver` or `Gunicorn` + `nginx`
     - After data is loaded, set `LOAD` and `INIT_SUPERUSER` to `False`
