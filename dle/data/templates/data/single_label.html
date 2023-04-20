@@ -156,6 +156,8 @@
     function jumpToSection() {
       var selected_sec = document.getElementById("sectionFilter").value;
       document.getElementById(selected_sec).scrollIntoView();
+      const negativeSizeOfTopNav = -80;
+      window.scrollBy(0, negativeSizeOfTopNav);
     }
   </script>
 {% endblock %}
