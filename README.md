@@ -43,3 +43,13 @@ UI Search Components for React, Vue, Angular, and more
 Searchkit Node API proxies Elasticsearch requests from the browser.
 Ability to use Elasticsearch Query DSL for advanced queries
 
+### Misc
+
+Likely how to get into your docker container
+`docker exec -it dle-django-1 /bin/bash` 
+
+Example of how to get into docker bash w/ postgres loaded
+`docker compose exec postgres bash` 
+
+Example of copying a file into a docker container
+`docker cp foo.txt container_id:/foo.txt`
