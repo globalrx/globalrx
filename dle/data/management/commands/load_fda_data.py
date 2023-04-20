@@ -1,24 +1,27 @@
+import json
 import logging
 import os
 import re
 import shutil
-import json
-import requests
 import urllib.request as request
 from contextlib import closing
-from datetime import datetime, timedelta
+from datetime import datetime
 from distutils.util import strtobool
 from zipfile import ZipFile
 
 from django.conf import settings
-from django.core.management.base import BaseCommand, CommandError
+from django.core.management.base import BaseCommand
 from django.db.utils import IntegrityError, OperationalError
 
-from bs4 import BeautifulSoup
+import requests
 
-from data.constants import FDA_SECTION_NAME_MAP
+# from data.constants import FDA_SECTION_NAME_MAP
 from data.models import DrugLabel, LabelProduct, ProductSection
-from users.models import MyLabel
+
+
+# from bs4 import BeautifulSoup
+
+# from users.models import MyLabel
 
 
 logger = logging.getLogger(__name__)
@@ -31,11 +34,11 @@ class Command(BaseCommand):
     help = "Loads data from FDA"
     re_combine_whitespace = re.compile(r"\s+")
     re_remove_nonalpha_characters = re.compile("[^a-zA-Z ]")
-    dl_json_url = 'https://api.fda.gov/download.json'
+    dl_json_url = "https://api.fda.gov/download.json"
     dl_json = json.loads(requests.get(dl_json_url).text)
-    drugs_json = dl_json['results']['drug']
-    labels_json = dl_json['results']['drug']['label']
-    urls = [x['file'] for x in labels_json['partitions']]
+    drugs_json = dl_json["results"]["drug"]
+    labels_json = dl_json["results"]["drug"]["label"]
+    urls = [x["file"] for x in labels_json["partitions"]]
 
     def __init__(self, stdout=None, stderr=None, no_color=False, force_color=False):
         root_logger = logging.getLogger("")
@@ -67,10 +70,10 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         insert = options["insert"]
-        dl_json_url = 'https://api.fda.gov/download.json'
+        dl_json_url = "https://api.fda.gov/download.json"
         dl_json = json.loads(requests.get(dl_json_url).text)
-        labels_json = dl_json['results']['drug']['label']
-        urls = [x['file'] for x in labels_json['partitions']]
+        labels_json = dl_json["results"]["drug"]["label"]
+        urls = [x["file"] for x in labels_json["partitions"]]
         json_zips = self.download_json(urls)
         self.extract_json_zips(json_zips)
         file_dirs = self.root_dir / "record_zips"
@@ -80,7 +83,6 @@ class Command(BaseCommand):
 
         cleanup = options["cleanup"]
         logger.debug(f"options: {options}")
-
 
         if cleanup:
             self.cleanup(record_zips)
@@ -96,20 +98,20 @@ class Command(BaseCommand):
         for url in urls:
             records.append(self.download_single_json(url, file_dir))
         return records
-    
+
     def download_single_json(self, url, dest):
         url_filename = url.split("/")[-1]
         file_path = dest / url_filename
         if os.path.exists(file_path):
             logger.info(f"File already exists: {file_path}. Skipping.")
-            return file_path       
-         # Download the drug labels archive file
+            return file_path
+        # Download the drug labels archive file
         with closing(request.urlopen(url)) as r:
             with open(file_path, "wb") as f:
                 logger.info(f"Downloading {url} to {file_path}")
                 shutil.copyfileobj(r, f)
         return file_path
-    
+
     def extract_json_zips(self, zips):
         logger.info("Extracting json zips")
         file_dir = self.root_dir / "record_zips"
@@ -118,24 +120,24 @@ class Command(BaseCommand):
             with ZipFile(zip_file, "r") as zf:
                 for zobj in zf.infolist():
                     if os.path.exists(file_dir / zobj.filename):
-                        logger.info(f'Already extracted file {zobj.filename}')
+                        logger.info(f"Already extracted file {zobj.filename}")
                     else:
                         zf.extract(zobj, file_dir)
-                        logger.info(f'Extracted file {zobj.filename}')
-        #return file_dir
+                        logger.info(f"Extracted file {zobj.filename}")
+        # return file_dir
 
     def combine_jsons(self, file_dir):
         record_zips = []
         for file in os.listdir(file_dir):
-            logger.info(f'File: {file}')
-            with open(file_dir / file, encoding='utf-8') as f:
+            logger.info(f"File: {file}")
+            with open(file_dir / file, encoding="utf-8") as f:
                 j = json.load(f)
                 logger.info("start:::")
-                record_zips += j['results']
+                record_zips += j["results"]
                 logger.info("finished one")
                 break
         return record_zips
-    
+
     def filter_data(self, record_zips):
         results_by_type = {}
         for res in record_zips:
@@ -144,11 +146,11 @@ class Command(BaseCommand):
                 results_by_type[product_type] = [res]
             else:
                 results_by_type[product_type].append(res)
-        #%% we only care about the prescription drugs, save to disk
-        drugs_ref= results_by_type['human_prescription_drug']
+        # %% we only care about the prescription drugs, save to disk
+        drugs_ref = results_by_type["human_prescription_drug"]
         drugs = []
         for dg in drugs_ref:
-            if 'is_original_packager' in dg['openfda'].keys():
+            if "is_original_packager" in dg["openfda"].keys():
                 drugs.append(dg)
 
         errors = []
@@ -157,33 +159,32 @@ class Command(BaseCommand):
         for drug in drugs:
             try:
                 info = {}
-                info['metadata'] = drug['openfda']
-                info['metadata']['effective_time'] = drug['effective_time']
+                info["metadata"] = drug["openfda"]
+                info["metadata"]["effective_time"] = drug["effective_time"]
 
                 label_text = {}
-                for key,val in drug.items():
+                for key, val in drug.items():
                     # for my purposes I didn't need tables (mostly html formatting)
-                    if (type(val)==list) and ('table' not in key):
-                        label_text[key] = list(set(val)) # de-duplicate contents
-                info['Label Text'] = label_text
-                records[drug['id']] = info
+                    if (type(val) == list) and ("table" not in key):
+                        label_text[key] = list(set(val))  # de-duplicate contents
+                info["Label Text"] = label_text
+                records[drug["id"]] = info
             except:
                 errors += [drug]
         return records
 
     def check_type(self, res):
-        if 'product_type' not in res['openfda'].keys():
-            return 'uncategorized_drug'
-        pt = res['openfda']['product_type']
-        if type(pt)==float:
-            return 'uncategorized_drug'
-        if type(pt)==list:
-            assert(len(pt)==1)
-            return(pt[0].lower().replace(' ','_'))
+        if "product_type" not in res["openfda"].keys():
+            return "uncategorized_drug"
+        pt = res["openfda"]["product_type"]
+        if type(pt) == float:
+            return "uncategorized_drug"
+        if type(pt) == list:
+            assert len(pt) == 1
+            return pt[0].lower().replace(" ", "_")
         else:
-            logger.info(f'Problem determining type: {pt}')
+            logger.info(f"Problem determining type: {pt}")
 
-    
     def import_records(self, jsons, insert):
         logger.info("Building Drug Label DB records from XMLs")
         for key in jsons.keys():
@@ -195,15 +196,15 @@ class Command(BaseCommand):
                 logger.error(f"Could not parse {json_file}")
                 logger.error(str(e))
                 continue
-            
+
     def process_json_file(self, json_file, dl, insert):
         dl.source = "FDA"
-        dl.product_name = json_file['metadata']['brand_name']
-        dl.generic_name = json_file['metadata']['generic_name']
-        dl.version_date = datetime.strptime(json_file['metadata']['effective_time'], "%Y%m%d")
-        dl.marketer = json_file['metadata']['manufacturer_name']
-        dl.source_product_number = json_file['metadata']['product_ndc']
-        application_num = json_file['metadata']['application_number'][0][4:]
+        dl.product_name = json_file["metadata"]["brand_name"]
+        dl.generic_name = json_file["metadata"]["generic_name"]
+        dl.version_date = datetime.strptime(json_file["metadata"]["effective_time"], "%Y%m%d")
+        dl.marketer = json_file["metadata"]["manufacturer_name"]
+        dl.source_product_number = json_file["metadata"]["product_ndc"]
+        application_num = json_file["metadata"]["application_number"][0][4:]
         dl.link = f"https://www.accessdata.fda.gov/scripts/cder/daf/index.cfm?event=overview.process&varApplNo={application_num}"
 
         dl.raw_rext = ""
@@ -223,7 +224,7 @@ class Command(BaseCommand):
             logger.error(str(e))
             return
         # Now that the sections have been parsed, save them
-        for key, value in enumerate(json_file['Label Text']):
+        for key, value in enumerate(json_file["Label Text"]):
             ps = ProductSection(
                 label_product=lp,
                 section_name=key,
