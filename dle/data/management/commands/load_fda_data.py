@@ -69,14 +69,11 @@ class Command(BaseCommand):
         insert = options["insert"]
         dl_json_url = 'https://api.fda.gov/download.json'
         dl_json = json.loads(requests.get(dl_json_url).text)
-        #drugs_json = dl_json['results']['drug']
         labels_json = dl_json['results']['drug']['label']
         urls = [x['file'] for x in labels_json['partitions']]
         json_zips = self.download_json(urls)
         self.extract_json_zips(json_zips)
         file_dirs = self.root_dir / "record_zips"
-        #file_dirs = os.listdir(file_dir)
-        logger.info(f'file_dirs: {file_dirs}')
         record_zips = self.combine_jsons(file_dirs)
         filtered_records = self.filter_data(record_zips)
         self.import_records(filtered_records, insert)
