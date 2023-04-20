@@ -9,6 +9,7 @@ until python3 /app/postgres_ready.py; do
 done
 >&2 echo "PostgreSQL is available"
 
+
 if [[ ($MIGRATE) && ("$MIGRATE" = "True") ]]; then
   python3 manage.py makemigrations --no-input
   python3 manage.py migrate --no-input --fake-initial
@@ -22,9 +23,21 @@ if [[ ($INIT_SUPERUSER) && ("$INIT_SUPERUSER" = "True") ]]; then
   # Uses the DJANGO_SUPERUSER_* environment variables to create a superuser
   # TODO find a way to only run createsuperuser if it doesn't already exist
   echo "Creating superuser"
-  python3 manage.py createsuperuser --noinput
+  python3 manage.py create_superuser_if_none_exists --user $DJANGO_SUPERUSER_USERNAME --email $DJANGO_SUPERUSER_EMAIL --password $DJANGO_SUPERUSER_PASSWORD
 fi
 
+
+# Load fixtures, a JSON file containing the data for the database
+# Place the JSON file in /app/data/fixtures (from S3 unless we switch to Git LFS)
+if [[ ($LOAD_FIXTURES) && ("$LOAD_FIXTURES" = "True") ]]; then
+  echo "Loading fixtures"
+  python3 manage.py loaddata /app/data/fixtures/*.json
+  echo "Finished loading fixtures"
+fi
+
+
+# Otherwise, if not loading fixtures, you can run a scrape for new data
+# This will take a long time
 if [[ ($LOAD) && ("$LOAD" = "True") ]]; then
   echo "Beginning the Django data ingest"
   echo "Loading EMA (EU) data"
@@ -45,7 +58,11 @@ if [[ ($LOAD) && ("$LOAD" = "True") ]]; then
   echo "Ended the Django data ingest"
 fi
 
+
 # Loading pre-computed vectors
+# This was an attempt to speed up the vectorization process, as vectorization is slow within container.
+# However, using fixtures seems to be better because it's hard to get a good composite structure
+# for the vectors JSON file - composite key of drug ID + agency + version_date.
 if [[ ($LOAD_FDA_VECTORS) && ("$LOAD_FDA_VECTORS" = "True")]]; then
   # You must have pre-vectorized texts and placed the appropriate JSON file in /media
   echo "Starting to load FDA vectors into Django"
@@ -65,28 +82,14 @@ if [[ ($LOAD_EMA_VECTORS) && ("$LOAD_EMA_VECTORS" = "True")]]; then
   echo "EMA vectors loaded!"
 fi
 
-# if [[ ($LOAD_DJANGO_TO_ES) && ("$LOAD_DJANGO_TO_ES" = "True")]]; then
-#   # TODO ensure ES is available
-#   echo "Loading Django data into Elasticsearch"
-  # TODO manually manage ES indexing. Currently, just use ES_AUTO_SYNC, but will need to implement once we have an NLP pipeline
 
-  # see if index exists; otherwise, create it. See https://github.com/yunojuno/elasticsearch-django
-  # See https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-exists.html
-  # python3 manage.py create_search_index productsection
-  # This seems to fail using the elasticsearch-django management command:
-  # 2023-03-29 18:47:34,376 ERROR Unhandled error running Elasticsearch index command
-  # Traceback (most recent call last):
-  #   File "/usr/local/lib/python3.10/site-packages/elasticsearch_django/management/commands/__init__.py", line 48, in handle
-  #     data = self.do_index_command(index, **options)
-  #   File "/usr/local/lib/python3.10/site-packages/elasticsearch_django/management/commands/create_search_index.py", line 18, in do_index_command
-  #     return create_index(index).body
-  #   File "/usr/local/lib/python3.10/site-packages/elasticsearch_django/index.py", line 25, in create_index
-  #     mappings=mapping["mappings"],
-  # KeyError: 'mappings'
-  # Instead create the index manually in Kibana ... need to script this or figure out why that command fails
+# see docs/readme.md
+if [[ ($PROVISION_ES) && ("$PROVISION_ES" = "True")]]; then
+  echo "Provisioning and populating Elasticsearch"
+  python3 manage.py provision_elastic --agency all --create_index True --mapping_file "/app/search/mappings/provision.json"
+  echo "Finished provisioning Elasticsearch"
+fi
 
-  # Load the data
-  # python3 manage.py update_search_index productsection
 
 # In production, use Gunicorn + Nginx
 # TODO maybe reverse this so if nothing is passed the default is Nginx?
