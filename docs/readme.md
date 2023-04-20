@@ -47,9 +47,13 @@ The project is containerized so that it can be run locally or deployed to a clou
         - Creates a superuser if `INIT_SUPERUSER` is set to `True` and `SUPERUSER_USERNAME` and `SUPERUSER_PASSWORD` are set
         - Loads data if `LOAD` is set to `True`
             - This step takes a long time
-            - Runs EMA (`load_ema_data --type full`) and FDA (`load_fda_data --type full`) data loaders
+            - Runs FDA (currently DailyMed, soon OpenFDA), EMA, TGA, and HC data loaders (`load_<agency>_data --type full`)
             - Runs `update_latest_drug_labels`
-        - Runs a local webserver for Django on port 8000
+        - Potentially loads pre-computed vectors from `/app/media/<vector>.json` files, but this functionality doesn't work well because of misses on nested composite keys (`DrugLabel.source_product_number` + `dl.version_date` + `section_name`)
+        - Instead, data should get loaded from a fixture (possible RAM issue as they are big) or a PSQL dump
+        - Possibly provisions Elasticsearch with the `productsection` index and mappings
+        - Possibly loads data from Django into Elasticsearch
+        - Runs a local dev webserver, or Nginx + Gunicorn, for Django on port 8000
 
 5. Services:
     - Django: http://localhost:8000
@@ -60,7 +64,7 @@ The project is containerized so that it can be run locally or deployed to a clou
         - or use Kibana console to interact with Elasticsearch instead
     - Kibana: http://localhost:5601
 
-6. Create Elasticsearch index and mappings
+6. Manually create Elasticsearch index and mappings
     - Create ES index
         - The `elasticsearch-django` library supposedly has a CLI command to do this but I have not been able to get it to work (`python3 manage.py create_search_index <INDEX_NAME>`)
         - Instead I have been using Kibana console to create indices
@@ -141,7 +145,7 @@ The project is containerized so that it can be run locally or deployed to a clou
     - Make sure your mappings look good and the `text_embedding` mapping in particular is of type `dense_vector`
         - Run `GET /productsection/_mapping` to see your index schema
 
-7. Load vector data into Postgres and Elasticsearch
+7. Manually load vector data into Postgres and Elasticsearch
     - Either create your own vectors, or download existing vector JSON from S3
         - If using pre-computed vectors, you will need to make sure that `version_date` of those vectors matches the `version_date` of your Postgres / Django `DrugLabel` objects. You may need to use the Django ORM to modify the version date - this is at least the case for EMA labels currently. Peter's EMA fix may have resolved this but haven't tried re-ingesting EMA labels or re-creating EMA vectors after that fix.
         - If creating vectors, check out the `docs/section_mapping/vectorize.ipynb` notebook. You should use `django_extensions` to run the notebooks with the Django context, but on your local machine rather than within Docker. YMMV but it seems that for some reason vectorization is agonizingly slow within Docker.
