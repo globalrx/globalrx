@@ -23,6 +23,18 @@ Parameters:
     Type: AWS::SSM::Parameter::Value<String>
     Default: /image_url    
 
+  subnet1:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /public_subnet_1
+  subnet2:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /public_subnet_2
+
+
+
+  VPCParameter:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /vpc_id
 
 
 Resources:
@@ -30,7 +42,7 @@ Resources:
     Properties:
       Description: Service Map for Docker Compose project dle
       Name: dle.local
-      Vpc: vpc-23074059
+      Vpc: !Ref VPCParameter
     Type: AWS::ServiceDiscovery::PrivateDnsNamespace
 
   Cluster:
@@ -58,7 +70,7 @@ Resources:
         Value: dle
       - Key: com.docker.compose.network
         Value: dle_default
-      VpcId: vpc-23074059
+      VpcId: !Ref VPCParameter
     Type: AWS::EC2::SecurityGroup
   DefaultNetworkIngress:
     Properties:
@@ -95,12 +107,7 @@ Resources:
           SecurityGroups:
           - Ref: DefaultNetwork
           Subnets:
-          - subnet-6e6c4709
-          - subnet-48c83305
-          - subnet-1efec830
-          - subnet-eda0dfd3
-          - subnet-01f4190f
-          - subnet-0df7c351
+          - !Ref subnet1
       PlatformVersion: 1.4.0
       PropagateTags: SERVICE
       SchedulingStrategy: REPLICA
@@ -152,7 +159,7 @@ Resources:
       - Key: com.docker.compose.project
         Value: dle
       TargetType: ip
-      VpcId: vpc-23074059
+      VpcId: !Ref VPCParameter
     Type: AWS::ElasticLoadBalancingV2::TargetGroup
   DjangoTaskDefinition:
     Properties:
@@ -184,7 +191,7 @@ Resources:
         - Name: COMPOSE_PROJECT_NAME
           Value: dle
         - Name: DATABASE_URL
-          Value: !Sub postgres://postgres:fghyucvsafd@${DBEndpointParameter}:5432/postgres
+          Value: postgres://postgres:fghyucvsafd@deploy-rds-globalrxdb-mc1ggbfhsyey.cyraraewlj0t.us-east-1.rds.amazonaws.com:5432/postgres #!Sub postgres://postgres:fghyucvsafd@${DBEndpointParameter}:5432/postgres
         - Name: DEBUG
           Value: "True"
         - Name: DJANGO_SUPERUSER_EMAIL
@@ -194,7 +201,7 @@ Resources:
         - Name: DJANGO_SUPERUSER_USERNAME
           Value: admin
         - Name: ELASTICSEARCH_URL
-          Value: !Join ["", ["https://", Ref: ElasticIPAddress, ":9200"]]
+          Value: https://34.196.225.153:9200  #!Join ["", ["https://", Ref: ElasticIPAddress, ":9200"]]
         - Name: ELASTICSEARCH_USER
           Value: elastic
         - Name: ELASTIC_CLOUD_ID
@@ -220,9 +227,9 @@ Resources:
         - Name: LOAD
           Value: "False"
         - Name: MEM_LIMIT
-          Value: '4294967296 # 4 GB or more may be needed for ML features'
+          Value: '4294967296" # 4 GB or more may be needed for ML features'
         - Name: MIGRATE
-          Value: "True"
+          Value: "False"
         - Name: POSTGRES_DB
           Value: postgres
         - Name: POSTGRES_HOST
@@ -253,11 +260,11 @@ Resources:
         - ContainerPort: 8000
           HostPort: 8000
           Protocol: tcp
-      Cpu: "256"
+      Cpu: "2048"
       ExecutionRoleArn:
         Ref: DjangoTaskExecutionRole
       Family: dle-django
-      Memory: "512"
+      Memory: "4096"
       NetworkMode: awsvpc
       RequiresCompatibilities:
       - FARGATE
@@ -289,12 +296,7 @@ Resources:
         Value: "true"
       Scheme: internet-facing
       Subnets:
-      - subnet-6e6c4709
-      - subnet-48c83305
-      - subnet-1efec830
-      - subnet-eda0dfd3
-      - subnet-01f4190f
-      - subnet-0df7c351
+      - !Ref subnet1
       Tags:
       - Key: com.docker.compose.project
         Value: dle
@@ -304,3 +306,5 @@ Resources:
     Properties:
       LogGroupName: /docker-compose/dle
     Type: AWS::Logs::LogGroup
+
+

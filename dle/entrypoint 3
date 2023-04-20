@@ -1,0 +1,98 @@
+#!/bin/bash
+
+set -o errexit
+set -o pipefail
+
+until python3 /app/postgres_ready.py; do
+  >&2 echo "Waiting for PostgreSQL to become available..."
+  sleep 1
+done
+>&2 echo "PostgreSQL is available"
+
+if [[ ($MIGRATE) && ("$MIGRATE" = "True") ]]; then
+  python3 manage.py makemigrations --no-input
+  python3 manage.py migrate --no-input --fake-initial
+  echo "Migrations finished"
+  python3 manage.py collectstatic --noinput
+  echo "Static files collected"
+fi
+
+
+if [[ ($INIT_SUPERUSER) && ("$INIT_SUPERUSER" = "True") ]]; then
+  # Uses the DJANGO_SUPERUSER_* environment variables to create a superuser
+  # TODO find a way to only run createsuperuser if it doesn't already exist
+  echo "Creating superuser"
+  python3 manage.py createsuperuser --noinput
+fi
+
+if [[ ($LOAD) && ("$LOAD" = "True") ]]; then
+  echo "Beginning the Django data ingest"
+  echo "Loading EMA (EU) data"
+  python3 manage.py load_ema_data --type full
+  echo "Finished loading EMA (EU) data"
+  echo "Loading FDA (US) data"
+  python3 manage.py load_fda_data --type full
+  echo "Finished loading FDA (US) data"
+  echo "Loading TGA (Australia) data"
+  python3 manage.py load_tga_data --type full
+  echo "Finished loading TGA (Australia) data"
+  echo "Updating latest drug labels"
+  python3 manage.py update_latest_drug_labels
+  echo "Finished updating latest drug labels"
+  echo "Ended the Django data ingest"
+fi
+
+# Loading pre-computed vectors
+if [[ ($LOAD_FDA_VECTORS) && ("$LOAD_FDA_VECTORS" = "True")]]; then
+  # You must have pre-vectorized texts and placed the appropriate JSON file in /media
+  echo "Starting to load FDA vectors into Django"
+  python3 manage.py vectorize --elasticingest False --agency FDA --vector_file "/app/media/fda_vectors.json"
+  echo "FDA vectors loaded!"
+fi
+if [[ ($LOAD_TGA_VECTORS) && ("$LOAD_TGA_VECTORS" = "True")]]; then
+  # You must have pre-vectorized texts and placed the appropriate JSON file in /media
+  echo "Starting to load TGA vectors into Django"
+  python3 manage.py vectorize --elasticingest False --agency TGA --vector_file "/app/media/tga_vectors.json"
+  echo "TGA vectors loaded!"
+fi
+if [[ ($LOAD_EMA_VECTORS) && ("$LOAD_EMA_VECTORS" = "True")]]; then
+  # You must have pre-vectorized texts and placed the appropriate JSON file in /media
+  echo "Starting to load FDA vectors into Django"
+  python3 manage.py vectorize --elasticingest False --agency EMA --vector_file "/app/media/ema_vectors.json"
+  echo "EMA vectors loaded!"
+fi
+
+# if [[ ($LOAD_DJANGO_TO_ES) && ("$LOAD_DJANGO_TO_ES" = "True")]]; then
+#   # TODO ensure ES is available
+#   echo "Loading Django data into Elasticsearch"
+  # TODO manually manage ES indexing. Currently, just use ES_AUTO_SYNC, but will need to implement once we have an NLP pipeline
+
+  # see if index exists; otherwise, create it. See https://github.com/yunojuno/elasticsearch-django
+  # See https://www.elastic.co/guide/en/elasticsearch/reference/current/indices-exists.html
+  # python3 manage.py create_search_index productsection
+  # This seems to fail using the elasticsearch-django management command:
+  # 2023-03-29 18:47:34,376 ERROR Unhandled error running Elasticsearch index command
+  # Traceback (most recent call last):
+  #   File "/usr/local/lib/python3.10/site-packages/elasticsearch_django/management/commands/__init__.py", line 48, in handle
+  #     data = self.do_index_command(index, **options)
+  #   File "/usr/local/lib/python3.10/site-packages/elasticsearch_django/management/commands/create_search_index.py", line 18, in do_index_command
+  #     return create_index(index).body
+  #   File "/usr/local/lib/python3.10/site-packages/elasticsearch_django/index.py", line 25, in create_index
+  #     mappings=mapping["mappings"],
+  # KeyError: 'mappings'
+  # Instead create the index manually in Kibana ... need to script this or figure out why that command fails
+
+  # Load the data
+  # python3 manage.py update_search_index productsection
+
+# In production, use Gunicorn + Nginx
+# TODO maybe reverse this so if nothing is passed the default is Nginx?
+if [[ ($USE_NGINX) && ("$USE_NGINX" = "True" ) ]]; then
+  echo "Nginx proxying requests from :8000 (Django app accessible from http://localhost:8000/)"
+  nginx
+  echo "Using Gunicorn on :5000 as app server / wsgi host"
+  gunicorn --bind :5000 --workers 3 --threads 16 --timeout 0 dle.wsgi:application
+else
+  # When in dev use the Django runserver for hot reload
+  python3 manage.py runserver 0.0.0.0:8000
+fi
