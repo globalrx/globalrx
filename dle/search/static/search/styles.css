@@ -84,6 +84,7 @@ ul.nav li {
   
   .right-panel {
     margin-left: 400px;
+
   }
   
   /**.ais-InstantSearch {
@@ -127,4 +128,6 @@ ul.nav li {
   /* hide compare labels form by default */
   #compare-button-container {
     display: none;
+    color: #19a2af;
+    font-size: medium;
   }
