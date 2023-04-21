@@ -181,8 +181,16 @@ search.addWidgets([
       value: 20
     },
     {
-      label: '50 hits per page',
+      label: '30 hits per page',
+      value: 30
+    },
+    {
+      label: '30 hits per page',
       value: 50
+    },
+    {
+      label: '50 hits per page',
+      value: 100
     }
     ],
   })
