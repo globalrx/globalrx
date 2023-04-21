@@ -1,3 +1,4 @@
+import datetime
 import json
 import logging
 import os
@@ -5,7 +6,6 @@ import re
 import shutil
 import urllib.request as request
 from contextlib import closing
-from datetime import datetime
 from distutils.util import strtobool
 from zipfile import ZipFile
 
@@ -16,7 +16,8 @@ from django.db.utils import IntegrityError, OperationalError
 import requests
 
 # from data.constants import FDA_SECTION_NAME_MAP
-from data.models import DrugLabel, LabelProduct, ProductSection
+from data.models import DrugLabel, LabelProduct, ParsingError, ProductSection
+from data.util import check_recently_updated, strfdelta  # PDFParseException, convert_date_string
 
 
 # from bs4 import BeautifulSoup
@@ -63,6 +64,18 @@ class Command(BaseCommand):
             help="output counts of the section_names",
             default=False,
         )
+        parser.add_argument(
+            "--skip_more_recent_than_n_hours",
+            type=int,
+            help="Skip re-scraping labels more recently imported than this number of hours old. Default is 168 (7 days)",
+            default=168,  # 7 days; set to 0 to re-scrape everything
+        )
+        parser.add_argument(
+            "--skip_known_errors",
+            type=strtobool,
+            help="Skip labels that have previously had parsing errors. Default is True",
+            default=True,
+        )
 
     """
     Entry point into class from command line
@@ -70,6 +83,11 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         insert = options["insert"]
+        self.skip_labels_updated_within_span = datetime.timedelta(
+            hours=int(options["skip_more_recent_than_n_hours"])
+        )
+        self.skip_errors = options["skip_known_errors"]
+
         dl_json_url = "https://api.fda.gov/download.json"
         dl_json = json.loads(requests.get(dl_json_url).text)
         labels_json = dl_json["results"]["drug"]["label"]
@@ -77,6 +95,9 @@ class Command(BaseCommand):
         json_zips = self.download_json(urls)
         self.extract_json_zips(json_zips)
         file_dirs = self.root_dir / "record_zips"
+
+        # Can we not load everything into one big blob in RAM (combine_jsons) and instead
+        # run self.import_records on each file? Could parallelize?
         record_zips = self.combine_jsons(file_dirs)
         filtered_records = self.filter_data(record_zips)
         self.import_records(filtered_records, insert)
@@ -124,17 +145,20 @@ class Command(BaseCommand):
                     else:
                         zf.extract(zobj, file_dir)
                         logger.info(f"Extracted file {zobj.filename}")
+        # TODO error handling?
         # return file_dir
 
     def combine_jsons(self, file_dir):
         record_zips = []
         for file in os.listdir(file_dir):
-            logger.info(f"File: {file}")
-            with open(file_dir / file, encoding="utf-8") as f:
+            logger.info(f"Combining JSON file: {file}")
+            # TODO this seems to be passed zip files instead of json files and fails? See Slack
+            with open(file_dir / file, encoding="utf-8-sig") as f:
                 j = json.load(f)
                 logger.info("start:::")
                 record_zips += j["results"]
-                logger.info("finished one")
+                logger.info(f"Finished combining {file}")
+                # TODO does this break out the loop?
                 break
         return record_zips
 
@@ -170,6 +194,7 @@ class Command(BaseCommand):
                 info["Label Text"] = label_text
                 records[drug["id"]] = info
             except:
+                # TODO raise and capture an Exception, save ParsingError to DB
                 errors += [drug]
         return records
 
@@ -186,22 +211,90 @@ class Command(BaseCommand):
             logger.info(f"Problem determining type: {pt}")
 
     def import_records(self, jsons, insert):
-        logger.info("Building Drug Label DB records from XMLs")
+        logger.info("Building Drug Label DB records from JSON")
         for key in jsons.keys():
             json_file = jsons[key]
+            # If this is a known error, skip it
+            # Get a UUID from the JSON file
+            try:
+                source_product_number = (
+                    json_file["metadata"]["product_ndc"]
+                    if "product_ndc" in json_file["metadata"]
+                    else None
+                )
+                if self.skip_errors:
+                    existing_errors = ParsingError.objects.filter(
+                        source="FDA", source_product_number=source_product_number
+                    )
+                    if existing_errors.count() >= 1:
+                        logger.warning(
+                            self.style.WARNING(
+                                f"Label skipped. Known error(s): {existing_errors[0]}."
+                            )
+                        )
+                        continue
+            except Exception as e:
+                # No source_product_number
+                logger.error(f"No source_product_number for {json_file}")
+                logger.error(str(e))
+                continue
+
+            # If it has been recently imported, skip it
+            existing_labels = DrugLabel.objects.filter(
+                source="FDA", source_product_number=source_product_number
+            ).order_by("-updated_at")
+            if existing_labels.count() >= 1:
+                existing_label = existing_labels[0]
+                if check_recently_updated(
+                    dl=existing_label, skip_timeframe=self.skip_labels_updated_within_span
+                ):
+                    last_updated_ago = (
+                        datetime.datetime.now(datetime.timezone.utc) - existing_label.updated_at
+                    )
+                    logger.warning(
+                        self.style.WARNING(
+                            f"Label skipped. Updated {strfdelta(last_updated_ago)} ago, less than {self.skip_labels_updated_within_span}"
+                        )
+                    )
+                    continue
+
+            # Otherwise, continue
             try:
                 dl = DrugLabel()
                 self.process_json_file(json_file, dl, insert)
+            # TODO handle more specific exceptions
             except Exception as e:
                 logger.error(f"Could not parse {json_file}")
                 logger.error(str(e))
+                application_num = (
+                    json_file["metadata"]["application_number"][0][4:]
+                    if "application_number" in json_file["metadata"]
+                    else None
+                )
+                if application_num:
+                    url = json_file["metadata"]["url"] if "url" in json_file["metadata"] else None
+                else:
+                    url = None
+                # TODO add error_type to ParsingError
+                parsing_error, created = ParsingError.objects.get_or_create(
+                    source="FDA",
+                    source_product_number=source_product_number,
+                    message=str(e),
+                    url=url,
+                )
+                if created:
+                    logger.warning(f"Created new parsing error for {parsing_error}")
+                else:
+                    logger.warning(f"ParsingError {parsing_error} already exists")
                 continue
 
     def process_json_file(self, json_file, dl, insert):
         dl.source = "FDA"
         dl.product_name = json_file["metadata"]["brand_name"]
         dl.generic_name = json_file["metadata"]["generic_name"]
-        dl.version_date = datetime.strptime(json_file["metadata"]["effective_time"], "%Y%m%d")
+        dl.version_date = datetime.datetime.strptime(
+            json_file["metadata"]["effective_time"], "%Y%m%d"
+        )
         dl.marketer = json_file["metadata"]["manufacturer_name"]
         dl.source_product_number = json_file["metadata"]["product_ndc"]
         application_num = json_file["metadata"]["application_number"][0][4:]
