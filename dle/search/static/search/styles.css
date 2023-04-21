@@ -1,8 +1,8 @@
 
 header {
     box-shadow: 0px 2px 4px  rgba(0,0,0,.5);
-    background-color: #1f8ecd;
-    height: 80px;
+    background-color: #19a2af;
+    height: 100px;
     position: fixed;
     top: 0;
     width: 100%;
@@ -34,7 +34,7 @@ header {
 }
 
 .nav {
-    margin-top: 26px;
+    margin-top: 20px;
     margin-right: 40px;
     float: right;
 }
@@ -122,4 +122,9 @@ ul.nav li {
 
   .ais-RefinementList-checkbox {
     margin-right: .5rem;
+  }
+
+  /* hide compare labels form by default */
+  #compare-button-container {
+    display: none;
   }

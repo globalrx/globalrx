@@ -4,6 +4,7 @@ import random
 import re
 import string
 import time
+from distutils.util import strtobool
 
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -19,12 +20,10 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.firefox.options import Options
 
-from data.models import DrugLabel, LabelProduct, ProductSection
+from data.models import DrugLabel, LabelProduct, ParsingError, ProductSection
+from data.util import PDFParseException, check_recently_updated, convert_date_string, strfdelta
 
 from .pdf_parsing_helper import get_pdf_sections, read_pdf
-
-
-# from users.models import MyLabel
 
 
 logger = logging.getLogger(__name__)
@@ -69,6 +68,10 @@ class Command(BaseCommand):
         self.options = Options()
         self.options.add_argument("--headless")
         self.driver = webdriver.Firefox(options=self.options)
+        self.total_to_process = 0
+        self.processed_with_current_cookies = 0
+        self.cookies = None
+        self.skip_errors = True
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -77,8 +80,44 @@ class Command(BaseCommand):
             help="'full', 'test'",
             default="test",
         )
+        parser.add_argument(
+            "--skip_more_recent_than_n_hours",
+            type=int,
+            help="Skip re-scraping labels more recently imported than this number of hours old. Default is 168 (7 days)",
+            default=168,  # 7 days; set to 0 to re-scrape everything
+        )
+        parser.add_argument(
+            "--skip_known_errors",
+            type=strtobool,
+            help="Skip labels that have previously had parsing errors. Default is True",
+            default=True,
+        )
+
+    def get_tga_cookies(self) -> dict:
+        """Get cookies from TGA website
+        Accept the access terms
+        Store the cookies and include with BeautifulSoup requests
+        """
+        self.driver.delete_all_cookies()
+        self.driver.get(TGA_BASE_URL + "/pdf?OpenAgent")
+        time.sleep(1)
+        # This is the xpath to the accept button
+        button = self.driver.find_element(
+            by=By.XPATH, value="/html/body/form/div[2]/div[3]/div[1]/a[1]"
+        )
+        self.driver.execute_script("arguments[0].click();", button)
+        # Wait a bit for it to load
+        time.sleep(5)
+        driver_cookies = self.driver.get_cookies()
+        cookies = {c["name"]: c["value"] for c in driver_cookies}
+        logger.info("Got or renewed cookies")
+        return cookies
 
     def handle(self, *args, **options):
+        self.skip_labels_updated_within_span = datetime.timedelta(
+            hours=int(options["skip_more_recent_than_n_hours"])
+        )
+        self.skip_errors = options["skip_known_errors"]
         import_type = options["type"]
         if import_type not in ["full", "test"]:
             raise CommandError("'type' parameter must be 'full' or 'test'")
@@ -98,6 +137,7 @@ class Command(BaseCommand):
         logger.info(f"import_type: {import_type}")
 
         if import_type == "test":
+            # top level pages for 0, 5, Y labels
             urls = [
                 "https://www.ebs.tga.gov.au/ebs/picmi/picmirepository.nsf/PICMI?OpenForm&t=PI&k=0&r=/",
                 "https://www.ebs.tga.gov.au/ebs/picmi/picmirepository.nsf/PICMI?OpenForm&t=PI&k=5&r=/",
@@ -107,21 +147,10 @@ class Command(BaseCommand):
             # Get full list of addresses to query
             urls = self.get_tga_pi_urls()
 
+        self.total_to_process = len(urls)
         logger.info(f"total urls to process: {len(urls)}")
 
-        # Before being able to access the PDFs, we have to accept the access terms
-        # Then store the cookies and pass it to the requests
-        self.driver.get(TGA_BASE_URL + "/pdf?OpenAgent")
-        time.sleep(1)
-        # This is the xpath to the accept button
-        button = self.driver.find_element(
-            by=By.XPATH, value="/html/body/form/div[2]/div[3]/div[1]/a[1]"
-        )
-        self.driver.execute_script("arguments[0].click();", button)
-        # Wait a bit for it to load
-        time.sleep(5)
-        driver_cookies = self.driver.get_cookies()
-        cookies = {c["name"]: c["value"] for c in driver_cookies}
+        self.cookies = self.get_tga_cookies()
 
         # Iterate all the query URLs
         for url in urls:
@@ -134,8 +163,61 @@ class Command(BaseCommand):
             rows = table_body.find_all("tr")
             # Iterate all the products in the table
             for row in rows:
+                # If we have processed a bunch of labels, get a new cookie so we don't time out
+                if self.processed_with_current_cookies >= 200:
+                    new_cookies = self.get_tga_cookies()
+                    self.cookies = new_cookies
+                    self.processed_with_current_cookies = 0
+
+                # if the label has been parsed recently, skip
+                # Get the PDF link
+                pdf_link = None
                 try:
-                    dl, label_text = self.get_drug_label_from_row(soup, row, cookies)
+                    pdf_link = TGA_BASE_URL + row.find_all("td")[1].find("a")["href"]
+                except IndexError:
+                    # Not saving to ParsingErrors, no URL to track down?
+                    logger.warning(
+                        "IndexError - could not generate PDF link to check if possible existing labels have been recently updated"
+                    )
+
+                if pdf_link:
+                    # first see if it's a label with a known error; if so, skip
+                    # TODO does version_date come into play here at all?
+                    if self.skip_errors:
+                        existing_errors = ParsingError.objects.filter(source="TGA", url=pdf_link)
+                        if existing_errors.count() >= 1:
+                            logger.warning(
+                                self.style.WARNING(
+                                    f"Label skipped. Known error: {existing_errors[0].error_type}"
+                                )
+                            )
+                            continue
+
+                    # next, see if it's a label that's been recently updated; if so, skip
+                    # possibly multiple DLs with the same link (versions), so get the newest
+                    existing_labels = DrugLabel.objects.filter(
+                        source="TGA", link=pdf_link
+                    ).order_by("-updated_at")
+                    if existing_labels.count() >= 1:
+                        existing_label = existing_labels[0]
+                        if check_recently_updated(
+                            dl=existing_label, skip_timeframe=self.skip_labels_updated_within_span
+                        ):
+                            last_updated_ago = (
+                                datetime.datetime.now(datetime.timezone.utc)
+                                - existing_label.updated_at
+                            )
+                            logger.warning(
+                                self.style.WARNING(
+                                    f"Label skipped. Updated {strfdelta(last_updated_ago)} ago, less than {self.skip_labels_updated_within_span}"
+                                )
+                            )
+                            continue
+                    else:
+                        logger.info("No existing labels with this PDF link, continuing parsing")
+
+                try:
+                    dl, label_text = self.get_drug_label_from_row(soup, row, self.cookies)
                     logger.debug(repr(dl))
                     # dl.link is url of pdf
                     # for now, assume only one LabelProduct per DrugLabel
@@ -147,9 +229,41 @@ class Command(BaseCommand):
                     logger.warning(self.style.WARNING("Label already in db"))
                     logger.debug(e, exc_info=True)
                 except AttributeError as e:
+                    # Typically: 'Failed to parse for version date () ...'
                     logger.warning(self.style.ERROR(repr(e)))
+                    msg = str(repr(e))
+                    # TODO make error type parsing a function
+                    error_type = None
+                    if (
+                        "Failed to parse for version date ()" in msg
+                        or "Failed to parse for version date( )" in msg
+                    ):
+                        error_type = "version_date_empty"
+                    elif "Failed to parse for version date" in msg:
+                        error_type = "version_date_parse"
+
+                    parsing_error, created = ParsingError.objects.get_or_create(
+                        url=pdf_link, message=msg, source="TGA", error_type=error_type
+                    )
+                    if created:
+                        logger.warning(f"Created ParsingError {parsing_error}")
+                    else:
+                        logger.info(f"ParsingError {parsing_error} already exists")
+                except PDFParseException as e:
+                    # Typically "Failed to parse pdf with both methods"
+                    logger.warning(self.style.ERROR(repr(e)))
+                    msg = str(repr(e))
+                    parsing_error, created = ParsingError.objects.get_or_create(
+                        url=pdf_link, message=msg, source="TGA", error_type="pdf_error"
+                    )
                 except ValueError as e:
                     logger.warning(self.style.WARNING(repr(e)))
+                    # TODO see what errors these are to create ParsingErrors for them
+                except Exception as e:
+                    logger.error(self.style.ERROR(repr(e)))
+                    # TODO see what errors these are to create ParsingErrors for them
+                # increment this regardless of success, still takes time
+                self.processed_with_current_cookies += 1
 
             for url in self.error_urls.keys():
                 logger.warning(self.style.WARNING(f"error parsing url: {url}"))
@@ -157,16 +271,6 @@ class Command(BaseCommand):
         logger.info(f"num_drug_labels_parsed: {self.num_drug_labels_parsed}")
         logger.info(self.style.SUCCESS("process complete"))
         return
-
-    def convert_date_string(self, date_string):
-        for date_format in ("%d %B %Y", "%d %b %Y", "%d/%m/%Y"):
-            try:
-                dt_obj = datetime.datetime.strptime(date_string, date_format)
-                converted_string = dt_obj.strftime("%Y-%m-%d")
-                return converted_string
-            except ValueError:
-                pass
-        return ""
 
     def get_drug_label_from_row(self, soup, row, cookies):
         dl = DrugLabel()  # empty object to populate as we go
@@ -183,26 +287,27 @@ class Command(BaseCommand):
 
         # get version date from the pdf
         dl.raw_text, label_text = self.get_and_parse_pdf(dl.link, dl.source_product_number, cookies)
-        dl.version_date = ""
+        parsed_date = None
         date_string = ""
         # First to look for date of revision, if it exists and contains a valid date, then store that date
         # Otherwise look for date of first approval, and store that date if it's available
         if "Date Of Revision" in label_text.keys():
             date_string = label_text["Date Of Revision"][0].split("\n")[0]
-            dl.version_date = self.convert_date_string(date_string)
-
-        if dl.version_date == "" and "Date Of First Approval" in label_text.keys():
+            parsed_date = convert_date_string(date_string)
+        if parsed_date is None and "Date Of First Approval" in label_text.keys():
             date_string = label_text["Date Of First Approval"][0].split("\n")[0]
-            dl.version_date = self.convert_date_string(date_string)
-
-        if dl.version_date == "" and "Date Of Most Recent Amendment" in label_text.keys():
+            parsed_date = convert_date_string(date_string)
+        if parsed_date is None and "Date Of Most Recent Amendment" in label_text.keys():
             date_string = label_text["Date Of Most Recent Amendment"][0].split("\n")[0]
-            dl.version_date = self.convert_date_string(date_string)
-
+            parsed_date = convert_date_string(date_string)
+        logger.debug(f"date_string: {date_string}; parsed_date: {parsed_date}")
         # Raise an error if the version date is still empty
-        if dl.version_date == "":
+        # TODO potentially save with a dummy version date and allow for manual corrections?
+        if parsed_date is None:
+            logger.debug(f"failed parsing date - label_text.keys(): {label_text.keys()}")
             raise AttributeError(f"Failed to parse for version date ({date_string}) from {dl.link}")
-
+        else:
+            dl.version_date = parsed_date
         dl.save()
         return dl, label_text
 
@@ -357,7 +462,8 @@ class Command(BaseCommand):
                     raw_text, OTHER_FORMATTED_SECTIONS
                 )
                 if len(headers) == 0:
-                    raise Exception("Failed to parse pdf with both methods")
+                    # Not seeing this saved
+                    raise PDFParseException("Failed to parse pdf with both methods")
             for h, s in zip(headers, sections):
                 header = self.get_fixed_header(h)
                 if (header is not None) and (len(s) > 0):
@@ -369,6 +475,10 @@ class Command(BaseCommand):
 
             info["Label Text"] = label_text
             self.records[product_code] = info
+        except PDFParseException as e:
+            logger.error(self.style.ERROR(repr(e)))
+            logger.error(self.style.ERROR(f"Failed to process {tga_file}, url = {pdf_url}"))
+            self.error_urls[pdf_url] = True
         except Exception as e:
             logger.error(self.style.ERROR(repr(e)))
             logger.error(self.style.ERROR(f"Failed to process {tga_file}, url = {pdf_url}"))
