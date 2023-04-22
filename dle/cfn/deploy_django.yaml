@@ -21,8 +21,7 @@ Parameters:
     Default: /secret_pw    
   imageUrl:
     Type: AWS::SSM::Parameter::Value<String>
-    Default: /image_url    
-
+    Default: /image_url
   subnet1:
     Type: AWS::SSM::Parameter::Value<String>
     Default: /public_subnet_1
@@ -32,9 +31,6 @@ Parameters:
   loadBalancerArn:
     Type: AWS::SSM::Parameter::Value<String>
     Default: /ecs_lb
-
-
-
   VPCParameter:
     Type: AWS::SSM::Parameter::Value<String>
     Default: /vpc_id
@@ -219,8 +215,6 @@ Resources:
           Value: "9200"
         - Name: INIT_SUPERUSER
           Value: "False"
-        - Name: KIBANA_MEM_LIMIT
-          Value: '1073741824 # 1 GB'
         - Name: KIBANA_PASSWORD
           Value: !Ref kibanaPword
         - Name: KIBANA_PORT
@@ -229,8 +223,6 @@ Resources:
           Value: trial
         - Name: LOAD
           Value: "False"
-        - Name: MEM_LIMIT
-          Value: '4294967296" # 4 GB or more may be needed for ML features'
         - Name: MIGRATE
           Value: "False"
         - Name: POSTGRES_DB
