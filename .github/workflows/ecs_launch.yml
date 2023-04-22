@@ -29,5 +29,5 @@ jobs:
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
           name: deploy-s3
-          template: cfn/deploy_django.yaml  
+          template: dle/cfn/deploy_django.yaml  
         continue-on-error: true
