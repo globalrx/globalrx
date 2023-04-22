@@ -42,9 +42,6 @@ class Command(BaseCommand):
     urls = [x["file"] for x in labels_json["partitions"]]
 
     def __init__(self, stdout=None, stderr=None, no_color=False, force_color=False):
-        root_logger = logging.getLogger("")
-        root_logger.setLevel(logging.INFO)
-
         self.root_dir = settings.MEDIA_ROOT / "fda"
         os.makedirs(self.root_dir, exist_ok=True)
         super().__init__(stdout, stderr, no_color, force_color)
@@ -88,19 +85,36 @@ class Command(BaseCommand):
         )
         self.skip_errors = options["skip_known_errors"]
 
+        # basic logging config is in settings.py
+        # verbosity is 1 by default, gives critical, error and warning output
+        # `--verbosity 2` gives info output
+        # `--verbosity 3` gives debug output
+        verbosity = int(options["verbosity"])
+        root_logger = logging.getLogger("")
+        if verbosity == 2:
+            root_logger.setLevel(logging.INFO)
+        elif verbosity == 3:
+            root_logger.setLevel(logging.DEBUG)
+
         dl_json_url = "https://api.fda.gov/download.json"
         dl_json = json.loads(requests.get(dl_json_url).text)
         labels_json = dl_json["results"]["drug"]["label"]
         urls = [x["file"] for x in labels_json["partitions"]]
         json_zips = self.download_json(urls)
         self.extract_json_zips(json_zips)
-        file_dirs = self.root_dir / "record_zips"
+        file_dir = self.root_dir / "record_zips"
 
-        # Can we not load everything into one big blob in RAM (combine_jsons) and instead
-        # run self.import_records on each file? Could parallelize?
-        record_zips = self.combine_jsons(file_dirs)
-        filtered_records = self.filter_data(record_zips)
-        self.import_records(filtered_records, insert)
+        # Iterate the json files in the directory one by one
+        for file in os.listdir(file_dir):
+            json_file = file_dir / file
+            raw_json_result = None
+            with open(json_file, encoding="utf-8-sig") as f:
+                raw_json_result = json.load(f)
+                logger.info(f"start loading json {json_file}")
+            raw_json_result = raw_json_result["results"]
+            logger.info(f"Finished loading {json_file}")
+            filtered_records = self.filter_data(raw_json_result)
+            self.import_records(filtered_records, insert)
 
         cleanup = options["cleanup"]
         logger.debug(f"options: {options}")
@@ -148,29 +162,15 @@ class Command(BaseCommand):
         # TODO error handling?
         # return file_dir
 
-    def combine_jsons(self, file_dir):
-        record_zips = []
-        for file in os.listdir(file_dir):
-            logger.info(f"Combining JSON file: {file}")
-            # TODO this seems to be passed zip files instead of json files and fails? See Slack
-            with open(file_dir / file, encoding="utf-8-sig") as f:
-                j = json.load(f)
-                logger.info("start:::")
-                record_zips += j["results"]
-                logger.info(f"Finished combining {file}")
-                # TODO does this break out the loop?
-                break
-        return record_zips
-
-    def filter_data(self, record_zips):
+    def filter_data(self, raw_json_result):
         results_by_type = {}
-        for res in record_zips:
+        for res in raw_json_result:
             product_type = self.check_type(res)
             if product_type not in results_by_type.keys():
                 results_by_type[product_type] = [res]
             else:
                 results_by_type[product_type].append(res)
-        # %% we only care about the prescription drugs, save to disk
+        # We only care about the prescription drugs
         drugs_ref = results_by_type["human_prescription_drug"]
         drugs = []
         for dg in drugs_ref:
@@ -179,7 +179,7 @@ class Command(BaseCommand):
 
         errors = []
         records = {}
-        # restructure to match ema format and save to disk
+        # restructure to match ema format
         for drug in drugs:
             try:
                 info = {}
@@ -210,16 +210,16 @@ class Command(BaseCommand):
         else:
             logger.info(f"Problem determining type: {pt}")
 
-    def import_records(self, jsons, insert):
+    def import_records(self, filtered_records, insert):
         logger.info("Building Drug Label DB records from JSON")
-        for key in jsons.keys():
-            json_file = jsons[key]
+        for key in filtered_records:
             # If this is a known error, skip it
             # Get a UUID from the JSON file
+            record = filtered_records[key]
             try:
                 source_product_number = (
-                    json_file["metadata"]["product_ndc"]
-                    if "product_ndc" in json_file["metadata"]
+                    record["metadata"]["product_ndc"]
+                    if "product_ndc" in record["metadata"]
                     else None
                 )
                 if self.skip_errors:
@@ -235,7 +235,7 @@ class Command(BaseCommand):
                         continue
             except Exception as e:
                 # No source_product_number
-                logger.error(f"No source_product_number for {json_file}")
+                logger.error(f"No source_product_number for {record}")
                 logger.error(str(e))
                 continue
 
@@ -261,26 +261,26 @@ class Command(BaseCommand):
             # Otherwise, continue
             try:
                 dl = DrugLabel()
-                self.process_json_file(json_file, dl, insert)
+                self.process_json_record(record, dl, insert)
             # TODO handle more specific exceptions
             except Exception as e:
-                logger.error(f"Could not parse {json_file}")
+                logger.error(f"Could not parse record {key}")
                 logger.error(str(e))
                 application_num = (
-                    json_file["metadata"]["application_number"][0][4:]
-                    if "application_number" in json_file["metadata"]
+                    record["metadata"]["application_number"][0][4:]
+                    if "application_number" in record["metadata"]
                     else None
                 )
                 if application_num:
-                    url = json_file["metadata"]["url"] if "url" in json_file["metadata"] else None
+                    url = record["metadata"]["url"] if "url" in record["metadata"] else None
                 else:
-                    url = None
-                # TODO add error_type to ParsingError
+                    url = ""
                 parsing_error, created = ParsingError.objects.get_or_create(
                     source="FDA",
                     source_product_number=source_product_number,
                     message=str(e),
                     url=url,
+                    error_type="data_error"
                 )
                 if created:
                     logger.warning(f"Created new parsing error for {parsing_error}")
@@ -288,19 +288,25 @@ class Command(BaseCommand):
                     logger.warning(f"ParsingError {parsing_error} already exists")
                 continue
 
-    def process_json_file(self, json_file, dl, insert):
+    def process_json_record(self, record, dl, insert):
         dl.source = "FDA"
-        dl.product_name = json_file["metadata"]["brand_name"]
-        dl.generic_name = json_file["metadata"]["generic_name"]
+        dl.product_name = record["metadata"]["brand_name"]
+        dl.generic_name = record["metadata"]["generic_name"]
         dl.version_date = datetime.datetime.strptime(
-            json_file["metadata"]["effective_time"], "%Y%m%d"
+            record["metadata"]["effective_time"], "%Y%m%d"
         )
-        dl.marketer = json_file["metadata"]["manufacturer_name"]
-        dl.source_product_number = json_file["metadata"]["product_ndc"]
-        application_num = json_file["metadata"]["application_number"][0][4:]
-        dl.link = f"https://www.accessdata.fda.gov/scripts/cder/daf/index.cfm?event=overview.process&varApplNo={application_num}"
+        dl.marketer = record["metadata"]["manufacturer_name"]
+        # TODO: What does it mean when there are more than one product numbers?
+        dl.source_product_number = record["metadata"]["product_ndc"][0]
+        
+        dl.link = None
+        application_num = record["metadata"]["application_number"][0][4:] if "application_number" in record["metadata"] else None
+        if application_num is None:
+            dl.link = record["metadata"]["url"] if "url" in record["metadata"] else None
+        else:
+            dl.link = f"https://www.accessdata.fda.gov/scripts/cder/daf/index.cfm?event=overview.process&varApplNo={application_num}"
 
-        dl.raw_rext = ""
+        dl.raw_rext = record["Label Text"]
         lp = LabelProduct(drug_label=dl)
         try:
             if insert:
@@ -316,8 +322,10 @@ class Command(BaseCommand):
         except IntegrityError as e:
             logger.error(str(e))
             return
-        # Now that the sections have been parsed, save them
-        for key, value in enumerate(json_file["Label Text"]):
+
+        # Now parse the section text
+        for key, value in record["Label Text"].items():
+            logger.info(f"Section found: {key}")
             ps = ProductSection(
                 label_product=lp,
                 section_name=key,
