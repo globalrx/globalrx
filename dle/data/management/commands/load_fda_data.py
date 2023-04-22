@@ -27,6 +27,7 @@ from data.util import check_recently_updated, strfdelta  # PDFParseException, co
 
 logger = logging.getLogger(__name__)
 
+FDA_JSON_URL = "https://api.fda.gov/download.json"
 
 # python manage.py load_fda_data --type test --cleanup False --insert False --count_titles True
 # python manage.py load_fda_data --type my_label --my_label_id 9 --cleanup False --insert False
@@ -48,7 +49,7 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser):
         parser.add_argument(
-            "--type", type=str, help="full, monthly, test or my_label", default="monthly"
+            "--type", type=str, help="full, test or my_label", default="test"
         )
         parser.add_argument("--insert", type=strtobool, help="Set to connect to DB", default=True)
         parser.add_argument("--cleanup", type=strtobool, help="Set to cleanup files", default=False)
@@ -85,6 +86,10 @@ class Command(BaseCommand):
         )
         self.skip_errors = options["skip_known_errors"]
 
+        import_type = options["type"]
+        if import_type not in ["full", "test"]:
+            raise CommandError("'type' parameter must be 'full' or 'test'")
+
         # basic logging config is in settings.py
         # verbosity is 1 by default, gives critical, error and warning output
         # `--verbosity 2` gives info output
@@ -96,8 +101,7 @@ class Command(BaseCommand):
         elif verbosity == 3:
             root_logger.setLevel(logging.DEBUG)
 
-        dl_json_url = "https://api.fda.gov/download.json"
-        dl_json = json.loads(requests.get(dl_json_url).text)
+        dl_json = json.loads(requests.get(FDA_JSON_URL).text)
         labels_json = dl_json["results"]["drug"]["label"]
         urls = [x["file"] for x in labels_json["partitions"]]
         json_zips = self.download_json(urls)
@@ -115,6 +119,9 @@ class Command(BaseCommand):
             logger.info(f"Finished loading {json_file}")
             filtered_records = self.filter_data(raw_json_result)
             self.import_records(filtered_records, insert)
+            # For testing, only parse one json then break out
+            if import_type == 'test':
+                break
 
         cleanup = options["cleanup"]
         logger.debug(f"options: {options}")
