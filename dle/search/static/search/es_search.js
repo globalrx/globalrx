@@ -3,6 +3,33 @@
 // See below - need to figure out how to disable caching
 // import { createNullCache } from 'https://cdn.jsdelivr.net/npm/@algolia/cache-common/+esm';
 
+function createDrugLabelDirectMatchDiv(hit) {
+    const newLineItem = document.createElement("li");
+    newLineItem.className = "ais-Hits-item";
+    newLineItem.id = 'drug-label-name-match-div';
+    newLineItem.innerHTML = "<h2>Sotyktu</h2>";
+
+    const parentList = document.getElementsByClassName('ais-Hits-list');
+
+    const possibleExistingElement = document.getElementById(newLineItem.id);
+
+    console.log('possibleExistingElement', possibleExistingElement);
+
+    if(possibleExistingElement !== null) { // TODO check this logic
+        return;
+    }
+
+    if(parentList.length == 0) {
+        return;
+    }
+
+    console.log('hit inside method', hit);
+
+    const parentElement = parentList[0];
+
+    parentElement.insertBefore(newLineItem, parentElement.children[0]);
+}
+
 var globalSearchTerm = '';
 var queryType = 'match'; // knn, simpleQueryString, match
 
@@ -116,6 +143,28 @@ const client = SearchkitInstantsearchClient(sk, {
 
     },
     hooks: {
+        onComponentUpdate: (prevProps, nextProps) => {
+            console.log("Component updated:", prevProps, nextProps);
+            // Handle the component update here
+        },
+        onSearchError: (error) => {
+            console.error("Search error:", error);
+            // Handle the error here
+        },
+        onResults: async (results) => {
+            console.log("Search results displayed");
+            console.log('results', results);
+            // Manipulate the DOM here
+            const messageDiv = document.createElement("div");
+            messageDiv.innerHTML = "hi there";
+            const searchResultsDiv = document.getElementById("searchResults");
+            searchResultsDiv.appendChild(messageDiv);
+          },
+        // onResults: async (results) => {
+        //     console.log("Search results displayed");
+        //     console.log('results', results);
+        //     // Manipulate the DOM here
+        // },
         beforeSearch: async (searchRequests) => {
             const [uiRequest] = searchRequests
 
@@ -125,24 +174,24 @@ const client = SearchkitInstantsearchClient(sk, {
                 return searchRequests;
             }
 
-      const vectorizationRes = await vectorizeText(query);
-      return searchRequests.map((sr) => {
-        return {
-          ...sr,
-          body: {
-            ...sr.body,
-            knn: {
-              "field": "text_embedding",
-              "query_vector": vectorizationRes.vector,
-              "k": 10,
-              "num_candidates": 100
-            }
-          }
+            const vectorizationRes = await vectorizeText(query);
+            return searchRequests.map((sr) => {
+                return {
+                ...sr,
+                body: {
+                    ...sr.body,
+                    knn: {
+                    "field": "text_embedding",
+                    "query_vector": vectorizationRes.vector,
+                    "k": 10,
+                    "num_candidates": 100
+                    }
+                }
+                }
+            })
         }
-      })
     }
-  }
-})
+});
 
 const search = instantsearch({
   indexName: "productsection",
@@ -153,7 +202,9 @@ const search = instantsearch({
 search.addWidgets([
     instantsearch.widgets.searchBox({
         queryHook(query, search) {
+            console.log('query', query);
             globalSearchTerm = query;
+            console.log('globalSearchTerm', globalSearchTerm);
             search(query);
         },
         container: "#searchbox",
@@ -219,6 +270,16 @@ search.addWidgets([
                 } else {
                     singleItemUrl = `../data/single_label_view/${hit.drug_label_id}, ${globalSearchTerm}`;
                 }
+
+                console.log('hit:', hit);
+                console.log('hit.drug_label_product_name:', hit.drug_label_product_name);
+                console.log('globalSearchTerm:', globalSearchTerm);
+                console.log(globalSearchTerm == hit.drug_label_product_name);
+                if(hit.drug_label_product_name == globalSearchTerm) {
+                    console.log('they are equal');
+                    createDrugLabelDirectMatchDiv(hit);
+                }
+
                 return html `
                       <input type="checkbox" name="compare" value="${hit.drug_label_id}" />
                       <a href="${singleItemUrl}"style='font-weight:bold'>${components.Highlight({ attribute: 'drug_label_product_name', hit })}</a> <br />
