@@ -2,6 +2,7 @@
 
 // Basic auth with username/password is not supported - bug: see https://github.com/searchkit/searchkit/issues/1235
 var globalSearchTerm = '';
+var foundDrugLabels = [];
 const sk = new Searchkit({
   connection: {
     host: ELASTIC_HOST, // Set by the Django template in which this file is embedded
@@ -152,6 +153,14 @@ search.addWidgets([
         } else {
           singleItemUrl = `../data/single_label_view/${hit.drug_label_id}, ${globalSearchTerm}`;
         }
+
+        console.log('foundDrubLabels', foundDrugLabels);
+        console.log('hit.drug_label_id', hit.drug_label_id);
+        if (foundDrugLabels.includes(hit.drug_label_id)) {
+          return html``;
+        } 
+        
+        foundDrugLabels.push(hit.drug_label_id);
         return html`
                       <input type="checkbox" name="compare" value="${hit.drug_label_id}" />
                       <a href="${singleItemUrl}"style='font-weight:bold'>${components.Highlight({ attribute: 'drug_label_product_name', hit })}</a> <br />
