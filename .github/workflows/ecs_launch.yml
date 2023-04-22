@@ -1,0 +1,33 @@
+name: Django CI
+
+on:
+  push:
+    branches: 
+      - bugfix
+    path:
+      - dle/cfn/*
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: pull repo
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        id: creds
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+        continue-on-error: true
+
+      - name: deploy_ecs
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: deploy-s3
+          template: cfn/deploy_django.yaml  
+        continue-on-error: true

@@ -4,7 +4,6 @@
 
 DB_ENDPOINT=`aws ssm get-parameters --names db_endpointdev --region us-east-1 | jq -r '.Parameters[0].Value'`
 ECS_LB=`aws ssm get-parameters --names ecs_lb --region us-east-1 | jq -r '.Parameters[0].Value'`
-#"lb-LoadBala-7N50H575NERW-21ffc23ad96ff98e.elb.us-east-1.amazonaws.com"
 EC2_IP=`aws ssm get-parameters --names ec2_ip_dev --region us-east-1 | jq -r '.Parameters[0].Value'`
 
 
