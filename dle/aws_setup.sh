@@ -18,7 +18,7 @@ sed '/ELASTICSEARCH_URL.*/d' -i .env
 
 echo "DATABASE_URL=\"postgres://postgres:fghyucvsafd@$DB_ENDPOINT:5432/postgres\"" >> .env
 echo "API_ENDPOINT=\"$EC2_IP\"" >> .env
-echo "ALLOWED_HOSTS=\"$EC2_IP, $ECS_LB\">> .env
+echo "ALLOWED_HOSTS=\"$EC2_IP, $ECS_LB\"">> .env
 echo "MEM_LIMIT=4294967296" >> .env
 echo "PROVISION_ES=True" >> .env
 echo "ELASTICSEARCH_URL=https://$EC2_IP:9200" >> .env
