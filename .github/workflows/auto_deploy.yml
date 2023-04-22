@@ -3,7 +3,7 @@ name: Django CI
 on:
   push:
     branches: 
-      - alex
+      - bugfix
     path:
       - dle/*
   workflow_dispatch:
