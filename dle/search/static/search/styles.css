@@ -50,7 +50,7 @@ ul.nav li {
 .nav-link {
     float: left;
     display: block;
-    color: #fff;
+    color: #34bfd7;
     border-bottom: 5px solid transparent;
     padding-left: 2px;
     padding-right: 2px;
@@ -58,7 +58,7 @@ ul.nav li {
 }
 
 .nav-link:hover {
-    color: #b7bfbe;
+    color: #50cfc0;
     border-bottom: 5px solid #19a2af;
 }
 
