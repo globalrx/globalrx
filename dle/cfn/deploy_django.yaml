@@ -34,9 +34,12 @@ Parameters:
   VPCParameter:
     Type: AWS::SSM::Parameter::Value<String>
     Default: /vpc_id
-  serviceName:
+  ecsServiceName:
     Type: AWS::SSM::Parameter::Value<String>
     Default: /ecs_service_name
+  ecsClusterName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /ecs_cluster_name
 
 
 Resources:
@@ -49,7 +52,7 @@ Resources:
 
   Cluster:
     Properties:
-      ClusterName: dle
+      ClusterName: !Ref ecsClusterName
       Tags:
       - Key: com.docker.compose.project
         Value: dle
@@ -84,7 +87,7 @@ Resources:
         Ref: DefaultNetwork
     Type: AWS::EC2::SecurityGroupIngress
   DjangoService:
-    ServiceName: !Ref serviceName
+    ServiceName: !Ref ecsServiceName
     DependsOn:
     - DjangoTCP8000Listener
     Properties:
