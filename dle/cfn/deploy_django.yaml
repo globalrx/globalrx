@@ -41,7 +41,6 @@ Parameters:
     Type: AWS::SSM::Parameter::Value<String>
     Default: /ecs_cluster_name
 
-
 Resources:
   CloudMap:
     Properties:
