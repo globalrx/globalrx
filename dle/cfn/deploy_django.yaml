@@ -87,10 +87,10 @@ Resources:
         Ref: DefaultNetwork
     Type: AWS::EC2::SecurityGroupIngress
   DjangoService:
-    ServiceName: !Ref ecsServiceName
     DependsOn:
     - DjangoTCP8000Listener
     Properties:
+      ServiceName: !Ref ecsServiceName
       Cluster:
         Fn::GetAtt:
         - Cluster
