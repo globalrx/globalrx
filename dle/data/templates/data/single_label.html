@@ -10,7 +10,7 @@
         <dt>Product Number (NDC Code): <b>{{ drug_label.source_product_number }}</b></dt>
         <dt>Marketing Authorization Holder (MAH): <b>{{ drug_label.marketer|title }}</b></dt>
         <dt>Source: <b>{{ drug_label.source }}</b></dt>
-        <dt>Go to this <a href="{{ drug_label.link }}">link</a> for the original (FDA/EMA) source document.</dt>
+        <dt><h3><a href="{{ drug_label.link }}">Download Original Source Document</a></h3></dt>
         <dt></dt>
       </dl>
     </div>
@@ -156,6 +156,8 @@
     function jumpToSection() {
       var selected_sec = document.getElementById("sectionFilter").value;
       document.getElementById(selected_sec).scrollIntoView();
+      const negativeSizeOfTopNav = -80;
+      window.scrollBy(0, negativeSizeOfTopNav);
     }
   </script>
 {% endblock %}
