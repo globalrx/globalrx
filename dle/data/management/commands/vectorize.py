@@ -7,7 +7,6 @@ from distutils.util import strtobool
 from django.core.management.base import BaseCommand, CommandError
 
 from tqdm import tqdm
-from tqdm.asyncio import tqdm_asyncio
 
 from api.apps import ApiConfig
 from data.models import ProductSection
@@ -37,18 +36,18 @@ class Command(BaseCommand):
         parser.add_argument(
             "--agency",
             type=str,
-            help="'TGA', 'FDA', 'EMA', 'HC'",
+            help="'TGA', 'FDA', 'EMA', 'HC', or 'all'",
         )
         parser.add_argument(
-            "--vectorize_in_docker",
+            "--vectorize",
             type=strtobool,
-            help="Forces vectorization within Docker, which runs very slow on M1 at least",
-            default=False,
+            help="Vectorizes existing data for the given agency",
+            default=True,
         )
         parser.add_argument(
             "--vector_file",
             type=str,
-            help="If a file is passed, insert the existing vectors, then ingest",
+            help="If a file is passed, insert the existing vectors into Django given existing (unvectorized) agency data",
         )
 
     @background
@@ -59,10 +58,10 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         agency = options["agency"]
-        vectorize_in_docker = options["vectorize_in_docker"]
+        vectorize = options["vectorize"]
         vector_filename = options["vector_file"]
 
-        if agency not in ["EMA", "FMA", "TGA", "HC"]:
+        if agency not in ["EMA", "FMA", "TGA", "HC", "all"]:
             raise CommandError("'agency' parameter must be an agency")
 
         logger.info(self.style.SUCCESS("start vectorizing"))
@@ -101,18 +100,23 @@ class Command(BaseCommand):
                                 f"Found multiple ProductSections based on: section_name={section_name}, label_product__drug_label__source_product_number={source_product_id}, and label_product__drug_label__version_date={datetime.strptime(version, '%Y/%m/%d')} "
                             )
 
-        if vectorize_in_docker:
-            sections = ProductSection.objects.filter(label_product__drug_label__source=agency).all()
+        if vectorize:
+            if agency == "all":
+                sections = ProductSection.objects.all()
+            else:
+                sections = ProductSection.objects.filter(
+                    label_product__drug_label__source=agency
+                ).all()
             self.total_sections = sections.count()
 
             start = datetime.now()
             loop = asyncio.get_event_loop()
-            looper = tqdm_asyncio.gather(*[self.compute_section_vector_wrapper(s) for s in sections])  # type: ignore
-            results = loop.run_until_complete(looper)
+            looper = asyncio.gather(*[self.compute_section_vector_wrapper(s) for s in sections])  # type: ignore
+            results = loop.run_until_complete(looper)  # noqa F841
             end = datetime.now()
             elapsed = end - start
 
             logger.info(
                 f"finished computing vectors ------------- { int(elapsed.total_seconds()) } seconds"
             )
-            logger.info(results)
+            # logger.info(results)

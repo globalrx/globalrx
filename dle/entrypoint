@@ -26,6 +26,16 @@ if [[ ($INIT_SUPERUSER) && ("$INIT_SUPERUSER" = "True") ]]; then
   python3 manage.py create_superuser_if_none_exists --user $DJANGO_SUPERUSER_USERNAME --email $DJANGO_SUPERUSER_EMAIL --password $DJANGO_SUPERUSER_PASSWORD
 fi
 
+# Recommended way to bootstrap project is with a PSQL dump; fixtures can cause RAM issues,
+# and matching pre-computed vectors to existing scraped data does not work well.
+# Otherwise, set $LOAD and $VECTORIZE to true but this may take a very long time to execute.
+if [[ ($LOAD_PSQL_DUMP) && ("$LOAD_PSQL_DUMP" = "True") ]]; then
+  echo "Loading PSQL dump"
+  # TODO load PSQL dump from /app/media/psql.dump
+  # PSQL dump should be in -fc format (custom format, compressed)
+  psql -U $POSTGRES_USER -d $POSTGRES_DB -f /app/media/psql.dump
+  echo "Finished loading PSQL dump"
+fi
 
 # Load fixtures, a JSON file containing the data for the database
 # Place the JSON file in /app/data/fixtures (from S3 unless we switch to Git LFS)
@@ -35,31 +45,7 @@ if [[ ($LOAD_FIXTURES) && ("$LOAD_FIXTURES" = "True") ]]; then
   echo "Finished loading fixtures"
 fi
 
-
-# Otherwise, if not loading fixtures, you can run a scrape for new data
-# This will take a long time
-if [[ ($LOAD) && ("$LOAD" = "True") ]]; then
-  echo "Beginning the Django data ingest"
-  echo "Loading EMA (EU) data"
-  python3 manage.py load_ema_data --type full
-  echo "Finished loading EMA (EU) data"
-  echo "Loading FDA (US) data"
-  python3 manage.py load_fda_data --type full
-  echo "Finished loading FDA (US) data"
-  echo "Loading TGA (Australia) data"
-  python3 manage.py load_tga_data --type full
-  echo "Finished loading TGA (Australia) data"
-  echo "Updating latest drug labels"
-  echo "Loading HC (Health Canada) data"
-  python3 manage.py load_hc_data --type full
-  echo "Finished loading HC (Health Canada) data"
-  python3 manage.py update_latest_drug_labels
-  echo "Finished updating latest drug labels"
-  echo "Ended the Django data ingest"
-fi
-
-
-# Loading pre-computed vectors
+# Loading pre-computed vectors (not recommended)
 # This was an attempt to speed up the vectorization process, as vectorization is slow within container.
 # However, using fixtures seems to be better because it's hard to get a good composite structure
 # for the vectors JSON file - composite key of drug ID + agency + version_date.
@@ -80,6 +66,34 @@ if [[ ($LOAD_EMA_VECTORS) && ("$LOAD_EMA_VECTORS" = "True")]]; then
   echo "Starting to load FDA vectors into Django"
   python3 manage.py vectorize --elasticingest False --agency EMA --vector_file "/app/media/ema_vectors.json"
   echo "EMA vectors loaded!"
+fi
+
+# Otherwise, if not loading fixtures or pre-computed vectors, or using a PSQL dump,
+# you can run a scrape for new data and then vectorize it. This will take a long time
+if [[ ($LOAD) && ("$LOAD" = "True") ]]; then
+  echo "Beginning the Django data ingest"
+  echo "Loading EMA (EU) data"
+  python3 manage.py load_ema_data --type full
+  echo "Finished loading EMA (EU) data"
+  echo "Loading FDA (US) data"
+  python3 manage.py load_fda_data --type full
+  echo "Finished loading FDA (US) data"
+  echo "Loading TGA (Australia) data"
+  python3 manage.py load_tga_data --type full
+  echo "Finished loading TGA (Australia) data"
+  echo "Updating latest drug labels"
+  echo "Loading HC (Health Canada) data"
+  python3 manage.py load_hc_data --type full
+  echo "Finished loading HC (Health Canada) data"
+  python3 manage.py update_latest_drug_labels
+  echo "Finished updating latest drug labels"
+  echo "Ended the Django data ingest"
+
+  if [[ ($VECTORIZE) && ("$VECTORIZE" = "True") ]]; then
+    echo "Starting to vectorize the data"
+    python3 manage.py vectorize --agency all
+    echo "Finished vectorizing the data"
+  fi
 fi
 
 
