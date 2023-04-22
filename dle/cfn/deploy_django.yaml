@@ -34,6 +34,9 @@ Parameters:
   VPCParameter:
     Type: AWS::SSM::Parameter::Value<String>
     Default: /vpc_id
+  serviceName:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /ecs_service_name
 
 
 Resources:
@@ -81,6 +84,7 @@ Resources:
         Ref: DefaultNetwork
     Type: AWS::EC2::SecurityGroupIngress
   DjangoService:
+    ServiceName: !Ref serviceName
     DependsOn:
     - DjangoTCP8000Listener
     Properties:
@@ -288,3 +292,5 @@ Resources:
     Properties:
       LogGroupName: /docker-compose/dle
     Type: AWS::Logs::LogGroup
+
+
