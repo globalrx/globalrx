@@ -28,6 +28,6 @@ jobs:
       - name: deploy_ecs
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         with:
-          name: deploy-s3
+          name: deploy-ecs
           template: dle/cfn/deploy_django.yaml  
         continue-on-error: true
