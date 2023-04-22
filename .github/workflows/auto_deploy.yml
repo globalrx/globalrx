@@ -48,6 +48,6 @@ jobs:
       - name: Reset ECS Deployment   
         run: |
           SERVICE_NAME=`aws ssm get-parameters --names ecs_service_name --region us-east-1 | jq -r '.Parameters[0].Value'`
-          aws ecs update-service --cluster dle --service $SERVICE_NAME --force-new-deployment
-
+          CLUSTER_NAME=`aws ssm get-parameters --names ecs_cluster_name --region us-east-1 | jq -r '.Parameters[0].Value'`
+          aws ecs update-service --cluster $CLUSTER_NAME --service $SERVICE_NAME --force-new-deployment
 
