@@ -10,7 +10,7 @@ from distutils.util import strtobool
 from zipfile import ZipFile
 
 from django.conf import settings
-from django.core.management.base import BaseCommand
+from django.core.management.base import BaseCommand, CommandError
 from django.db.utils import IntegrityError, OperationalError
 
 import requests
@@ -20,14 +20,10 @@ from data.models import DrugLabel, LabelProduct, ParsingError, ProductSection
 from data.util import check_recently_updated, strfdelta  # PDFParseException, convert_date_string
 
 
-# from bs4 import BeautifulSoup
-
-# from users.models import MyLabel
-
-
 logger = logging.getLogger(__name__)
 
 FDA_JSON_URL = "https://api.fda.gov/download.json"
+
 
 # python manage.py load_fda_data --type test --cleanup False --insert False --count_titles True
 # python manage.py load_fda_data --type my_label --my_label_id 9 --cleanup False --insert False
@@ -48,9 +44,7 @@ class Command(BaseCommand):
         super().__init__(stdout, stderr, no_color, force_color)
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            "--type", type=str, help="full, test or my_label", default="test"
-        )
+        parser.add_argument("--type", type=str, help="full, test or my_label", default="test")
         parser.add_argument("--insert", type=strtobool, help="Set to connect to DB", default=True)
         parser.add_argument("--cleanup", type=strtobool, help="Set to cleanup files", default=False)
         parser.add_argument(
@@ -120,15 +114,15 @@ class Command(BaseCommand):
             filtered_records = self.filter_data(raw_json_result)
             self.import_records(filtered_records, insert)
             # For testing, only parse one json then break out
-            if import_type == 'test':
+            if import_type == "test":
                 break
 
         cleanup = options["cleanup"]
         logger.debug(f"options: {options}")
 
         if cleanup:
-            self.cleanup(record_zips)
-            self.cleanup(filtered_records)
+            self.cleanup(self.root_dir / "json_zip")
+            self.cleanup(self.root_dir / "record_zips")
 
         logger.info("DONE")
 
@@ -287,7 +281,7 @@ class Command(BaseCommand):
                     source_product_number=source_product_number,
                     message=str(e),
                     url=url,
-                    error_type="data_error"
+                    error_type="data_error",
                 )
                 if created:
                     logger.warning(f"Created new parsing error for {parsing_error}")
@@ -299,15 +293,17 @@ class Command(BaseCommand):
         dl.source = "FDA"
         dl.product_name = record["metadata"]["brand_name"]
         dl.generic_name = record["metadata"]["generic_name"]
-        dl.version_date = datetime.datetime.strptime(
-            record["metadata"]["effective_time"], "%Y%m%d"
-        )
+        dl.version_date = datetime.datetime.strptime(record["metadata"]["effective_time"], "%Y%m%d")
         dl.marketer = record["metadata"]["manufacturer_name"]
         # TODO: What does it mean when there are more than one product numbers?
         dl.source_product_number = record["metadata"]["product_ndc"][0]
-        
+
         dl.link = None
-        application_num = record["metadata"]["application_number"][0][4:] if "application_number" in record["metadata"] else None
+        application_num = (
+            record["metadata"]["application_number"][0][4:]
+            if "application_number" in record["metadata"]
+            else None
+        )
         if application_num is None:
             dl.link = record["metadata"]["url"] if "url" in record["metadata"] else None
         else:
