@@ -47,6 +47,7 @@ API_ENDPOINT = env.str("API_ENDPOINT", "http://localhost:8000")
 # Hosts and CIDR (AWS subnets)
 try:
     ALLOWED_HOSTS = [
+        "*"
         "127.0.0.1",
         "localhost",
     ] + env.list("ALLOWED_HOSTS")
@@ -75,6 +76,7 @@ LOGIN_URL = "/users/login/"
 # Application definition
 
 INSTALLED_APPS = [
+    "corsheaders",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -92,6 +94,8 @@ INSTALLED_APPS = [
 AUTH_USER_MODEL = "users.User"
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
+    'django.middleware.common.CommonMiddleware',
     "allow_cidr.middleware.AllowCIDRMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
@@ -101,6 +105,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
+CORS_ALLOW_ALL_ORIGINS=True
 
 ROOT_URLCONF = "dle.urls"
 
