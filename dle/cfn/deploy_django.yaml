@@ -271,7 +271,7 @@ Resources:
       RequiresCompatibilities:
       - FARGATE
     Properties:
-      TaskRoleArn: !Ref: DjangoTaskExecutionRole
+      TaskRoleArn: !Ref DjangoTaskExecutionRole
     Type: AWS::ECS::TaskDefinition
   DjangoTaskExecutionRole:
     Properties:
