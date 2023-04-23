@@ -18,6 +18,7 @@ import requests
 # from data.constants import FDA_SECTION_NAME_MAP
 from data.models import DrugLabel, LabelProduct, ParsingError, ProductSection
 from data.util import check_recently_updated, strfdelta  # PDFParseException, convert_date_string
+from users.models import MyLabel
 
 
 logger = logging.getLogger(__name__)
@@ -84,6 +85,8 @@ class Command(BaseCommand):
         if import_type not in ["full", "test"]:
             raise CommandError("'type' parameter must be 'full' or 'test'")
 
+        my_label_id = options["my_label_id"]
+
         # basic logging config is in settings.py
         # verbosity is 1 by default, gives critical, error and warning output
         # `--verbosity 2` gives info output
@@ -102,20 +105,32 @@ class Command(BaseCommand):
         self.extract_json_zips(json_zips)
         file_dir = self.root_dir / "record_zips"
 
-        # Iterate the json files in the directory one by one
-        for file in os.listdir(file_dir):
-            json_file = file_dir / file
-            raw_json_result = None
+        if import_type == "my_label":
+            logger.info(f"processing my_label_id: {my_label_id}")
+            ml = MyLabel.objects.filter(pk=my_label_id).get()
+            json_file = ml.file.path
             with open(json_file, encoding="utf-8-sig") as f:
                 raw_json_result = json.load(f)
                 logger.info(f"start loading json {json_file}")
             raw_json_result = raw_json_result["results"]
-            logger.info(f"Finished loading {json_file}")
-            filtered_records = self.filter_data(raw_json_result)
-            self.import_records(filtered_records, insert)
-            # For testing, only parse one json then break out
-            if import_type == "test":
-                break
+            self.import_records(raw_json_result, insert, my_label_id)
+            ml.is_successfully_parsed = True
+            ml.save()
+        else:
+            # Iterate the json files in the directory one by one
+            for file in os.listdir(file_dir):
+                json_file = file_dir / file
+                raw_json_result = None
+                with open(json_file, encoding="utf-8-sig") as f:
+                    raw_json_result = json.load(f)
+                    logger.info(f"start loading json {json_file}")
+                raw_json_result = raw_json_result["results"]
+                logger.info(f"Finished loading {json_file}")
+                filtered_records = self.filter_data(raw_json_result)
+                self.import_records(filtered_records, insert, my_label_id)
+                # For testing, only parse one json then break out
+                if import_type == "test":
+                    break
 
         cleanup = options["cleanup"]
         logger.debug(f"options: {options}")
@@ -211,7 +226,7 @@ class Command(BaseCommand):
         else:
             logger.info(f"Problem determining type: {pt}")
 
-    def import_records(self, filtered_records, insert):
+    def import_records(self, filtered_records, insert, my_label_id=None):
         logger.info("Building Drug Label DB records from JSON")
         for key in filtered_records:
             # If this is a known error, skip it
@@ -223,6 +238,9 @@ class Command(BaseCommand):
                     if "product_ndc" in record["metadata"]
                     else None
                 )
+                if my_label_id is not None and source_product_number is not None:
+                    source_product_number = f"my_label_{my_label_id}" + source_product_number
+
                 if self.skip_errors:
                     existing_errors = ParsingError.objects.filter(
                         source="FDA", source_product_number=source_product_number
@@ -261,8 +279,13 @@ class Command(BaseCommand):
 
             # Otherwise, continue
             try:
-                dl = DrugLabel()
-                self.process_json_record(record, dl, insert)
+                if my_label_id is not None:
+                    ml = MyLabel.objects.filter(pk=my_label_id).get()
+                    dl = ml.drug_label
+                else:
+                    dl = DrugLabel()
+
+                self.process_json_record(record, dl, insert, my_label_id)
             # TODO handle more specific exceptions
             except Exception as e:
                 logger.error(f"Could not parse record {key}")
@@ -289,7 +312,7 @@ class Command(BaseCommand):
                     logger.warning(f"ParsingError {parsing_error} already exists")
                 continue
 
-    def process_json_record(self, record, dl, insert):
+    def process_json_record(self, record, dl, insert, my_label_id=None):
         dl.source = "FDA"
         dl.product_name = record["metadata"]["brand_name"]
         dl.generic_name = record["metadata"]["generic_name"]
@@ -297,6 +320,8 @@ class Command(BaseCommand):
         dl.marketer = record["metadata"]["manufacturer_name"]
         # TODO: What does it mean when there are more than one product numbers?
         dl.source_product_number = record["metadata"]["product_ndc"][0]
+        if my_label_id is not None:
+            dl.source_product_number = f"my_label_{my_label_id}" + dl.source_product_number
 
         dl.link = ""
         application_num = (
