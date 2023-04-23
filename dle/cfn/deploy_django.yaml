@@ -263,6 +263,7 @@ Resources:
           HostPort: 8000
           Protocol: tcp
       Cpu: "2048"
+      TaskRoleArn: !Ref: DjangoTaskExecutionRole
       ExecutionRoleArn:
         Ref: DjangoTaskExecutionRole
       Family: dle-django
