@@ -26,9 +26,7 @@ if [[ ($INIT_SUPERUSER) && ("$INIT_SUPERUSER" = "True") ]]; then
   python3 manage.py create_superuser_if_none_exists --user $DJANGO_SUPERUSER_USERNAME --email $DJANGO_SUPERUSER_EMAIL --password $DJANGO_SUPERUSER_PASSWORD
 fi
 
-# Recommended way to bootstrap project is with a PSQL dump; fixtures can cause RAM issues,
-# and matching pre-computed vectors to existing scraped data does not work well.
-# Otherwise, set $LOAD and $VECTORIZE to true but this may take a very long time to execute.
+# Recommended way to bootstrap project is with a PSQL dump; fixtures can cause RAM issues.
 if [[ ($LOAD_PSQL_DUMP) && ("$LOAD_PSQL_DUMP" = "True") ]]; then
   echo "Loading PSQL dump"
   # TODO load PSQL dump from /app/media/psql.dump
@@ -45,30 +43,7 @@ if [[ ($LOAD_FIXTURES) && ("$LOAD_FIXTURES" = "True") ]]; then
   echo "Finished loading fixtures"
 fi
 
-# Loading pre-computed vectors (not recommended)
-# This was an attempt to speed up the vectorization process, as vectorization is slow within container.
-# However, using fixtures seems to be better because it's hard to get a good composite structure
-# for the vectors JSON file - composite key of drug ID + agency + version_date.
-if [[ ($LOAD_FDA_VECTORS) && ("$LOAD_FDA_VECTORS" = "True")]]; then
-  # You must have pre-vectorized texts and placed the appropriate JSON file in /media
-  echo "Starting to load FDA vectors into Django"
-  python3 manage.py vectorize --elasticingest False --agency FDA --vector_file "/app/media/fda_vectors.json"
-  echo "FDA vectors loaded!"
-fi
-if [[ ($LOAD_TGA_VECTORS) && ("$LOAD_TGA_VECTORS" = "True")]]; then
-  # You must have pre-vectorized texts and placed the appropriate JSON file in /media
-  echo "Starting to load TGA vectors into Django"
-  python3 manage.py vectorize --elasticingest False --agency TGA --vector_file "/app/media/tga_vectors.json"
-  echo "TGA vectors loaded!"
-fi
-if [[ ($LOAD_EMA_VECTORS) && ("$LOAD_EMA_VECTORS" = "True")]]; then
-  # You must have pre-vectorized texts and placed the appropriate JSON file in /media
-  echo "Starting to load FDA vectors into Django"
-  python3 manage.py vectorize --elasticingest False --agency EMA --vector_file "/app/media/ema_vectors.json"
-  echo "EMA vectors loaded!"
-fi
-
-# Otherwise, if not loading fixtures or pre-computed vectors, or using a PSQL dump,
+# Otherwise, if not loading fixtures or or using a PSQL dump,
 # you can run a scrape for new data and then vectorize it. This will take a long time
 if [[ ($LOAD) && ("$LOAD" = "True") ]]; then
   echo "Beginning the Django data ingest"
