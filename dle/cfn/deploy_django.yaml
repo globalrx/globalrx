@@ -214,7 +214,7 @@ Resources:
         - Name: DJANGO_SUPERUSER_USERNAME
           Value: admin
         - Name: ELASTICSEARCH_URL
-          Value: https://34.228.206.13:9200  #!Join ["", ["https://", Ref: ElasticIPAddress, ":9200"]]
+          Value: http://34.228.206.13:9200  #!Join ["", ["https://", Ref: ElasticIPAddress, ":9200"]]
         - Name: ELASTICSEARCH_USER
           Value: elastic
         - Name: ELASTIC_CLOUD_ID
