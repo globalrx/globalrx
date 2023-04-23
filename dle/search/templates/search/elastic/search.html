@@ -61,27 +61,21 @@
     </div>
     <div class="right-panel">
       <div id="search-container" class="container-fluid">
+
         <div class="row" style="margin-left:0px; margin-right:0px;">
-          <div id="search-type" class="col-3" style="display:inline-flex; align-items:center;">
+          <div id="search-type" class="col-lg-8" style="display:inline-flex; align-items:center;">
 
 
+            <select class="form-select" aria-label="Default select example">
+              <option selected value="match">Match</option>
+              <option value="simpleQueryString">Query String</option>
+              <option value="knn">Semantic (Vector AKNN)</option>
+            </select>
 
-
-            <div class="search-type-item" style="margin-right: 10px;">
-              <input type="radio" class="btn-check" id="search-type-match" name="search-type" value="match" checked>>
-              <label for="search-type-1">Match</label>
-            </div>
-            <div class="search-type-item" style="margin-right: 10px;">
-              <input type="radio" class="btn-check" id="search-type-simplequerystring" name="search-type" value="simpleQueryString">
-              <label for="search-type-simplequerystring">Query String</label>
-            </div>
-            <div class="search-type-item" style="margin-right: 10px;">
-              <input type="radio" class="btn-check" id="search-type-semantic" name="search-type" value="knn">
-              <label for="search-type-semantic">Semantic (Vector AKNN)</label>
-            </div>
           </div>
-          <div id="searchbox" class="ais-SearchBox col-lg"></div>
+          <div id="searchbox" class="ais-SearchBox col-lg-8"></div>
         </div>
+
       </div>
       <div id="hits"></div>
       <div id="pagination"></div>
