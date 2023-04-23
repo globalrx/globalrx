@@ -91,8 +91,8 @@ def list_search_results_impl(request: HttpRequest) -> HttpResponse:
 def es_search(request: HttpRequest) -> HttpResponse:
     """Search results list view"""
     form = SavedSearchForm()
-    SEARCHKIT_SERVICE = http://34.228.206.13:8000/api/v1/searchkit/_msearch  #f"{reverse('api:searchkit_root')}"
-    VECTORIZE_SERVICE = http://34.228.206.13:8000/api/v1/searchkit/vectorize  #f"{reverse('api:vectorize')}"
+    SEARCHKIT_SERVICE = f"{reverse('api:searchkit_root')}"
+    VECTORIZE_SERVICE = f"{reverse('api:vectorize')}"
 
     context = {
         "SEARCHKIT_SERVICE": SEARCHKIT_SERVICE,
