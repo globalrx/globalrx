@@ -270,7 +270,8 @@ Resources:
       NetworkMode: awsvpc
       RequiresCompatibilities:
       - FARGATE
-    TaskRoleArn: !Ref: DjangoTaskExecutionRole
+    Properties:
+      TaskRoleArn: !Ref: DjangoTaskExecutionRole
     Type: AWS::ECS::TaskDefinition
   DjangoTaskExecutionRole:
     Properties:
