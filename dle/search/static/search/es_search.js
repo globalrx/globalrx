@@ -92,8 +92,8 @@ async function vectorizeText(query) {
 const client = SearchkitInstantsearchClient(sk, {
     getQuery: (query, search_attributes) => {
         if(queryType == 'simpleQueryString'){
-            console.log(`getQuery - simpleQueryString - ${query}`);
-            console.log(search_attributes);
+       //     console.log(`getQuery - simpleQueryString - ${query}`);
+         //   console.log(search_attributes);
             return [
                 {
                     simple_query_string: {
@@ -120,7 +120,7 @@ const client = SearchkitInstantsearchClient(sk, {
             const [uiRequest] = searchRequests
 
             var query = uiRequest.request.params.query
-            console.log(`beforeSearch: ${query}`)
+        //    console.log(`beforeSearch: ${query}`)
             if (!query | !(queryType=='knn')) {
                 return searchRequests;
             }
@@ -264,7 +264,7 @@ radioGroup.forEach(function(radio) {
     radio.addEventListener("change", function() {
         if(this.checked){
             queryType = this.value;
-            console.log(queryType);
+          //  console.log(queryType);
         }
         // Empty the search cache when the query type changes
         // This must occur after changing the query type
