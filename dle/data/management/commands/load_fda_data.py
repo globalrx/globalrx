@@ -167,16 +167,19 @@ class Command(BaseCommand):
         logger.info("Extracting json zips")
         file_dir = self.root_dir / "record_zips"
         os.makedirs(file_dir, exist_ok=True)
-        for zip_file in zips:
-            with ZipFile(zip_file, "r") as zf:
-                for zobj in zf.infolist():
-                    if os.path.exists(file_dir / zobj.filename):
-                        logger.info(f"Already extracted file {zobj.filename}")
-                    else:
-                        zf.extract(zobj, file_dir)
-                        logger.info(f"Extracted file {zobj.filename}")
-        # TODO error handling?
-        # return file_dir
+        try:
+            for zip_file in zips:
+                with ZipFile(zip_file, "r") as zf:
+                    for zobj in zf.infolist():
+                        if os.path.exists(file_dir / zobj.filename):
+                            logger.info(f"Already extracted file {zobj.filename}")
+                        else:
+                            zf.extract(zobj, file_dir)
+                            logger.info(f"Extracted file {zobj.filename}")
+        except Exception as e:
+            logger.error("Failed while extracting json zips")
+            logger.error(str(e))
+            raise
 
     def filter_data(self, raw_json_result):
         results_by_type = {}
@@ -253,8 +256,6 @@ class Command(BaseCommand):
                         )
                         continue
             except Exception as e:
-                # No source_product_number
-                logger.error(f"No source_product_number for {key}")
                 logger.error(str(e))
                 continue
 
