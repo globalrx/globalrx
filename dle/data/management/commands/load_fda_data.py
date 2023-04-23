@@ -236,7 +236,7 @@ class Command(BaseCommand):
                         continue
             except Exception as e:
                 # No source_product_number
-                logger.error(f"No source_product_number for {record}")
+                logger.error(f"No source_product_number for {key}")
                 logger.error(str(e))
                 continue
 
@@ -298,16 +298,19 @@ class Command(BaseCommand):
         # TODO: What does it mean when there are more than one product numbers?
         dl.source_product_number = record["metadata"]["product_ndc"][0]
 
-        dl.link = None
+        dl.link = ""
         application_num = (
             record["metadata"]["application_number"][0][4:]
             if "application_number" in record["metadata"]
-            else None
+            else ""
         )
-        if application_num is None:
-            dl.link = record["metadata"]["url"] if "url" in record["metadata"] else None
+        if application_num == "":
+            dl.link = record["metadata"]["url"] if "url" in record["metadata"] else ""
         else:
             dl.link = f"https://www.accessdata.fda.gov/scripts/cder/daf/index.cfm?event=overview.process&varApplNo={application_num}"
+
+        if dl.link == "":
+            logger.info(f"No URL link for {dl.product_name}")
 
         dl.raw_rext = record["Label Text"]
         lp = LabelProduct(drug_label=dl)

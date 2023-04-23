@@ -149,6 +149,24 @@ def test_load_fda_data(client, http_service):
     num_new_dl_entries = DrugLabel.objects.count()
     assert num_new_dl_entries > num_dl_entries
 
+@pytest.mark.django_db
+def test_load_fda_data(client, http_service):
+    num_dl_entries = DrugLabel.objects.count()
+    management.call_command("load_tga_data", type="test")
+    # should insert at least 1 dl records
+    # TODO should this be more specific on num of inserts?
+    num_new_dl_entries = DrugLabel.objects.count()
+    assert num_new_dl_entries > num_dl_entries
+
+@pytest.mark.django_db
+def test_load_fda_data(client, http_service):
+    num_dl_entries = DrugLabel.objects.count()
+    management.call_command("load_hc_data", type="test")
+    # should insert at least 1 dl records
+    # TODO should this be more specific on num of inserts?
+    num_new_dl_entries = DrugLabel.objects.count()
+    assert num_new_dl_entries > num_dl_entries
+
 
 
 #     # def test_load_ema_data_full(self):
