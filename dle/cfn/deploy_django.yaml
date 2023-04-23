@@ -263,7 +263,6 @@ Resources:
           HostPort: 8000
           Protocol: tcp
       Cpu: "2048"
-      TaskRoleArn: !Ref: DjangoTaskExecutionRole
       ExecutionRoleArn:
         Ref: DjangoTaskExecutionRole
       Family: dle-django
@@ -271,6 +270,7 @@ Resources:
       NetworkMode: awsvpc
       RequiresCompatibilities:
       - FARGATE
+    TaskRoleArn: !Ref: DjangoTaskExecutionRole
     Type: AWS::ECS::TaskDefinition
   DjangoTaskExecutionRole:
     Properties:
