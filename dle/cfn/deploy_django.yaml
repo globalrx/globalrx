@@ -90,6 +90,7 @@ Resources:
     - DjangoTCP8000Listener
     Properties:
       ServiceName: !Ref ecsServiceName
+      EnableExecuteCommand: True
       Cluster:
         Fn::GetAtt:
         - Cluster
