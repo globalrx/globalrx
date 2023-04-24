@@ -86,6 +86,10 @@ def search(request: HttpRequest) -> JsonResponse:
     # Can only filter on fields indexed as keyword
     # drug_label_source is indexed directly as keyword, everything else is indexed as text with the sub-field keyword
     valid_filters = ["drug_label_generic_name", "drug_label_marketer", "drug_label_product_name", "section_name", "drug_label_source"]
+    # the number of results to return
+    size = request.GET.get("size", 10)
+    # from is the result offset, not a page offset
+    from_ = request.GET.get("from", 0)
 
     q = request.GET.get("q", "")
     print(f"query: {q}")
@@ -120,6 +124,8 @@ def search(request: HttpRequest) -> JsonResponse:
         index="productsection",
         body=formatted_query,
         fields=fields,
+        from_=from_,
+        size=size,
     )
     formatted_res = {
         "took": res["took"],
