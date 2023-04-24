@@ -151,20 +151,23 @@ const client = SearchkitInstantsearchClient(sk, {
             console.error("Search error:", error);
             // Handle the error here
         },
-        onResults: async (results) => {
+        afterSearch: async (searchRequests, searchResponses) => {
             console.log("Search results displayed");
-            console.log('results', results);
+            console.log('results', searchResponses);
             // Manipulate the DOM here
-            const messageDiv = document.createElement("div");
-            messageDiv.innerHTML = "hi there";
-            const searchResultsDiv = document.getElementById("searchResults");
-            searchResultsDiv.appendChild(messageDiv);
+            // const messageDiv = document.createElement("div");
+            // console.log(messageDiv);
+            // messageDiv.innerHTML = "hi there";
+            // const searchResultsDiv = document.getElementById("searchResults");
+            // searchResultsDiv.appendChild(messageDiv);
+            return searchResponses;
           },
         // onResults: async (results) => {
         //     console.log("Search results displayed");
         //     console.log('results', results);
         //     // Manipulate the DOM here
         // },
+        // TODO maybe update to use getKnnQuery: https://www.searchkit.co/docs/guides/customising-query
         beforeSearch: async (searchRequests) => {
             const [uiRequest] = searchRequests
 
