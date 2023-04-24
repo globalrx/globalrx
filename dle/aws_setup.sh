@@ -23,7 +23,7 @@ echo "API_ENDPOINT=\"$EC2_IP\"" >> .env
 echo "ALLOWED_HOSTS=\"$EC2_IP, $ECS_LB\"">> .env
 echo "MEM_LIMIT=4294967296" >> .env
 echo "PROVISION_ES=True" >> .env
-echo "ELASTICSEARCH_URL=https://$EC2_IP:9200" >> .env
+echo "ELASTICSEARCH_URL=http://$EC2_IP:9200" >> .env
 
 echo "KIBANA_MEM_LIMIT=1073741824" >> .env
 
