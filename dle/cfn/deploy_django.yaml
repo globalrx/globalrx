@@ -40,6 +40,12 @@ Parameters:
   ecsClusterName:
     Type: AWS::SSM::Parameter::Value<String>
     Default: /ecs_cluster_name
+  awsAccessKey:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /access_key
+  awsSecretKey:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /secret_key
 
 Resources:
   CloudMap:
@@ -190,11 +196,11 @@ Resources:
           ContainerName: Django_ResolvConf_InitContainer
         Environment:
         - Name: AWS_ACCESS_KEY
-          Value: AKIAYAXIUUHAOLUAKQ5R
+          Value: !Ref awsAccessKey
         - Name: AWS_ACCESS_KEY_ID
-          Value: AKIAYAXIUUHAOLUAKQ5R
+          Value: !Ref awsAccessKey
         - Name: AWS_SECRET_ACCESS_KEY
-          Value: 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
+          Value: !Ref awsSecretKey
         - Name: ALLOWED_HOSTS
           Value: '*'
         - Name: APPLICATION_IP
@@ -204,7 +210,7 @@ Resources:
         - Name: COMPOSE_PROJECT_NAME
           Value: searchrx
         - Name: DATABASE_URL
-          Value: postgres://postgres:fghyucvsafd@devdb-globalrxdbdev-zyj0lujnjvxl.cyraraewlj0t.us-east-1.rds.amazonaws.com:5432/postgres #!Sub postgres://postgres:fghyucvsafd@${DBEndpointParameter}:5432/postgres
+          Value: !Sub postgres://postgres:fghyucvsafd@${DBEndpointParameter}:5432/postgres
         - Name: DEBUG
           Value: "True"
         - Name: DJANGO_SUPERUSER_EMAIL

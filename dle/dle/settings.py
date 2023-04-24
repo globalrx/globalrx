@@ -206,8 +206,8 @@ SEARCH_SETTINGS = {
             "hosts": env.str("ELASTICSEARCH_URL"),
             "verify_certs": True,
             "http_auth": (env.str("ELASTICSEARCH_USER"), env.str("ELASTIC_PASSWORD")),
-            "ssl_version": ssl.TLSVersion.TLSv1_2,
-            "ca_certs": "/usr/share/elasticsearch/config/certs/ca/ca.crt",
+           # "ssl_version": ssl.TLSVersion.TLSv1_2,
+           # "ca_certs": "/usr/share/elasticsearch/config/certs/ca/ca.crt",
             "timeout": 180,
         }
     },

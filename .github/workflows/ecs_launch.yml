@@ -30,4 +30,5 @@ jobs:
         with:
           name: deploy-ecs
           template: dle/cfn/deploy_django.yaml  
+          parameter-overrides: "awsAccessKey=${{ secrets.AWS_ACCESS_KEY_ID }},awsSecretKey=${{ secrets.AWS_SECRET_ACCESS_KEY }}"
         continue-on-error: true
