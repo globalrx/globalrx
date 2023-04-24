@@ -154,8 +154,23 @@ The project is containerized so that it can be run locally or deployed to a clou
     - Run the management command to ingest: `python3 manage.py vectorize --elasticingest True --vector_file "ema_vectors.json" --agency EMA`
         - `elasticingest` defaults to true, this will put vectors from PSQL to Elasticsearch
         - If `vector_file` is passed, it will try to load the data from your JSON file into Elasticsearch after loading into Postgres
-    
 
+### Tests
+- We use `pytest` and `pytest-docker` for testing. Tests are located in `dle/tests` and configured in `pyproject.toml`. They run using `tests/docker-compose-tests.yml` and the environment variables defined in `tests/test.env`.
+- To run tests:
+    - Locally:
+        - Install `pyenv` and `python3.11`
+        - Create a virtual environment. From the root of the project, run `python3.11 -m venv dle-env`
+        - Activate the virtual environment. Run `source dle-env/bin/activate`
+        - Install dependencies. Run `pip install -r requirements.txt` and `pip install -r tests/pytest_requirements.txt`
+        - Run tests: `python3.11 -m pytest -vv -s`
+    - Running these tests in Docker is technically possible (Docker in Docker) but have not explored this yet.
+- To write tests:
+    - Check out `pytest` documentation: https://docs.pytest.org/en/7.3.x/
+    - Check out `pytest-docker` documentation: https://github.com/avast/pytest-docker
+    - Place tests in `dle/tests/unit` or create new directories if adding integration, load, or functional tests
+    - Test files should be prefaced with `test_` and end with `.py`. Typically use one file per Django app.
+    
 ## Deployment
 
 ### Architecture
