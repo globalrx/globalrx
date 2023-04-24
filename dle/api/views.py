@@ -42,23 +42,31 @@ def vectorize(request: HttpRequest) -> JsonResponse:
     res["status"] = status
     return JsonResponse(res)
 
-def get_simple_query_string(query: str, fields: list, filters: list = [], default_operator: str = "and") -> dict:
+def get_simple_query_string(query: str | None, fields: list, filters: list = [], default_operator: str = "and") -> dict:
     """Construct a simple query string query for Elasticsearch"""
-    res = {
-        "query": {
-            "bool": {
-                "must": [
-                    {
-                        "simple_query_string": {
-                            "query": query,
-                            "fields": fields,
-                            "default_operator": default_operator,
-                        }
-                    }
-                ],
+    if not query:
+        res = {
+            "query": {
+                "bool": {
+                }
             }
         }
-    }
+    else:
+        res = {
+            "query": {
+                "bool": {
+                    "must": [
+                        {
+                            "simple_query_string": {
+                                "query": query,
+                                "fields": fields,
+                                "default_operator": default_operator,
+                            }
+                        }
+                    ],
+                }
+            }
+        }
     if len(filters) > 0:
         res["query"]["bool"]["filter"] = []
         for filter in filters:
