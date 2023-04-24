@@ -11,13 +11,13 @@
     <div class="container-fluid">
         <div class="row">
             {% if dl3 %}
-            <h6> Comparing drugs 
+            <h4> Comparing drugs 
                 <b>{{dl1.product_name|title}}</b>, 
                 <b>{{dl2.product_name|title}}</b>, and 
                 <b>{{dl3.product_name|title}}</b>:
             </h6>
             {% else %}
-            <h6> Comparing drugs 
+            <h4> Comparing drugs 
                 <b>{{dl1.product_name|title}}</b> and 
                 <b>{{dl2.product_name|title}}</b>:
             </h6>
@@ -37,6 +37,8 @@
                         <dt>Source: {{ dl1.source }}</dt>
                     </dl>
                 </td>
+            <tr>
+            <tr>
                 <td class="section-td">
                     <dl>
                         <dt>Product Name: <a href="{% url 'data:single_label_view' drug_label_id=dl2.id %}">{{ dl2.product_name|title }}</a></dt>
@@ -47,7 +49,9 @@
                         <dt>Source: {{ dl2.source }}</dt>
                     </dl>
                 </td>
+            </tr>
                 {% if dl3 %}
+            <tr>
                 <td class="section-td"> 
                     <dl>
                         <dt>Product Name: <a href="{% url 'data:single_label_view' drug_label_id=dl3.id %}">{{ dl3.product_name|title }}</a></dt>
@@ -58,8 +62,8 @@
                         <dt>Source: {{ dl3.source }}</dt>
                     </dl>
                 </td>
-                {% endif %}
             </tr>
+                {% endif %}
             </table>
         </div>
         <hr>
@@ -86,24 +90,33 @@
                         <i class="fa fa-minus-square-o" style="display:none"> <strong>{{ section.section_name|title }}</strong></i>
                     </button>
                     <table class="section-table" style="display:none">
+                        {% if section.section_text3 %}
                         <tr>
-                          {% if section.section_text3 %}
-                            <td class="section-td" style="width:34%">
+                            <td class="section-td">
                               <p>{{ section.section_text1|safe }}</p>
                             </td>
-                            <td class="section-td" style="width:33%">
+                        </tr>
+                        <tr>
+                            <td class="section-td">
                               <p>{{ section.section_text2|safe }}</p>
                             </td>
-                            <td class="section-td" style="width:33%">
+                        </tr>
+                        <tr>
+                            <td class="section-td">
                                 <p>{{ section.section_text3|safe }}</p>
                             </td>
+                        </tr>
                           {% else %}
-                            <td class="section-td" style="width:50%">
+                        <tr>
+                            <td class="section-td" style="height:50%;">
                               <p>{{ section.section_text1|safe }}</p>
                             </td>
-                            <td class="section-td" style="width:50%">
+                        </tr>
+                        <tr>
+                            <td class="section-td" style="height:50%">
                               <p>{{ section.section_text2|safe }}</p>
                             </td>
+                        </tr>
                           {% endif %}
                         </tr>
                     </table>
