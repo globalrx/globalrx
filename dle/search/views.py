@@ -1,6 +1,5 @@
 from typing import List, Set, Tuple
 
-from django.conf import settings
 from django.core.paginator import Paginator
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
@@ -91,8 +90,8 @@ def list_search_results_impl(request: HttpRequest) -> HttpResponse:
 def es_search(request: HttpRequest) -> HttpResponse:
     """Search results list view"""
     form = SavedSearchForm()
-    SEARCHKIT_SERVICE = f"{settings.API_ENDPOINT}{reverse('api:searchkit_root')}"
-    VECTORIZE_SERVICE = f"{settings.API_ENDPOINT}{reverse('api:vectorize')}"
+    SEARCHKIT_SERVICE = f"{reverse('api:searchkit_root')}"
+    VECTORIZE_SERVICE = f"{reverse('api:vectorize')}"
 
     context = {
         "SEARCHKIT_SERVICE": SEARCHKIT_SERVICE,
