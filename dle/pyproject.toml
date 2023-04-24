@@ -43,3 +43,4 @@ filter_files = true
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "dle.settings"
+env_files = "tests/test.env"
