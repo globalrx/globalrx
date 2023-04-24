@@ -42,14 +42,13 @@ STATIC_URL = "/static/"
 
 NLP_MODELS = os.path.join(BASE_DIR, "api/bert_models")
 
+API_ENDPOINT = env.str("API_ENDPOINT", "http://localhost:8000")
+
 # Hosts and CIDR (AWS subnets)
 try:
     ALLOWED_HOSTS = [
-        "druglabelexplorer.org",
-        "www.druglabelexplorer.org",
         "127.0.0.1",
         "localhost",
-        "testserver",
     ] + env.list("ALLOWED_HOSTS")
 except ImproperlyConfigured:
     ALLOWED_HOSTS = ["localhost", "0.0.0.0", "127.0.0.1"]
@@ -121,7 +120,9 @@ TEMPLATES = [
     },
 ]
 
-FIXTURE_DIRS = [os.path.join(BASE_DIR, "tests/fixtures")]
+FIXTURE_DIRS = [
+    os.path.join(BASE_DIR, "tests/fixtures"),
+]
 
 WSGI_APPLICATION = "dle.wsgi.application"
 

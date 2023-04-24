@@ -31,7 +31,7 @@ def http_service(docker_ip, docker_services):
     url = "http://{}:{}".format(docker_ip, port)
     url404 = f"{url}/missing"
     docker_services.wait_until_responsive(
-        timeout=600.0, pause=0.1, check=lambda: is_responsive_404(url404)
+        timeout=1200.0, pause=0.1, check=lambda: is_responsive_404(url404)
     )
     return url
 
