@@ -3,7 +3,7 @@ Parameters:
 
   ElasticIPAddress:
     Type: AWS::SSM::Parameter::Value<String>
-    Default: /ec2_ip
+    Default: /ec2_ip_dev
   DBEndpointParameter:
     Type: AWS::SSM::Parameter::Value<String>
     Default: /rds_endpoint
@@ -46,6 +46,9 @@ Parameters:
   awsSecretKey:
     Type: AWS::SSM::Parameter::Value<String>
     Default: /secret_key
+  rdsPassword:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /rds_pw
 
 Resources:
   CloudMap:
@@ -210,7 +213,7 @@ Resources:
         - Name: COMPOSE_PROJECT_NAME
           Value: searchrx
         - Name: DATABASE_URL
-          Value: !Sub postgres://postgres:fghyucvsafd@${DBEndpointParameter}:5432/postgres
+          Value: !Sub postgres://postgres:${rdsPassword}@${DBEndpointParameter}:5432/postgres
         - Name: DEBUG
           Value: "True"
         - Name: DJANGO_SUPERUSER_EMAIL
@@ -220,7 +223,7 @@ Resources:
         - Name: DJANGO_SUPERUSER_USERNAME
           Value: admin
         - Name: ELASTICSEARCH_URL
-          Value: http://34.228.206.13:9200  #!Join ["", ["https://", Ref: ElasticIPAddress, ":9200"]]
+          Value: !Join ["", ["https://", !Ref: ElasticIPAddress, ":9200"]]
         - Name: ELASTICSEARCH_USER
           Value: elastic
         - Name: ELASTIC_CLOUD_ID
@@ -298,6 +301,7 @@ Resources:
       ManagedPolicyArns:
       - arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy
       - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+      - arn:aws:iam::aws:policy/AmazonSSMFullAccess
       Tags:
       - Key: com.docker.compose.project
         Value: dle
@@ -306,7 +310,7 @@ Resources:
     Type: AWS::IAM::Role
   LogGroup:
     Properties:
-      LogGroupName: /docker-compose/dle
+      LogGroupName: /ecs/searchrx
     Type: AWS::Logs::LogGroup
 
 
