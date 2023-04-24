@@ -6,6 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from elasticsearch_django.settings import get_client
 from sentence_transformers import SentenceTransformer
 
+from data.models import DrugLabel
 from data.util import compute_section_embedding
 
 from .apps import ApiConfig
@@ -133,3 +134,14 @@ def search(request: HttpRequest) -> JsonResponse:
         formatted_res["hits"]["hits"].append(formatted_hit)
 
     return JsonResponse(formatted_res)
+
+@csrf_exempt
+def search_label(request: HttpRequest) -> JsonResponse:
+    """Searches Django for a DrugLabel"""
+    q = request.GET.get("q", "")
+    print(f"query: {q}")
+    labels = DrugLabel.objects.filter(product_name__icontains=q)
+
+    return JsonResponse({
+        "labels": [dl.as_dict() for dl in labels]
+    })
