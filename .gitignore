@@ -1,6 +1,9 @@
 
 top_displaynames.csv
 
+# Ignore Mac files
+.DS_Store
+
 # ignore media dir
 dle/media/
 
