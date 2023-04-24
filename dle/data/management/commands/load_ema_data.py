@@ -4,6 +4,7 @@ import logging
 import random
 import re
 import time
+from distutils.util import strtobool
 
 from django.conf import settings
 from django.core.files.base import ContentFile
@@ -17,7 +18,8 @@ from bs4 import BeautifulSoup
 from Levenshtein import distance as levdistance
 from requests.exceptions import ChunkedEncodingError
 
-from data.models import DrugLabel, LabelProduct, ProductSection
+from data.models import DrugLabel, LabelProduct, ParsingError, ProductSection
+from data.util import check_recently_updated, strfdelta
 from users.models import MyLabel
 
 from .pdf_parsing_helper import get_pdf_sections, read_pdf
@@ -66,8 +68,24 @@ class Command(BaseCommand):
             help="Dump all parsed outputs to a json file",
             default=False,
         )
+        parser.add_argument(
+            "--skip_more_recent_than_n_hours",
+            type=int,
+            help="Skip re-scraping labels more recently imported than this number of hours old. Default is 168 (7 days)",
+            default=168,  # 7 days; set to 0 to re-scrape everything
+        )
+        parser.add_argument(
+            "--skip_known_errors",
+            type=strtobool,
+            help="Skip labels that have previously had parsing errors. Default is True",
+            default=True,
+        )
 
     def handle(self, *args, **options):
+        self.skip_labels_updated_within_span = datetime.timedelta(
+            hours=int(options["skip_more_recent_than_n_hours"])
+        )
+        self.skip_errors = options["skip_known_errors"]
         import_type = options["type"]
         if import_type not in ["full", "test", "rand_test", "my_label"]:
             raise CommandError("'type' parameter must be 'full', 'test', 'rand_test' or 'my_label'")
@@ -89,6 +107,7 @@ class Command(BaseCommand):
         # Read ema excel into df
         self.read_ema_excel()
 
+        # TODO break test, my_label, and full into separate functions rather than having all logic here
         if import_type == "test":
             urls = [
                 "https://www.ema.europa.eu/en/medicines/human/EPAR/skilarence",
@@ -124,6 +143,36 @@ class Command(BaseCommand):
         logger.info(f"total urls to process: {len(urls)}")
 
         for url in urls:
+            # first see if this label has a known error; if so, skip it
+            if self.skip_errors:
+                existing_errors = ParsingError.objects.filter(source="EMA", url=url)
+                if existing_errors.count() >= 1:
+                    logger.warning(
+                        self.style.WARNING(
+                            f"Label skipped ({url}). Known error: {existing_errors[0].error_type}"
+                        )
+                    )
+                    continue
+            # next, see if this label has been updated recently; if so, skip it
+            existing_labels = DrugLabel.objects.filter(source="EMA", link=url).order_by(
+                "-updated_at"
+            )
+            if existing_labels.count() >= 1:
+                existing_label = existing_labels[0]
+                if check_recently_updated(
+                    dl=existing_label, skip_timeframe=self.skip_labels_updated_within_span
+                ):
+                    last_updated_ago = (
+                        datetime.datetime.now(datetime.timezone.utc) - existing_label.updated_at
+                    )
+                    logger.warning(
+                        self.style.WARNING(
+                            f"Label skipped. Updated {strfdelta(last_updated_ago)} ago, less than {self.skip_labels_updated_within_span}"
+                        )
+                    )
+                    continue
+
+            # Otherwise, continue parsing the label
             try:
                 logger.info(f"processing url: {url}")
                 dl = self.get_drug_label_from_url(url)
@@ -137,9 +186,18 @@ class Command(BaseCommand):
                 self.num_drug_labels_parsed += 1
             except IntegrityError as e:  # noqa: F841
                 logger.warning(self.style.WARNING("Label already in db"))
-                # logger.debug(e, exc_info=True)
+                logger.debug(e, exc_info=True)
             except AttributeError as e:
                 logger.warning(self.style.ERROR(repr(e)))
+                msg = str(repr(e))
+                # TODO add error type to ParsingError
+                parsing_error, created = ParsingError.objects.get_or_create(
+                    url=url, message=msg, source="EMA"
+                )
+                if created:
+                    logger.warning(f"Created ParsingError {parsing_error}")
+                else:
+                    logger.info(f"ParsingError {parsing_error} already exists")
             logger.info(f"Done parsing {url}")
             # time.sleep(1)
 
@@ -350,7 +408,7 @@ class Command(BaseCommand):
             for h, s in zip(headers, sections):
                 header = self.get_fixed_header(h)
                 if (header is not None) and (len(s) > 0):
-                    logger.info(f"Found original header ({h}) fixed to {header}")
+                    logger.debug(f"Found original header ({h}) fixed to {header}")
                     if header not in label_text.keys():
                         label_text[header] = [s]
                     else:

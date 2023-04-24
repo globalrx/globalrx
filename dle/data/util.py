@@ -200,3 +200,9 @@ def strfdelta(tdelta, fmt="{D:02}d {H:02}h {M:02}m {S:02}s", inputtype="timedelt
 
 class PDFParseException(Exception):
     """Exception raised for errors parsing PDFs."""
+
+
+# TODO move all vectorization functions here
+# TODO create a script that can be called outside of Docker to vectorize Django data
+# It should be able to vectorize all data in the database, or a subset of it
+# It should be able to connect to Django to update the database with the new vectors
