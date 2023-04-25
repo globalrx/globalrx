@@ -28,13 +28,13 @@ header {
 }
 
 .brand-logo:hover {
-    color: #bbb;
-    border-bottom: 5px solid rgb(0, 149, 255);
+    color: #f3f1f1;
+    border-bottom: 5px solid #19a2af;
     text-decoration: none;
 }
 
 .nav {
-    margin-top: 20px;
+    margin-top: 30px;
     margin-right: 40px;
     float: right;
 }
@@ -50,40 +50,41 @@ ul.nav li {
 .nav-link {
     float: left;
     display: block;
-    color: #fff;
+    color: #fdfdfd;
     border-bottom: 5px solid transparent;
-    padding-left: 0px;
-    padding-right: 0px;
+    padding-left: 2px;
+    padding-right: 2px;
     margin-right: 20px;
 }
 
 .nav-link:hover {
-    color: #bbb;
-    border-bottom: 5px solid rgb(0, 149, 255);
+    color: #d3f7f3;
+    border-bottom: 5px solid #19a2af;
 }
 
 
 /* elastic search styles start here */
 /* search/static/search/ */
 .ais-ClearRefinements {
-    margin: 1em 0;
+    margin: 2em 0;
   }
   
   .ais-SearchBox {
-    margin: 1em 0;
+    margin: 2em 0;
   }
   
   .ais-Pagination {
-    margin-top: 1em;
+    margin-top: 2em;
   }
   
   .left-panel {
     float: left;
-    width: 400px;
+    width: 350px;
   }
   
   .right-panel {
-    margin-left: 410px;
+    margin-left: 400px;
+
   }
   
   /**.ais-InstantSearch {
@@ -106,9 +107,9 @@ ul.nav li {
   }
   
   .hit-description {
-    color: #888;
-    font-size: 14px;
-    margin-bottom: 0.5em;
+    color: #19a2af;
+    font-size: 16px;
+    margin-bottom: 1em;
   }
 
   .ais-HitsPerPage-select {
@@ -121,5 +122,12 @@ ul.nav li {
   }
 
   .ais-RefinementList-checkbox {
-    margin-right: .5rem;
+    margin-right: 1rem;
+  }
+
+  /* hide compare labels form by default */
+  #compare-button-container {
+    display: none;
+    color:  #19a2af;
+    font-size: medium;
   }

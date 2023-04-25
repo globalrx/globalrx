@@ -1,14 +1,15 @@
+/*change interaction add column additional to row */
 .column {
     margin: 2px;
     padding-left: 10px; 
     padding-bottom: 10px;
 }
 .row {
-    margin: 1px;
-    padding-left: 10px; 
+    margin: 2px;
+    padding-left: 12px; 
 }
 
-/* Style collapsible section button */
+/* Change Style collapsible section button */
 .collapsible {
     background-color:rgb(250, 247, 247);
     color:black;
@@ -29,14 +30,14 @@
 .sec-content {
     padding-left: 10px;
 }
-
+/*change section table interaction*/
 .section-table, #headerTable {
     table-layout: fixed;
     /*border: 0.5px solid rgb(197, 195, 195);*/
     border-collapse: collapse;
     width: 100%;
 }
-
+/*change section td interaction*/
 .section-td {
     /*border: 0.5px solid rgb(197, 195, 195);*/
     vertical-align: left;
@@ -50,12 +51,12 @@
     vertical-align: left;
 }
 
-/* highlight red if the sections have diffs */
+/* change highlight to less vibrant red if the sections have diffs */
 .td-diff-section {
     border:3px solid rgba(235, 62, 178, 0.575);
     vertical-align: top;
 }
-
+/*change color interaction*/
 .diff-text-highlight {
     background-color:rgba(235, 62, 178, 0.575);
 }
