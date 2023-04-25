@@ -93,12 +93,21 @@ def es_search(request: HttpRequest) -> HttpResponse:
     form = SavedSearchForm()
     if request.user.is_authenticated:
         my_labels = MyLabel.objects.filter(user=request.user).all()
+
+        # for my_label in my_labels:
+        #     drug_label = get_object_or_404(DrugLabel, pk=drug_label_id)
+
     else:
         my_labels = []
 
+
+
+    SEARCHKIT_SERVICE = f"{reverse('api:searchkit_root')}"
+    VECTORIZE_SERVICE = f"{reverse('api:vectorize')}"
+
     context = {
-        "ELASTIC_HOST": reverse("api:searchkit_root"),
-        "VECTORIZE_SERVICE": reverse("api:vectorize"),
+        "SEARCHKIT_SERVICE": SEARCHKIT_SERVICE,
+        "VECTORIZE_SERVICE": VECTORIZE_SERVICE,
         "form": form,
         "my_labels": my_labels,
     }
