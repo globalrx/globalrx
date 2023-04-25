@@ -1,3 +1,4 @@
+import json
 from typing import List, Set, Tuple
 
 from django.conf import settings
@@ -93,11 +94,69 @@ def es_search(request: HttpRequest) -> HttpResponse:
     form = SavedSearchForm()
     SEARCHKIT_SERVICE = f"{settings.API_ENDPOINT}{reverse('api:searchkit_root')}"
     VECTORIZE_SERVICE = f"{settings.API_ENDPOINT}{reverse('api:vectorize')}"
+    search_query = request.GET.get('productsection[query]', '')
+
+    print('------------------------------------------------')
+    print('------------------------------------------------')
+    print('------------------------------------------------')
+    print('------------------------------------------------')
+    print('------------------------------------------------')
+    print('------------------------------------------------')
+    print('------------------------------------------------')
+    print('search_query', search_query)
+    print('------------------------------------------------')
+    print('------------------------------------------------')
+    print('------------------------------------------------')
+    print('------------------------------------------------')
+
+    found_drug_labels = DrugLabel.objects.filter(product_name=search_query).all()
+
+    print('found_drug_labels', found_drug_labels);
+    print('------------------------------------------------')
+    print('------------------------------------------------')
+    print('------------------------------------------------')
+    print('------------------------------------------------')
+    print('------------------------------------------------')
+    print('------------------------------------------------')
+
+
+
+    # source = models.CharField(max_length=8, choices=SOURCES, db_index=True)
+    # product_name = models.CharField(max_length=255, db_index=True)
+    # generic_name = models.CharField(max_length=2048, db_index=True)
+    # version_date = models.DateField(db_index=True)
+    # source_product_number = models.CharField(max_length=255, db_index=True)
+    # "source-specific product-id"
+    # raw_text = models.TextField()
+    # marketer = models.CharField(max_length=255, db_index=True)
+
+    drug_labels = []
+    for drug_label in found_drug_labels:
+        drug_label_data = {
+            "id": drug_label.id,
+            "source": drug_label.source,
+            "product_name": drug_label.product_name,
+            "generic_name": drug_label.generic_name,
+            "version_date": drug_label.version_date,
+            "source_product_number": drug_label.source_product_number,
+            "marketer": drug_label.marketer,
+        }
+        drug_labels.append(drug_label_data)
+
+    print('drug_labels', drug_labels)
+    print('------------------------------------------------')
+    print('------------------------------------------------')
+    print('------------------------------------------------')
+    print('------------------------------------------------')
+    print('------------------------------------------------')
+    print('------------------------------------------------')
+
 
     context = {
         "SEARCHKIT_SERVICE": SEARCHKIT_SERVICE,
         "VECTORIZE_SERVICE": VECTORIZE_SERVICE,
         "form": form,
+        "drug_labels": json.dumps(drug_labels, indent=4, sort_keys=True, default=str),
     }
 
     return render(request, "search/elastic/search.html", context=context)

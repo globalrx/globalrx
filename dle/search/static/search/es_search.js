@@ -7,27 +7,62 @@ function createDrugLabelDirectMatchDiv(hit) {
     const newLineItem = document.createElement("li");
     newLineItem.className = "ais-Hits-item";
     newLineItem.id = 'drug-label-name-match-div';
-    newLineItem.innerHTML = "<h2>Sotyktu</h2>";
+    newLineItem.innerHTML = `<h2>${hit.drug_label_product_name}</h2>`;
+    
+    // drug_labels.forEach(item => {
+    //     console.log(item)
+    // });
 
-    const parentList = document.getElementsByClassName('ais-Hits-list');
+    // for(const drug_label in drug_labels[0]) {
+    //     console.log('drug_label', drug_label);
+    //     console.log('drug_label.id', drug_label['id']);
+    //     console.log('drug_label.marketer', drug_label['marketer']);
+    //     console.log('drug_label.version_date', drug_label['version_date']);
+    // }
 
-    const possibleExistingElement = document.getElementById(newLineItem.id);
+    // the following logic in the setTimeout method takes the class where 
+    // the list of results are displayed, and checks for an exact match with 
+    // one of the drugs in the database. If found, it creates an extra 
+    // drug specific search box at the top and fill sit with drug specific data
+    // There's a two second delay since there's no dom related hook in the
+    // searchkit library we're using
+    setTimeout(() => {
+        console.log("Delayed for 1 second");
 
-    console.log('possibleExistingElement', possibleExistingElement);
+        console.log('drug_labels', drug_labels);
+        console.log('drug_labels[0]', drug_labels[0]);    
 
-    if(possibleExistingElement !== null) { // TODO check this logic
-        return;
-    }
+        const parentList = document.getElementsByClassName('ais-Hits-list');
+        const possibleExistingElement = document.getElementById(newLineItem.id);
 
-    if(parentList.length == 0) {
-        return;
-    }
+        console.log('possibleExistingElement', possibleExistingElement);
+        console.log('hit', hit);
 
-    console.log('hit inside method', hit);
+        if(possibleExistingElement !== null && parentList.length > 0) { // TODO check this logic
+            // here we check if existing elemtn exists and if so remove it 
+            // so we can add a new element as needed
+            parentList[0].removeChild(possibleExistingElement);
+            console.log('its not null so return');
+        }
 
-    const parentElement = parentList[0];
+        if(parentList.length == 0) {
+            console.log('parentLis tis 0 so return');
+            return;
+        }
 
-    parentElement.insertBefore(newLineItem, parentElement.children[0]);
+        // TODO make sure this updates when the search terms change.
+        // NOT 100% sure that's happening right now
+
+        console.log('hit inside method', hit);
+
+        const parentElement = parentList[0];
+
+
+        parentElement.insertBefore(newLineItem, parentElement.children[0]);
+    }, "1000"); // <- 1 second delay in milliseconds
+    // I don't love this implmeentation but there's no hooks for this library
+    // other than before search and after search and after search shockingly
+    // is called first and nether of these contain changes to the dom.
 }
 
 var globalSearchTerm = '';
@@ -145,6 +180,7 @@ const client = SearchkitInstantsearchClient(sk, {
     hooks: {
         onComponentUpdate: (prevProps, nextProps) => {
             console.log("Component updated:", prevProps, nextProps);
+            alert('it hit');
             // Handle the component update here
         },
         onSearchError: (error) => {
@@ -152,21 +188,18 @@ const client = SearchkitInstantsearchClient(sk, {
             // Handle the error here
         },
         afterSearch: async (searchRequests, searchResponses) => {
-            console.log("Search results displayed");
+            console.log('afterSearch HOOK')
             console.log('results', searchResponses);
+            console.log('searchRequests', searchRequests);
+            console.log('globalSearchTerm', globalSearchTerm);
             // Manipulate the DOM here
             // const messageDiv = document.createElement("div");
             // console.log(messageDiv);
-            // messageDiv.innerHTML = "hi there";
+            // messageDiv.innerHTML = "hi there";x
             // const searchResultsDiv = document.getElementById("searchResults");
             // searchResultsDiv.appendChild(messageDiv);
             return searchResponses;
-          },
-        // onResults: async (results) => {
-        //     console.log("Search results displayed");
-        //     console.log('results', results);
-        //     // Manipulate the DOM here
-        // },
+        },
         // TODO maybe update to use getKnnQuery: https://www.searchkit.co/docs/guides/customising-query
         beforeSearch: async (searchRequests) => {
             const [uiRequest] = searchRequests
@@ -208,6 +241,7 @@ search.addWidgets([
             console.log('query', query);
             globalSearchTerm = query;
             console.log('globalSearchTerm', globalSearchTerm);
+            console.log('is globalSearchTermBlank')
             search(query);
         },
         container: "#searchbox",
@@ -321,6 +355,14 @@ search.addWidgets([
 ]);
 
 search.start();
+
+const queryString = window.location.search;
+console.log('queryString', queryString);
+const urlParams = new URLSearchParams(queryString);
+console.log('urlParams', urlParams);
+
+globalSearchTerm = urlParams.get('productsection[query]');
+console.log('productsection[query]', globalSearchTerm);
 
 // Update querytype when radio button is changed
 const radioGroup = document.getElementsByName("search-type");

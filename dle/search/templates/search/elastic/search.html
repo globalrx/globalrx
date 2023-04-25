@@ -91,9 +91,21 @@
 
 {{ SEARCHKIT_SERVICE|json_script:"SEARCHKIT_SERVICE" }}
 {{ VECTORIZE_SERVICE|json_script:"VECTORIZE_SERVICE"}}
+
+
+<!-- // const drug_labels_text = "{{ drug_labels|safe }}"; -->
+<!-- pulled above out of js sine it was causing errors w/ the django rendering -->
 <script>
   const SEARCHKIT_SERVICE = JSON.parse(document.getElementById('SEARCHKIT_SERVICE').textContent);
   const VECTORIZE_SERVICE = JSON.parse(document.getElementById('VECTORIZE_SERVICE').textContent);
+  const drug_labels = []; // temp to avoid errors downstream
+
+  // console.log('drug_labels_text', drug_labels_text);
+  // console.log('typeof drug_labels_text', typeof drug_labels_text);
+
+  // const drug_labels = JSON.parse(drug_labels_text);
+  // console.log('typeof drug_labels', typeof drug_labels);
+  // console.log('drug_labels', drug_labels);
 </script>
 <script type="module" src="{% static 'search/es_search.js' %}"></script>
 <script>
