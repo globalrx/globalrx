@@ -124,3 +124,7 @@ ul.nav li {
   .ais-RefinementList-checkbox {
     margin-right: 1rem;
   }
+
+  .ais-Hits-item:empty{ 
+    display: none;
+  }
