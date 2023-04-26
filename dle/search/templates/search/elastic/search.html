@@ -117,8 +117,8 @@
 <script type="text/javascript" src="{% static 'search/direct_labels_htmx.js' %}"></script>
 
 {% if user.is_authenticated %}
-<script type="text/javascript" src="{% 'search/saved_search.js' %}"></script>
+<script type="text/javascript" src="{% static 'search/saved_search.js' %}"></script>
 {% endif %}
-<script type="text/javascript" src="{% 'search/compare_labels.js' %}"></script>
+<script type="text/javascript" src="{% static 'search/compare_labels.js' %}"></script>
 
 {% endblock %}
