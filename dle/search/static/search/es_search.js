@@ -6,6 +6,7 @@
 var globalSearchTerm = '';
 var queryType = 'match'; // knn, simpleQueryString, match
 
+var foundDrugLabels = [];
 const sk = new Searchkit({
     connection: {
         host: SEARCHKIT_SERVICE, // Set by the Django template in which this file is embedded

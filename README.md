@@ -35,7 +35,7 @@ Due to changes, DLE 2022 may no longer work as originally designed. See [Drug La
 
 #### Design
 
-We decide to use Searchkit
+We decided to use Searchkit
 
 Searchkit to simplify using Elasticsearch for Search:
 
