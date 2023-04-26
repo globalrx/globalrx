@@ -9,6 +9,14 @@
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
         <link href="{% static 'search/styles.css' %}" rel="stylesheet">
 
+        <!-- vendor JS -->
+        {% load django_htmx %}
+        <script src="{% static 'js/htmx/htmx.min.js' %}" defer></script>
+        {% django_htmx_script %}
+
+        <!-- CSRF token for HTMX -->
+        <body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+
         {% block head %}{% endblock %}
     </head>
     <body>

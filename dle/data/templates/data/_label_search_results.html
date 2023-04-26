@@ -1,0 +1,12 @@
+{% for dl in labels %}
+    <div class="drug-label">
+        <h2>{{ dl.product_name }}</h2>
+        <h3>{{ dl.generic_name}}</h3>
+        <p>{{ dl.source_product_number }}</p>
+        <p>{{ dl.label_source }}</p>
+        <p>{{ dl.marketer }}</p>
+        <p>{{ dl.link }}</p>
+        <p>{{ dl.version_date }}</p>
+        <p>{{ dl.updated_at }}</p>
+    </div>
+{% endfor %}

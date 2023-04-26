@@ -7,12 +7,16 @@
 <!-- If using Searchkit local build ...
   <script type="text/javascript" src="{% static 'search/searchkit-dev/index.global.js' %}"></script>
 -->
-<script src="https://cdn.jsdelivr.net/npm/searchkit@4.6/dist/umd/index.global.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7/themes/algolia-min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/searchkit@4.7/dist/umd/index.global.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7/themes/algolia-min.css" />
 <script src="https://cdn.jsdelivr.net/npm/@algolia/autocomplete-js"></script>
 <script>
-  const { autocomplete } = window['@algolia/autocomplete-js'];
-  const { getAlgoliaFacets } = window['@algolia/autocomplete-js']
+  const {
+    autocomplete
+  } = window['@algolia/autocomplete-js'];
+  const {
+    getAlgoliaFacets
+  } = window['@algolia/autocomplete-js']
 </script>
 
 <!-- Trying to disable cache
@@ -68,31 +72,36 @@
           </form>
         </div>
     </div>
-    <div class="right-panel">
-      <div id="search-container" class="container-fluid">
-        <div class="row" style="margin-left:0px; margin-right:0px;">
-          <div id="search-type" class="col-3" style="display:inline-flex; align-items:center;">
-            <div class="search-type-item" style="margin-right: 10px;">
-              <input type="radio" id="search-type-match" name="search-type" value="match" checked>
-              <label for="search-type-1">Match</label>
-            </div>
-            <div class="search-type-item" style="margin-right: 10px;">
-              <input type="radio" id="search-type-simplequerystring" name="search-type" value="simpleQueryString">
-              <label for="search-type-simplequerystring">Query String</label>
-            </div>
-            <div class="search-type-item" style="margin-right: 10px;">
-              <input type="radio" id="search-type-semantic" name="search-type" value="knn">
-              <label for="search-type-semantic">Semantic (Vector AKNN)</label>
-            </div>
-          </div>
-          <div id="searchbox" class="ais-SearchBox col-lg"></div>
-        </div>
-      </div>
-      <div id="hits"></div>
-      <div id="pagination"></div>
-    </div>
   </div>
-   
+  <div class="right-panel">
+    <div id="search-container" class="container-fluid">
+      <div class="row" style="margin-left:0px; margin-right:0px;">
+        <div id="search-type" class="col-3" style="display:inline-flex; align-items:center;">
+          <div class="search-type-item" style="margin-right: 10px;">
+            <input type="radio" id="search-type-match" name="search-type" value="match" checked>
+            <label for="search-type-1">Match</label>
+          </div>
+          <div class="search-type-item" style="margin-right: 10px;">
+            <input type="radio" id="search-type-simplequerystring" name="search-type" value="simpleQueryString">
+            <label for="search-type-simplequerystring">Query String</label>
+          </div>
+          <div class="search-type-item" style="margin-right: 10px;">
+            <input type="radio" id="search-type-semantic" name="search-type" value="knn">
+            <label for="search-type-semantic">Semantic (Vector AKNN)</label>
+          </div>
+        </div>
+        <div id="searchbox" class="ais-SearchBox col-lg"></div>
+      </div>
+    </div>
+
+    <div id="drug-label-search-results">
+      {% include "data/_label_search_results.html" %}
+    </div>
+    <div id="hits"></div>
+    <div id="pagination"></div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block footer_scripts %}
@@ -104,11 +113,12 @@
   const SEARCHKIT_SERVICE = JSON.parse(document.getElementById('SEARCHKIT_SERVICE').textContent);
   const VECTORIZE_SERVICE = JSON.parse(document.getElementById('VECTORIZE_SERVICE').textContent);
 </script>
+<script type="module" src="{% static 'search/es_search.js' %}"></script>
+<script type="text/javascript" src="{% static 'search/direct_labels_htmx.js' %}"></script>
 
-<script type="text/javascript" src="{% static 'search/es_search.js' %}"></script>
 {% if user.is_authenticated %}
-<script type="text/javascript" src="../../static/search/saved_search.js"></script>
+<script type="text/javascript" src="{% static 'search/saved_search.js' %}"></script>
 {% endif %}
-<script type="text/javascript" src="../../static/search/compare_labels.js"></script>
+<script type="text/javascript" src="{% static 'search/compare_labels.js' %}"></script>
 
 {% endblock %}
