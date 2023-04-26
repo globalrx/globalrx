@@ -90,19 +90,18 @@ def search_label_htmx(request: HtmxHttpRequest) -> HttpResponse:
     case insensitive.
     """
     if request.htmx:
-        q = request.GET.get("ais-SearchBox-input", "")
+        q = request.GET.get("query", "")
         if q:
             labels = DrugLabel.objects.filter(
                 Q(product_name__icontains=q) | Q(generic_name__icontains=q)
             )
-            return render(
-                request=request,
-                template_name="data/_label_search_results.html",
-                context={"labels": labels},
-            )
+
         else:
             print("No query string")
+            labels = []
             return HttpResponse("")
-    else:
-        print("Not an HTMX request")
-        return HttpResponse("")
+        return render(
+            request=request,
+            template_name="data/_label_search_results.html",
+            context={"labels": labels},
+        )

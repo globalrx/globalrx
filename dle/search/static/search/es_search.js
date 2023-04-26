@@ -5,7 +5,6 @@
 
 var globalSearchTerm = '';
 var queryType = 'match'; // knn, simpleQueryString, match
-var htmx_setup = false;
 
 const sk = new Searchkit({
     connection: {
@@ -165,19 +164,17 @@ const client = SearchkitInstantsearchClient(sk, {
         },
         afterSearch: (searchRequests, searchResponses) => {
             console.log(`afterSearch: ${searchResponses}`)
-            // On first search, set up HTMX; have to add the attributes here rather than during page load
-            // as the searchbar is created by SearchKit
-            if(!htmx_setup){
-                let search_button = document.querySelector(".ais-SearchBox-submit");
-                let searchbar = document.querySelector(".ais-SearchBox-input");
-                searchbar.setAttribute("name", "ais-SearchBox-input");
-                search_button.setAttribute("hx-get", "/data/search_label_htmx");
-                search_button.setAttribute("hx-trigger", "click");
-                search_button.setAttribute("hx-target", "#drug-label-search-results");
-                search_button.setAttribute("hx-swap", "innerHTML");
-                search_button.setAttribute("hx-include", "[name='ais-SearchBox-input']");
-                htmx.process(document.body);
-                htmx_setup = true;
+            const [uiRequest] = searchRequests
+            var query = uiRequest.request.params.query;
+            if(query){
+                htmx.ajax(
+                    "GET",
+                    `/data/search_label_htmx?query=${query}`,
+                    {
+                        target: "#drug-label-search-results",
+                        swap: "innerHTML"
+                    }
+                )
             }
             return searchResponses;
         }
