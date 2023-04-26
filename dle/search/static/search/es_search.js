@@ -5,6 +5,7 @@
 
 var globalSearchTerm = '';
 var queryType = 'match'; // knn, simpleQueryString, match
+var searchkit_ready = false;
 
 const sk = new Searchkit({
     connection: {
@@ -138,6 +139,19 @@ const client = SearchkitInstantsearchClient(sk, {
     },
     hooks: {
         beforeSearch: async (searchRequests) => {
+            // first time this is fired, we need to fire an event to let the page know that searchkit is ready
+            // We use this custom event to attach the form listeners since now we know the SearchKit / InstantSearch
+            // widgets and forms exist
+            if(!searchkit_ready){
+                console.log("firing searchkit_ready from afterSearch")
+                const event = new CustomEvent('searchkit_ready', {
+                    bubbles: true,
+                });
+                let searchbox = document.getElementById('searchbox');
+                searchbox.dispatchEvent(event);
+                searchkit_ready = true;
+            }
+
             const [uiRequest] = searchRequests
 
             var query = uiRequest.request.params.query
@@ -161,35 +175,6 @@ const client = SearchkitInstantsearchClient(sk, {
                     }
                 }
             })
-        },
-        afterSearch: (searchRequests, searchResponses) => {
-            console.log(`afterSearch: ${searchResponses}`)
-            const [uiRequest] = searchRequests
-            var query = uiRequest.request.params.query;
-            // TODO handle cases of clearing the query box - should also clear the label results
-            // Maybe move this to the page itself and attach a listener to the search box? Fire an event here,
-            // and then handle it on the page?
-            // if(query){
-            //     htmx.ajax(
-            //         "GET",
-            //         `/data/search_label_htmx?query=${query}`,
-            //         {
-            //             target: "#drug-label-search-results",
-            //             swap: "innerHTML"
-            //         }
-            //     )
-            // }
-
-            const event = new CustomEvent('searchkit_search', {
-                bubbles: true,
-                detail: {
-                    query: query
-                }
-            });
-            let searchbox = document.getElementById('searchbox');
-            searchbox.dispatchEvent(event);
-
-            return searchResponses;
         }
     }
 })

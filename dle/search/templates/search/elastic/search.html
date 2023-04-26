@@ -107,12 +107,30 @@
 <script type="module" src="{% static 'search/es_search.js' %}"></script>
 <script>
   // Handle searchKit searches
-  /**
+  // Need to handle when the form is submitted, when the form is cleared
+  // Also handle when there is a query in the URL on initial page load
+  // Add event listeners
   let searchbox = document.getElementById('searchbox');
-  searchbox.addEventListener(
-    "searchkit_search",
-    (e) => {
-      query = e.detail.query;
+  searchbox.addEventListener("searchkit_ready",
+  (e) => {
+    console.log("searchkit ready");
+    form = document.querySelector('.ais-SearchBox-form');
+    // Fire HTMX in case this is on initial page load; submit event doesn't fire,
+    // but we could have a query in the URL populating the search box
+    q = document.querySelector('.ais-SearchBox-input').value;
+    console.log(q);
+    htmx.ajax(
+      "GET",
+      `/data/search_label_htmx?query=${q}`,
+      {
+        target: "#drug-label-search-results",
+        swap: "innerHTML"
+      }
+    );
+
+    form.addEventListener("submit", (e) => {
+      console.log("submit event")
+      query = document.querySelector('.ais-SearchBox-input').value;
       htmx.ajax(
         "GET",
         `/data/search_label_htmx?query=${query}`,
@@ -120,46 +138,24 @@
           target: "#drug-label-search-results",
           swap: "innerHTML"
         }
-      )
-    }
-  )**/
+      );
+    })
+  
+    form.addEventListener("reset", (e) => {
+      console.log("reset event")
+      htmx.ajax(
+        "GET",
+        // Submit an empty query and clear the results box
+        `/data/search_label_htmx?query=`,
+        {
+          target: "#drug-label-search-results",
+          swap: "innerHTML"
+        }
+      );
+    })
+  })
 
-  // Need to handle 3 scenarios for HTMX drug label updates
-  // Add event listeners to all of these scenarios
-  // 1 user clicks the search button icon (.ais-SearchBox-submit) which submits a search
-  // 2 user hits enter while typing in the searchbar (.ais-SearchBox-input) which submits a search
-  // 3 user clears the search with the clear button (.ais-SearchBox-reset) which clears the search
-  //let icon = document.querySelector('.ais-SearchBox-submit');
-  //let input = document.querySelector('.ais-SearchBox-input');
-  //let reset = document.querySelector('.ais-SearchBox-reset');
-  // let searchbox = document.getElementById('searchbox');
-  // 1
-  //searchbox.addEventListener(
-  //  "submit",
-  // (e) => {
-  //    console.log(e);
-  //}
-  //)
-  //icon.addEventListener(
-  //  "click",
-  //  (e) => {
-  //   query = input.value;
-  //htmx.ajax(
-  //  "GET",
-  //  `/data/search_label_htmx?query=${query}`,
-  //  {
-  //   target: "#drug-label-search-results",
-  //   swap: "innerHTML"
-  // }
-  //)
-  //  console.log(query);
-  // }
-  // )
-  //let searchbox = document.getElementById('searchbox');
-  // searchbox.addEventListener("submit", (e) => { console.log(e); })
 
-  //form = document.querySelector('.ais-SearchBox-form');
-  //form.addEventListener("submit", (e) => { console.log(e)})
 </script>
 <script>
   /** TODO fix this seems broken
@@ -172,33 +168,6 @@
   document.body.addEventListener('keyup', getUrl, true);
   document.body.addEventListener('click', shouldLabelsBeShown, true);
   **/
-  form = document.querySelector('.ais-SearchBox-form');
-  form.addEventListener("submit", (e) => {
-    console.log(`submit ${e}`)
-    query = document.querySelector('.ais-SearchBox-input').value;
-    console.log(query.value);
-    htmx.ajax(
-      "GET",
-      `/data/search_label_htmx?query=${query}`,
-      {
-        target: "#drug-label-search-results",
-        swap: "innerHTML"
-      }
-    );
-  })
-
-  form.addEventListener("reset", (e) => {
-    console.log(`reset ${e}`);
-    htmx.ajax(
-      "GET",
-      `/data/search_label_htmx?query=`,
-      {
-        target: "#drug-label-search-results",
-        swap: "innerHTML"
-      }
-    );
-  })
-
 
   function shouldLabelsBeShown() {
     var checkedBoxes = document.querySelectorAll('input[name=compare]:checked');

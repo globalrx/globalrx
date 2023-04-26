@@ -99,7 +99,6 @@ def search_label_htmx(request: HtmxHttpRequest) -> HttpResponse:
         else:
             print("No query string")
             labels = []
-            return HttpResponse("")
         return render(
             request=request,
             template_name="data/_label_search_results.html",
