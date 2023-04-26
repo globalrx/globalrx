@@ -166,16 +166,29 @@ const client = SearchkitInstantsearchClient(sk, {
             console.log(`afterSearch: ${searchResponses}`)
             const [uiRequest] = searchRequests
             var query = uiRequest.request.params.query;
-            if(query){
-                htmx.ajax(
-                    "GET",
-                    `/data/search_label_htmx?query=${query}`,
-                    {
-                        target: "#drug-label-search-results",
-                        swap: "innerHTML"
-                    }
-                )
-            }
+            // TODO handle cases of clearing the query box - should also clear the label results
+            // Maybe move this to the page itself and attach a listener to the search box? Fire an event here,
+            // and then handle it on the page?
+            // if(query){
+            //     htmx.ajax(
+            //         "GET",
+            //         `/data/search_label_htmx?query=${query}`,
+            //         {
+            //             target: "#drug-label-search-results",
+            //             swap: "innerHTML"
+            //         }
+            //     )
+            // }
+
+            const event = new CustomEvent('searchkit_search', {
+                bubbles: true,
+                detail: {
+                    query: query
+                }
+            });
+            let searchbox = document.getElementById('searchbox');
+            searchbox.dispatchEvent(event);
+
             return searchResponses;
         }
     }

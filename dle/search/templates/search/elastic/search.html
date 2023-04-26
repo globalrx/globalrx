@@ -8,11 +8,15 @@
   <script type="text/javascript" src="{% static 'search/searchkit-dev/index.global.js' %}"></script>
 -->
 <script src="https://cdn.jsdelivr.net/npm/searchkit@4.7/dist/umd/index.global.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7/themes/algolia-min.css"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7/themes/algolia-min.css" />
 <script src="https://cdn.jsdelivr.net/npm/@algolia/autocomplete-js"></script>
 <script>
-  const { autocomplete } = window['@algolia/autocomplete-js'];
-  const { getAlgoliaFacets } = window['@algolia/autocomplete-js']
+  const {
+    autocomplete
+  } = window['@algolia/autocomplete-js'];
+  const {
+    getAlgoliaFacets
+  } = window['@algolia/autocomplete-js']
 </script>
 
 <!-- Trying to disable cache
@@ -30,64 +34,65 @@
 {% block content %}
 
 <div class="ais-InstantSearch">
-    <div id="current-refinements"></div>
-    <div class="left-panel">
-      <h2>Filters</h2>
-      <div id="hits-per-page"></div>
-        <p><strong>Section Name</strong></p>
-        <div id="section-name-filter"></div>
-        <p><strong>Drug Label Source</strong></p>
-        <div id="drug-label-source-filter"></div>
-        <p><strong>Drug Label Product Name</strong></p>
-        <div id="drug-label-product-name-filter"></div>
-        <p><strong>Drug Label Generic Name</strong></p>
-        <div id="drug-label-generic-name-filter"></div>
-        <p><strong>Drug Label Marketer</strong></p>
-        <div id="drug-label-marketer-filter"></div>
-        {% if user.is_authenticated %}
-        <h2>Save Search</h2>
-        <form method="post" action="/users/saved_searches/create/" enctype="multipart/form-data">
-          {% csrf_token %}
-          {{ form }}        
-          <input class="btn btn-primary" type="submit" value="Submit">
-        </form>
-        {% endif %}
-        <div id="compare-button-container">
-          <h2>Compare Result Labels</h2>
-          <form>
-            <input class="btn btn-primary" type="button" value="Compare Selected Labels" onclick="javascript: compareLabels();"/>
-          </form>
-        </div>
-    </div>
-    <div class="right-panel">
-      <div id="search-container" class="container-fluid">
-        <div class="row" style="margin-left:0px; margin-right:0px;">
-          <div id="search-type" class="col-3" style="display:inline-flex; align-items:center;">
-            <div class="search-type-item" style="margin-right: 10px;">
-              <input type="radio" id="search-type-match" name="search-type" value="match" checked>
-              <label for="search-type-1">Match</label>
-            </div>
-            <div class="search-type-item" style="margin-right: 10px;">
-              <input type="radio" id="search-type-simplequerystring" name="search-type" value="simpleQueryString">
-              <label for="search-type-simplequerystring">Query String</label>
-            </div>
-            <div class="search-type-item" style="margin-right: 10px;">
-              <input type="radio" id="search-type-semantic" name="search-type" value="knn">
-              <label for="search-type-semantic">Semantic (Vector AKNN)</label>
-            </div>
-          </div>
-          <div id="searchbox" class="ais-SearchBox col-lg"></div>
-        </div>
-      </div>
-      
-      <div id="drug-label-search-results">
-        {% include "data/_label_search_results.html" %}
-      </div>
-      <div id="hits"></div>
-      <div id="pagination"></div>
+  <div id="current-refinements"></div>
+  <div class="left-panel">
+    <h2>Filters</h2>
+    <div id="hits-per-page"></div>
+    <p><strong>Section Name</strong></p>
+    <div id="section-name-filter"></div>
+    <p><strong>Drug Label Source</strong></p>
+    <div id="drug-label-source-filter"></div>
+    <p><strong>Drug Label Product Name</strong></p>
+    <div id="drug-label-product-name-filter"></div>
+    <p><strong>Drug Label Generic Name</strong></p>
+    <div id="drug-label-generic-name-filter"></div>
+    <p><strong>Drug Label Marketer</strong></p>
+    <div id="drug-label-marketer-filter"></div>
+    {% if user.is_authenticated %}
+    <h2>Save Search</h2>
+    <form method="post" action="/users/saved_searches/create/" enctype="multipart/form-data">
+      {% csrf_token %}
+      {{ form }}
+      <input class="btn btn-primary" type="submit" value="Submit">
+    </form>
+    {% endif %}
+    <div id="compare-button-container">
+      <h2>Compare Result Labels</h2>
+      <form>
+        <input class="btn btn-primary" type="button" value="Compare Selected Labels"
+          onclick="javascript: compareLabels();" />
+      </form>
     </div>
   </div>
-   
+  <div class="right-panel">
+    <div id="search-container" class="container-fluid">
+      <div class="row" style="margin-left:0px; margin-right:0px;">
+        <div id="search-type" class="col-3" style="display:inline-flex; align-items:center;">
+          <div class="search-type-item" style="margin-right: 10px;">
+            <input type="radio" id="search-type-match" name="search-type" value="match" checked>
+            <label for="search-type-1">Match</label>
+          </div>
+          <div class="search-type-item" style="margin-right: 10px;">
+            <input type="radio" id="search-type-simplequerystring" name="search-type" value="simpleQueryString">
+            <label for="search-type-simplequerystring">Query String</label>
+          </div>
+          <div class="search-type-item" style="margin-right: 10px;">
+            <input type="radio" id="search-type-semantic" name="search-type" value="knn">
+            <label for="search-type-semantic">Semantic (Vector AKNN)</label>
+          </div>
+        </div>
+        <div id="searchbox" class="ais-SearchBox col-lg"></div>
+      </div>
+    </div>
+
+    <div id="drug-label-search-results">
+      {% include "data/_label_search_results.html" %}
+    </div>
+    <div id="hits"></div>
+    <div id="pagination"></div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block footer_scripts %}
@@ -101,6 +106,62 @@
 </script>
 <script type="module" src="{% static 'search/es_search.js' %}"></script>
 <script>
+  // Handle searchKit searches
+  /**
+  let searchbox = document.getElementById('searchbox');
+  searchbox.addEventListener(
+    "searchkit_search",
+    (e) => {
+      query = e.detail.query;
+      htmx.ajax(
+        "GET",
+        `/data/search_label_htmx?query=${query}`,
+        {
+          target: "#drug-label-search-results",
+          swap: "innerHTML"
+        }
+      )
+    }
+  )**/
+
+  // Need to handle 3 scenarios for HTMX drug label updates
+  // Add event listeners to all of these scenarios
+  // 1 user clicks the search button icon (.ais-SearchBox-submit) which submits a search
+  // 2 user hits enter while typing in the searchbar (.ais-SearchBox-input) which submits a search
+  // 3 user clears the search with the clear button (.ais-SearchBox-reset) which clears the search
+  //let icon = document.querySelector('.ais-SearchBox-submit');
+  //let input = document.querySelector('.ais-SearchBox-input');
+  //let reset = document.querySelector('.ais-SearchBox-reset');
+  // let searchbox = document.getElementById('searchbox');
+  // 1
+  //searchbox.addEventListener(
+  //  "submit",
+  // (e) => {
+  //    console.log(e);
+  //}
+  //)
+  //icon.addEventListener(
+  //  "click",
+  //  (e) => {
+  //   query = input.value;
+  //htmx.ajax(
+  //  "GET",
+  //  `/data/search_label_htmx?query=${query}`,
+  //  {
+  //   target: "#drug-label-search-results",
+  //   swap: "innerHTML"
+  // }
+  //)
+  //  console.log(query);
+  // }
+  // )
+  //let searchbox = document.getElementById('searchbox');
+  // searchbox.addEventListener("submit", (e) => { console.log(e); })
+
+  //form = document.querySelector('.ais-SearchBox-form');
+  //form.addEventListener("submit", (e) => { console.log(e)})
+</script>
+<script>
   /** TODO fix this seems broken
   function getUrl() {
     var url = document.URL;
@@ -111,12 +172,39 @@
   document.body.addEventListener('keyup', getUrl, true);
   document.body.addEventListener('click', shouldLabelsBeShown, true);
   **/
+  form = document.querySelector('.ais-SearchBox-form');
+  form.addEventListener("submit", (e) => {
+    console.log(`submit ${e}`)
+    query = document.querySelector('.ais-SearchBox-input').value;
+    console.log(query.value);
+    htmx.ajax(
+      "GET",
+      `/data/search_label_htmx?query=${query}`,
+      {
+        target: "#drug-label-search-results",
+        swap: "innerHTML"
+      }
+    );
+  })
+
+  form.addEventListener("reset", (e) => {
+    console.log(`reset ${e}`);
+    htmx.ajax(
+      "GET",
+      `/data/search_label_htmx?query=`,
+      {
+        target: "#drug-label-search-results",
+        swap: "innerHTML"
+      }
+    );
+  })
+
 
   function shouldLabelsBeShown() {
     var checkedBoxes = document.querySelectorAll('input[name=compare]:checked');
     var link = document.getElementById('compare-button-container');
 
-    if(checkedBoxes.length == 2 || checkedBoxes.length == 3) {
+    if (checkedBoxes.length == 2 || checkedBoxes.length == 3) {
       link.style.display = 'inline-block';
       link.style.visibility = 'visible';
     } else {
@@ -133,11 +221,11 @@
     compareUrl += 'search_text=' + searchTerm;
 
     for (i = 0; i < checkedBoxes.length; i++) {
-      if(i == 0) {
+      if (i == 0) {
         compareUrl += `&first-label=${checkedBoxes[0].value}`;
-      } else if(i == 1) {
+      } else if (i == 1) {
         compareUrl += `&second-label=${checkedBoxes[1].value}`;
-      } else if(i == 2) {
+      } else if (i == 2) {
         compareUrl += `&third-label=${checkedBoxes[2].value}`;
       }
     }
