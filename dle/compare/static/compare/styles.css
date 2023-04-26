@@ -1,11 +1,11 @@
 .row {
-    margin: 1px;
-    padding-left: 10px; 
+    margin: 2px;
+    padding-left: 12px; 
 }
 
 /* Style collapsible section button */
 .collapsible {
-    background-color:rgb(149, 210, 238);
+    background-color:  #19a2af;
     color: black;
     cursor: pointer;
     padding: 18px;
@@ -17,7 +17,7 @@
 
 /* Change background color of button when hovering over it and when clicked on */
 .active, .collapsible:hover {
-    background-color: rgb(88, 191, 239);
+    background-color:  #b0b4b4;
 }
 
 /* Style the collapsible content. Note: hidden by default */
@@ -27,13 +27,13 @@
 
 .section-table, #headerTable {
     table-layout: fixed;
-    border: 1px solid black;
+    border: 1px solid  #cfd0d0;
     border-collapse: collapse;
     width: 100%;
 }
 
 .section-td {
-    border: 3px solid black;
+    border: 2px solid  #ced0d0;
     vertical-align: top;
 }
 
@@ -45,17 +45,17 @@
 
 /* highlight red if the sections have diffs */
 .td-diff-section {
-    border:3px solid red;
+    border:3px solid rgba(243, 99, 186, 0.785);
     vertical-align: top;
 }
 
 .diff-text-highlight {
-    background-color:rgba(240, 14, 14, 0.575);
+    background-color:rgba(243, 99, 186, 0.785);
 }
 
 #sectionFilterContainer {
     margin: 10px;
 }
 #sectionFilter {
-    margin: 5px;
+    margin: 10px;
 }

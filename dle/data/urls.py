@@ -14,4 +14,6 @@ urlpatterns = [
         views.single_label_view,
         name="single_label_view",
     ),
+    path("visualizations", views.visualizations, name="dataviz"),
+    path("search_label_htmx", views.search_label_htmx, name="search_label_htmx"),
 ]
