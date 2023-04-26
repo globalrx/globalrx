@@ -12,7 +12,7 @@ repos:
     hooks:
       # args are in pyproject.toml so they can be reused by IDE, command line
       - id: black
-        language_version: python3.10
+        language_version: python3
         types: [python]
         args: [--config=dle/pyproject.toml]
         files: dle\/(compare|data|dle|search|users)

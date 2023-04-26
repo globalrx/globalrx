@@ -100,8 +100,6 @@ def es_search(request: HttpRequest) -> HttpResponse:
     else:
         my_labels = []
 
-
-
     SEARCHKIT_SERVICE = f"{reverse('api:searchkit_root')}"
     VECTORIZE_SERVICE = f"{reverse('api:vectorize')}"
 
