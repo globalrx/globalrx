@@ -94,27 +94,32 @@
                         {% if section.section_text3 %}
                         <tr>
                             <td class="section-td">
+                              <p>{{dl1.product_name|title}}</p>
                               <p>{{ section.section_text1|safe }}</p>
                             </td>
                         </tr>
                         <tr>
                             <td class="section-td">
+                              <p>{{dl2.product_name|title}}</p>
                               <p>{{ section.section_text2|safe }}</p>
                             </td>
                         </tr>
                         <tr>
                             <td class="section-td">
+                                <p>{{dl3.product_name|title}}</p>
                                 <p>{{ section.section_text3|safe }}</p>
                             </td>
                         </tr>
                           {% else %}
                         <tr>
                             <td class="section-td" style="height:50%;">
+                              <p>{{dl1.product_name|title}}</p>
                               <p>{{ section.section_text1|safe }}</p>
                             </td>
                         </tr>
                         <tr>
                             <td class="section-td" style="height:50%">
+                              <p>{{dl2.product_name|title}}</p>
                               <p>{{ section.section_text2|safe }}</p>
                             </td>
                         </tr>
