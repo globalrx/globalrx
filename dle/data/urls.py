@@ -14,4 +14,5 @@ urlpatterns = [
         views.single_label_view,
         name="single_label_view",
     ),
+    path("visualizations", views.visualizations, name="dataviz"),
 ]

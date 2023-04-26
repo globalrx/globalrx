@@ -6,6 +6,12 @@
      <div>
          <ul class="nav">
             <!--navigation tool for moving to different pages-->
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'search:index' %}">Home</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{% url 'data:dataviz' %}">Visualizations</a>
+            </li>
             {% if user.is_authenticated %}
             <li class="nav-item">
                 <a class="nav-link" href="{% url 'users:my_labels' %}"> My Labels</a>
