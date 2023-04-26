@@ -33,27 +33,44 @@ The project is containerized so that it can be run locally or deployed to a clou
 
 4. Run `docker compose up` to start the application. This will take a long time the first time. Steps that occur:
     - Builds the Django container from `Dockerfile.dev`
-        - `python:3.10.10-slim-buster` base image
+        - `python:3.11-slim-buster` base image
         - Installs some system dependencies
         - Installs Python dependencies from `requirements.txt`
-        - Does not copy the source code into the container - instead, mounts the source code as a volume so you can make changes on your local machine and have them reflected in the container
+        - Does not copy the source code into the container - instead, mounts the source code as a volume so you can make changes on your local machine and have them reflected in the container. For ECS deploys, code is copied into the container.
     - Pulls Postgres 14 image
-    - Pulls Elasticsearch 8 image and Kibana image, which are used for the `es01` (only running 1 node for now), `elastic-setup`, and `kibana` services
-    - Starts all the services, which provisions Elasticsearch and Kibana
+    - Pulls Elasticsearch 8.x (currently 8.7) image and Kibana image, which are used for the `es01` (only running 1 node for now), `elastic-setup`, and `kibana` services
+    - Starts all the services, which provisions Elasticsearch and Kibana (not with our schema yet)
     - Runs Django entrypoint script
         - Waits for Postgres connection to succeed
         - Runs Django migrations if `MIGRATE` is set to `True`
         - Collects static files if `MIGRATE` is set to `True` (possibly have another env variable for this?)
-        - Creates a superuser if `INIT_SUPERUSER` is set to `True` and `SUPERUSER_USERNAME` and `SUPERUSER_PASSWORD` are set
-        - Loads data if `LOAD` is set to `True`
-            - This step takes a long time
-            - Runs FDA (currently DailyMed, soon OpenFDA), EMA, TGA, and HC data loaders (`load_<agency>_data --type full`)
-            - Runs `update_latest_drug_labels`
-        - Potentially loads pre-computed vectors from `/app/media/<vector>.json` files, but this functionality doesn't work well because of misses on nested composite keys (`DrugLabel.source_product_number` + `dl.version_date` + `section_name`)
-        - Instead, data should get loaded from a fixture (possible RAM issue as they are big) or a PSQL dump
-        - Possibly provisions Elasticsearch with the `productsection` index and mappings
-        - Possibly loads data from Django into Elasticsearch
-        - Runs a local dev webserver, or Nginx + Gunicorn, for Django on port 8000
+        - Creates a superuser if `INIT_SUPERUSER` is set to `True` and `SUPERUSER_USERNAME` and `SUPERUSER_PASSWORD` are set. This uses a custom command so it doesn't fail if the user already exists.
+        - Loads data:
+            - There are multiple options to get data loaded. Data needs to exist both in Django and Elasticsearch; it is first loaded into Django, then indexed into Elasticsearch. Data needs to both be scraped and parsed from agency websites, XML files, or PDFs and then vectorized. The following options are mutually exclusive (no need to load data from multiple sources)
+            - Option 1: create the data yourself
+                - Set `LOAD` to `True` and `VECTORIZE` to `True`
+                - This takes the longest but generates data from scratch. Probably a couple of days total. Estimated scraping time:
+                    - EMA:
+                    - TGA:
+                    - OpenFDA:
+                    - HC:
+                - Estimated vectorization time:
+                - You can also not set `LOAD` to `True`, and instead run `load_<agency>_data` commands manually to scrape just one agency. Make sure to run `update_latest_drug_labels` as well.
+            - Option 2: load data from a fixture
+                - Set `LOAD_FIXTURES` to `True` and place the appropriate fixture files in `/app/data/fixtures`. These are in the S3 bucket.
+                - This is fairly fast and does not wipe your local database the same way that loading a `PSQL` dump does, but it does potentially use a lot of RAM. Estimated time: 
+            - Option 3: load data from a PSQL dump. This is the fastest option but it will wipe your local database.
+                - Obtain a PSQL dump from the S3 bucket and place it in `/app/media/psql.dump`
+                - Set `LOAD_PSQL_DUMP` to `True`
+                - Loads both data and vectors. Estimated time:
+        - Ingest data from Django into Elasticsearch
+            - Set `PROVISION_ES` to `True` to provision Elasticsearch with the `productsection` index and mappings
+            - Uses the mapping file at `search/mappings/provision.json` to create the index with our schema
+            - Then ingests all the agency data from Django to Elasticsearch
+            - Estimted time: 
+        - Runs a webserver for Django
+            - Set `USE_NGINX` to `True` for production deployments with Nginx + Gunicorn
+            - Otherwise uses Django's built-in `runserver` command on port `8000`
 
 5. Services:
     - Django: http://localhost:8000
@@ -63,8 +80,13 @@ The project is containerized so that it can be run locally or deployed to a clou
         - otherwise you can use `--cacert` to specify a certificate - copy it from container to your local machine with `docker cp <containerId>:/usr/share/elasticsearch/config/certs/ca/ca.crt .`)
         - or use Kibana console to interact with Elasticsearch instead
     - Kibana: http://localhost:5601
+    - Postgres: http://localhost:5432
+        - Exec into the container with `docker compose exec postgres bash`
+        - Enter the PSQL CLI with `psql -U postgres`
 
-6. Manually create Elasticsearch index and mappings
+#### Optional or manual steps
+
+- We used to manually create Elasticsearch index and mappings
     - Create ES index
         - The `elasticsearch-django` library supposedly has a CLI command to do this but I have not been able to get it to work (`python3 manage.py create_search_index <INDEX_NAME>`)
         - Instead I have been using Kibana console to create indices
@@ -145,10 +167,10 @@ The project is containerized so that it can be run locally or deployed to a clou
     - Make sure your mappings look good and the `text_embedding` mapping in particular is of type `dense_vector`
         - Run `GET /productsection/_mapping` to see your index schema
 
-7. Manually load vector data into Postgres and Elasticsearch
-    - Either create your own vectors, or download existing vector JSON from S3
-        - If using pre-computed vectors, you will need to make sure that `version_date` of those vectors matches the `version_date` of your Postgres / Django `DrugLabel` objects. You may need to use the Django ORM to modify the version date - this is at least the case for EMA labels currently. Peter's EMA fix may have resolved this but haven't tried re-ingesting EMA labels or re-creating EMA vectors after that fix.
-        - If creating vectors, check out the `docs/section_mapping/vectorize.ipynb` notebook. You should use `django_extensions` to run the notebooks with the Django context, but on your local machine rather than within Docker. YMMV but it seems that for some reason vectorization is agonizingly slow within Docker.
+- We used to more manually load vector data into Postgres and Elasticsearch
+    - Either create your own vectors, or download existing pre-computed vectors (JSON) from S3
+        - If using pre-computed vectors, you will need to make sure that `version_date` of those vectors matches the `version_date` of your Postgres / Django `DrugLabel` objects. You may need to use the Django ORM to modify the version date - this is at least the case for EMA labels currently. Peter's EMA fix may have resolved this but haven't tried re-ingesting EMA labels or re-creating EMA vectors after that fix. This is pretty brittle and didn't work well because of misses on nested composite keys (`DrugLabel.source_product_number` + `dl.version_date` + `section_name`).
+        - If creating vectors, check out the `docs/section_mapping/vectorize.ipynb` notebook. You should use `django_extensions` to run the notebooks with the Django context, but on your local machine rather than within Docker. YMMV but it seems that for some reason vectorization is agonizingly slow within Docker for Mac.
     - Place the vectors into `media` folder.
     - Exec into the Django container - from `dle`, `docker compose exec django bash`
     - Run the management command to ingest: `python3 manage.py vectorize --elasticingest True --vector_file "ema_vectors.json" --agency EMA`
@@ -173,4 +195,4 @@ The project is containerized so that it can be run locally or deployed to a clou
     
 ## Deployment
 
-### Architecture
+### AWS Architecture
