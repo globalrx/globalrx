@@ -6,6 +6,25 @@ The project is containerized so that it can be run locally or deployed to a clou
 ### Prerequisites
 - [Docker](https://docs.docker.com/get-docker/)
 
+### Commands
+Get into a docker container; replace `django` with the container name you want to access
+`docker exec -it dle-django-1 /bin/bash` or `docker compose exec django bash`
+
+PSQL CLI
+`docker compose exec postgres bash`
+From within the container, run: `psql -U postgres`
+
+Example of copying a file into a docker container. This shouldn't be necessary as we are mounting the code into the container, but it's useful to know.
+`docker cp foo.txt container_id:/foo.txt`
+
+Django shell (easily run Django ORM commands to manipulate models)
+`docker compose exec django bash`
+`python3 manage.py shell`
+
+Run a management command (e.g. `makemigrations` or `load_fda_data`):
+`docker compose exec django bash`
+`python3 manage.py makemigrations` or any management command
+
 ### Setup
 1. Clone the repository
 
