@@ -44,6 +44,8 @@ NLP_MODELS = os.path.join(BASE_DIR, "api/bert_models")
 
 API_ENDPOINT = env.str("API_ENDPOINT", "http://localhost:8000")
 
+NOMIC_KEY = env.str("NOMIC_KEY", None)
+
 # Hosts and CIDR (AWS subnets)
 try:
     ALLOWED_HOSTS = [

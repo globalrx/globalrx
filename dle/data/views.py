@@ -67,3 +67,8 @@ def single_label_view(request, drug_label_id, search_text=""):
             context["sections"].append(val)
 
     return render(request, "data/single_label.html", context)
+
+
+def visualizations(request):
+    context = {}
+    return render(request=request, template_name="data/visualizations.html", context=context)
