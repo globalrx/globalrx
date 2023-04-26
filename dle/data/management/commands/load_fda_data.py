@@ -14,6 +14,7 @@ from django.core.management.base import BaseCommand, CommandError
 from django.db.utils import IntegrityError, OperationalError
 
 import requests
+from bs4 import BeautifulSoup
 
 # from data.constants import FDA_SECTION_NAME_MAP
 from data.models import DrugLabel, LabelProduct, ParsingError, ProductSection
@@ -313,6 +314,19 @@ class Command(BaseCommand):
                     logger.warning(f"ParsingError {parsing_error} already exists")
                 continue
 
+    def get_pdf_link(self, fda_url):
+        response = requests.get(fda_url)
+        soup = BeautifulSoup(response.text, "html.parser")
+        table = soup.find("table", attrs={"summary": "Labels for the selected Application"})
+        # Get the pdf link
+        if table is None:
+            return ""
+        rows = table.findAll("tr", attrs={"class": "UnBoldText"})
+        for row in rows:
+            link = row.find("a")["href"]
+            return link
+        return ""
+
     def process_json_record(self, record, dl, insert, my_label_id=None):
         dl.source = "FDA"
         dl.product_name = record["metadata"]["brand_name"]
@@ -324,19 +338,25 @@ class Command(BaseCommand):
         if my_label_id is not None:
             dl.source_product_number = f"my_label_{my_label_id}" + dl.source_product_number
 
-        dl.link = ""
         application_num = (
             record["metadata"]["application_number"][0][4:]
             if "application_number" in record["metadata"]
             else ""
         )
+        # If there is no application number, it means it's not approved by fda
+        # Skip it
         if application_num == "":
-            dl.link = record["metadata"]["url"] if "url" in record["metadata"] else ""
-        else:
-            dl.link = f"https://www.accessdata.fda.gov/scripts/cder/daf/index.cfm?event=overview.process&varApplNo={application_num}"
+            return
+
+        fda_link = f"https://www.accessdata.fda.gov/scripts/cder/daf/index.cfm?event=overview.process&varApplNo={application_num}"
+        # Try to get the PDF label from the FDA link
+        dl.link = self.get_pdf_link(fda_link)
 
         if dl.link == "":
-            logger.info(f"No URL link for {dl.product_name}")
+            logger.info(f"No PDF link for {dl.product_name} from {fda_link}")
+            dl.link = fda_link
+        else:
+            logger.info(f"Got PDF link {dl.link} from {fda_link}")
 
         dl.raw_rext = record["Label Text"]
         lp = LabelProduct(drug_label=dl)
