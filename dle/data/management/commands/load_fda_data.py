@@ -1,10 +1,11 @@
+import datetime
+import json
 import logging
 import os
 import re
 import shutil
 import urllib.request as request
 from contextlib import closing
-from datetime import datetime, timedelta
 from distutils.util import strtobool
 from zipfile import ZipFile
 
@@ -12,14 +13,18 @@ from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
 from django.db.utils import IntegrityError, OperationalError
 
+import requests
 from bs4 import BeautifulSoup
 
-from data.constants import FDA_SECTION_NAME_MAP
-from data.models import DrugLabel, LabelProduct, ProductSection
+# from data.constants import FDA_SECTION_NAME_MAP
+from data.models import DrugLabel, LabelProduct, ParsingError, ProductSection
+from data.util import check_recently_updated, strfdelta  # PDFParseException, convert_date_string
 from users.models import MyLabel
 
 
 logger = logging.getLogger(__name__)
+
+FDA_JSON_URL = "https://api.fda.gov/download.json"
 
 
 # python manage.py load_fda_data --type test --cleanup False --insert False --count_titles True
@@ -29,19 +34,19 @@ class Command(BaseCommand):
     help = "Loads data from FDA"
     re_combine_whitespace = re.compile(r"\s+")
     re_remove_nonalpha_characters = re.compile("[^a-zA-Z ]")
+    dl_json_url = "https://api.fda.gov/download.json"
+    dl_json = json.loads(requests.get(dl_json_url).text)
+    drugs_json = dl_json["results"]["drug"]
+    labels_json = dl_json["results"]["drug"]["label"]
+    urls = [x["file"] for x in labels_json["partitions"]]
 
     def __init__(self, stdout=None, stderr=None, no_color=False, force_color=False):
-        root_logger = logging.getLogger("")
-        root_logger.setLevel(logging.INFO)
-
         self.root_dir = settings.MEDIA_ROOT / "fda"
         os.makedirs(self.root_dir, exist_ok=True)
         super().__init__(stdout, stderr, no_color, force_color)
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            "--type", type=str, help="full, monthly, test or my_label", default="monthly"
-        )
+        parser.add_argument("--type", type=str, help="full, test or my_label", default="test")
         parser.add_argument("--insert", type=strtobool, help="Set to connect to DB", default=True)
         parser.add_argument("--cleanup", type=strtobool, help="Set to cleanup files", default=False)
         parser.add_argument(
@@ -53,380 +58,339 @@ class Command(BaseCommand):
             help="output counts of the section_names",
             default=False,
         )
+        parser.add_argument(
+            "--skip_more_recent_than_n_hours",
+            type=int,
+            help="Skip re-scraping labels more recently imported than this number of hours old. Default is 168 (7 days)",
+            default=168,  # 7 days; set to 0 to re-scrape everything
+        )
+        parser.add_argument(
+            "--skip_known_errors",
+            type=strtobool,
+            help="Skip labels that have previously had parsing errors. Default is True",
+            default=True,
+        )
 
     """
     Entry point into class from command line
     """
 
     def handle(self, *args, **options):
-        import_type = options["type"]
         insert = options["insert"]
-        cleanup = options["cleanup"]
+        self.skip_labels_updated_within_span = datetime.timedelta(
+            hours=int(options["skip_more_recent_than_n_hours"])
+        )
+        self.skip_errors = options["skip_known_errors"]
+
+        import_type = options["type"]
+        if import_type not in ["full", "test"]:
+            raise CommandError("'type' parameter must be 'full' or 'test'")
+
         my_label_id = options["my_label_id"]
-        count_titles = options["count_titles"]
-        logger.debug(f"options: {options}")
 
-        # my_label type already has the xml uploaded/downloaded
-        if import_type == "my_label":
-            record_zips = []
-            xml_files = []
-        else:
-            root_zips = self.download_records(import_type)
-            record_zips = self.extract_prescription_zips(root_zips)
-            xml_files = self.extract_xmls(record_zips)
+        # basic logging config is in settings.py
+        # verbosity is 1 by default, gives critical, error and warning output
+        # `--verbosity 2` gives info output
+        # `--verbosity 3` gives debug output
+        verbosity = int(options["verbosity"])
+        root_logger = logging.getLogger("")
+        if verbosity == 2:
+            root_logger.setLevel(logging.INFO)
+        elif verbosity == 3:
+            root_logger.setLevel(logging.DEBUG)
 
-        if count_titles:
-            self.count_titles(xml_files)
-
-        self.import_records(xml_files, insert, my_label_id)
-
-        if cleanup:
-            self.cleanup(record_zips)
-            self.cleanup(xml_files)
-
-        logger.info("DONE")
-
-    # Test function for data exploration
-    def get_names(self, xml_files):
-        unapproved_count = 0
-        exception_count = 0
-        total_count = 0
-        for xml_file in xml_files:
-            total_count += 1
-            with open(xml_file) as f:
-                content = BeautifulSoup(f.read(), "lxml")
-                product_name = ""
-                generic_name = ""
-                try:
-                    product_name = content.find("subject").find("name").text.upper()
-                    generic_name = content.find("genericmedicine").find("name").text
-                    unapproved_bool = False
-                    approval = content.find("approval")
-                    if approval is not None:
-                        for code in approval.find_all("code"):
-                            if "unapproved" in code.get("displayname", "").lower():
-                                unapproved_bool = True
-                except Exception as e:
-                    print(e)
-                    exception_count += 1
-                if unapproved_bool:
-                    unapproved_count += 1
-                    print(f"{product_name:50}\t{generic_name:50}\t{str(xml_file).split('/')[-1]}")
-            if total_count % 100 == 0:
-                print(f"{unapproved_count}:{len(xml_files)}\t{exception_count}")
-
-        print(f"{unapproved_count}:{len(xml_files)}\t{exception_count}")
-
-    def download_records(self, import_type):
-        logger.info("Downloading bulk archives.")
-        file_dir = self.root_dir / import_type
-        os.makedirs(file_dir, exist_ok=True)
-        records = []
-
-        if import_type == "full":
-            for i in range(1, 6):
-                archive_url = f"ftp://public.nlm.nih.gov/nlmdata/.dailymed/dm_spl_release_human_rx_part{i}.zip"
-                records.append(self.download_single_zip(archive_url, file_dir))
-        elif import_type == "monthly":
-            now = datetime.now()
-            prev_month_lastday = now.replace(day=1) - timedelta(days=1)
-            month, year = (
-                prev_month_lastday.strftime("%b").lower(),
-                prev_month_lastday.year,
-            )
-            archive_url = f"ftp://public.nlm.nih.gov/nlmdata/.dailymed/dm_spl_monthly_update_{month}{year}.zip"
-            records.append(self.download_single_zip(archive_url, file_dir))
-        elif import_type == "test":
-            archive_url = (
-                "ftp://public.nlm.nih.gov/nlmdata/.dailymed/dm_spl_daily_update_10262021.zip"
-            )
-            records.append(self.download_single_zip(archive_url, file_dir))
-            archive_url = (
-                "ftp://public.nlm.nih.gov/nlmdata/.dailymed/dm_spl_daily_update_10182021.zip"
-            )
-            records.append(self.download_single_zip(archive_url, file_dir))
-        else:
-            raise CommandError("Type must be one of 'full', 'monthly', or 'test'")
-
-        return records
-
-    def download_single_zip(self, ftp, dest):
-        url_filename = ftp.split("/")[-1]
-        file_path = dest / url_filename
-
-        if os.path.exists(file_path):
-            logger.info(f"File already exists: {file_path}. Skipping.")
-            return file_path
-
-        # Download the drug labels archive file
-        with closing(request.urlopen(ftp)) as r:
-            with open(file_path, "wb") as f:
-                logger.info(f"Downloading {ftp} to {file_path}")
-                shutil.copyfileobj(r, f)
-        return file_path
-
-    """
-    Daily Med will package it's bulk and monthly into groups of zips. This step is neccesary to
-    extract individual drug label zips from the bulk archive.
-    """
-
-    def extract_prescription_zips(self, zips):
-        logger.info("Extracting prescription Archives")
+        dl_json = json.loads(requests.get(FDA_JSON_URL).text)
+        labels_json = dl_json["results"]["drug"]["label"]
+        urls = [x["file"] for x in labels_json["partitions"]]
+        json_zips = self.download_json(urls)
+        self.extract_json_zips(json_zips)
         file_dir = self.root_dir / "record_zips"
-        os.makedirs(file_dir, exist_ok=True)
-        record_zips = []
 
-        for zip_file in zips:
-            with ZipFile(zip_file, "r") as zip_file_object:
-                for file_info in zip_file_object.infolist():
-                    if file_info.filename.startswith(
-                        "prescription"
-                    ) and file_info.filename.endswith(".zip"):
-                        outfile = file_dir / os.path.basename(file_info.filename)
-                        file_info.filename = os.path.basename(file_info.filename)
-                        if os.path.exists(outfile):
-                            logger.info(f"Record Zip already exists: {outfile}. Skipping.")
-                        else:
-                            logger.info(f"Creating Record Zip {outfile}")
-                            zip_file_object.extract(file_info, file_dir)
-                        record_zips.append(outfile)
-        return record_zips
-
-    def extract_xmls(self, zips):
-        logger.info("Extracting XMLs")
-        file_dir = self.root_dir / "xmls"
-        os.makedirs(file_dir, exist_ok=True)
-        xml_files = []
-
-        for zip_file in zips:
-            with ZipFile(zip_file, "r") as zip_file_object:
-                for file in zip_file_object.namelist():
-                    if file.endswith(".xml"):
-                        outfile = file_dir / file
-                        if os.path.exists(outfile):
-                            logger.info(f"XML already exists: {outfile}. Skipping.")
-                        else:
-                            logger.info(f"Creating XML {outfile}")
-                            zip_file_object.extract(file, file_dir)
-                        xml_files.append(outfile)
-        return xml_files
-
-    def count_titles(self, xml_records):
-        titles = []
-        for xml_file in xml_records:
-            try:
-                with open(xml_file) as f:
-                    content = BeautifulSoup(f.read(), "lxml")
-
-                    for section in content.find_all("component"):
-                        # the structuredbody component is the parent that contains everything, skip it
-                        structured_body = section.find_next("structuredbody")
-                        if structured_body is not None:
-                            logger.debug("SKIPPING: structuredbody")
-                            continue
-
-                        code = section.find("code", attrs={"codesystem": "2.16.840.1.113883.6.1"})
-                        if code is None:
-                            continue
-                        title = str(code.get("displayname")).upper()
-                        if title == "SPL UNCLASSIFIED SECTION":
-                            try:
-                                title = code.find_next_sibling().get_text(strip=True)
-                                logger.debug(f"UNCLASSIFIED title: {title}")
-                            except AttributeError:
-                                pass
-                        title = self.re_combine_whitespace.sub(" ", title).strip()
-                        title = self.re_remove_nonalpha_characters.sub("", title)
-                        title = self.re_combine_whitespace.sub(" ", title).strip()
-
-                        titles.append(title)
-            except Exception as e:
-                logger.error("Error")
-                raise e
-
-        import collections
-
-        counter = collections.Counter(titles)
-        logger.info(counter.most_common(10))
-        import csv
-
-        with open("top_displaynames.csv", "w") as csvfile:
-            csvwriter = csv.writer(csvfile)
-            csvwriter.writerow(["displayname", "count"])
-            csvwriter.writerows(counter.most_common(3000))
-
-    def import_records(self, xml_records, insert, my_label_id):
-        logger.info("Building Drug Label DB records from XMLs")
-
-        if len(xml_records) == 0 and my_label_id is not None:
+        if import_type == "my_label":
             logger.info(f"processing my_label_id: {my_label_id}")
             ml = MyLabel.objects.filter(pk=my_label_id).get()
-            xml_file = ml.file.path
-            dl = ml.drug_label
-            self.process_xml_file(xml_file, insert, dl, my_label_id)
-            # TODO better way to know if the process_xml_file was successful
+            json_file = ml.file.path
+            with open(json_file, encoding="utf-8-sig") as f:
+                raw_json_result = json.load(f)
+                logger.info(f"start loading json {json_file}")
+            raw_json_result = raw_json_result["results"]
+            self.import_records(raw_json_result, insert, my_label_id)
             ml.is_successfully_parsed = True
             ml.save()
         else:
-            for xml_file in xml_records:
-                try:
-                    dl = DrugLabel()
-                    self.process_xml_file(xml_file, insert, dl, my_label_id)
-                except Exception as e:
-                    logger.error(f"Could not parse {xml_file}")
-                    logger.error(str(e))
-                    continue
+            # Iterate the json files in the directory one by one
+            for file in os.listdir(file_dir):
+                json_file = file_dir / file
+                raw_json_result = None
+                with open(json_file, encoding="utf-8-sig") as f:
+                    raw_json_result = json.load(f)
+                    logger.info(f"start loading json {json_file}")
+                raw_json_result = raw_json_result["results"]
+                logger.info(f"Finished loading {json_file}")
+                filtered_records = self.filter_data(raw_json_result)
+                self.import_records(filtered_records, insert, my_label_id)
+                # For testing, only parse one json then break out
+                if import_type == "test":
+                    break
 
-    def process_xml_file(self, xml_file, insert, dl, my_label_id=None):
-        logger.debug(f"insert: {insert}")
-        with open(xml_file) as f:
-            content = BeautifulSoup(f.read(), "lxml")
+        cleanup = options["cleanup"]
+        logger.debug(f"options: {options}")
 
-            # Skip unapproved drug labels
-            if self.check_if_unapproved(content):
-                logger.info(f"Skipping {xml_file} because it is not approved")
-                return
+        if cleanup:
+            self.cleanup(self.root_dir / "json_zip")
+            self.cleanup(self.root_dir / "record_zips")
 
-            dl.source = "FDA"
-            dl.product_name = content.find("subject").find("name").text.title()
-            try:
-                generic_name = content.find("genericmedicine").find("name").text
-            except AttributeError:
-                # don't insert record if we cannot find this
-                logger.error("unable to find generic_name")
-                return
-            dl.generic_name = generic_name[:255].title()
+        logger.info("DONE")
 
-            try:
-                dl.version_date = datetime.strptime(
-                    content.find("effectivetime").get("value"), "%Y%m%d"
-                )
-            except ValueError:
-                dl.version_date = datetime.now()
+    def download_json(self, urls):
+        logger.info("Downloading bulk archives.")
+        file_dir = self.root_dir / "json_zip"
+        os.makedirs(file_dir, exist_ok=True)
+        records = []
+        for url in urls:
+            records.append(self.download_single_json(url, file_dir))
+        return records
 
-            try:
-                dl.marketer = content.find("author").find("name").text.title()
-            except AttributeError:
-                dl.marketer = ""
+    def download_single_json(self, url, dest):
+        url_filename = url.split("/")[-1]
+        file_path = dest / url_filename
+        if os.path.exists(file_path):
+            logger.info(f"File already exists: {file_path}. Skipping.")
+            return file_path
+        # Download the drug labels archive file
+        with closing(request.urlopen(url)) as r:
+            with open(file_path, "wb") as f:
+                logger.info(f"Downloading {url} to {file_path}")
+                shutil.copyfileobj(r, f)
+        return file_path
 
-            # Ensure always selecting the same ndc code if multiple
-            ndc_codes = [
-                ndc_code.get("code")
-                for ndc_code in content.find_all(
-                    "code", attrs={"codesystem": "2.16.840.1.113883.6.69"}
-                )
-            ]
-            dl.source_product_number = sorted(ndc_codes)[0]
-
-            if my_label_id is not None:
-                dl.source_product_number = f"my_label_{my_label_id}" + dl.source_product_number
-
-            # texts = [p.text for p in content.find_all("paragraph")]
-            # dl.raw_text = "\n".join(texts)
-            dl.raw_rext = ""
-
-            lp = LabelProduct(drug_label=dl)
-
-            root = content.find("setid").get("root")
-            dl.link = f"https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid={root}"
-
-            try:
-                if insert:
-                    dl.save()
-                    logger.info(f"Saving new drug label: {dl}")
-            except IntegrityError as e:
-                logger.error(str(e))
-                return
-
-            try:
-                if insert:
-                    lp.save()
-                    logger.info("Saving new label product")
-            except IntegrityError as e:
-                logger.error(str(e))
-                return
-
-            # In the following section we will build the different sections. We do this by matching XML components
-            # to predetermined FDA_SECTION_NAMES, and for components that do not match, we add them to an "OTHER"
-            # category
-            section_map = {}
-            for section in content.find_all("component"):
-                # the structuredbody component is the parent that contains everything, skip it
-                structured_body = section.find_next("structuredbody")
-                if structured_body is not None:
-                    logger.debug("SKIPPING: structuredbody")
-                    continue
-                logger.debug(f"section: {repr(section)}")
-
-                code = section.find("code", attrs={"codesystem": "2.16.840.1.113883.6.1"})
-                if code is None:
-                    continue
-
-                title = str(code.get("displayname")).upper()
-                logger.debug(f"title: {title}")
-
-                if title == "SPL UNCLASSIFIED SECTION":
-                    try:
-                        title = code.find_next_sibling().get_text(strip=True)
-                        logger.debug(f"UNCLASSIFIED title: {title}")
-                    except AttributeError:
-                        pass
-
-                title = self.re_combine_whitespace.sub(" ", title).strip()
-                title = self.re_remove_nonalpha_characters.sub("", title)
-                title = self.re_combine_whitespace.sub(" ", title).strip()
-
-                if title not in FDA_SECTION_NAME_MAP.keys():
-                    section_name = "OTHER"
-                else:
-                    section_name = FDA_SECTION_NAME_MAP[title]
-
-                # Now that we have determined what section, grab all the text in the component and add it as the
-                # value to a corresponding hashmap. If a value already exists, add it to the end
-                raw_section_texts = [str(p) for p in section.find_all("text")]
-                section_texts = "<br>".join(raw_section_texts)
-                logger.debug(f"section_texts: {section_texts}")
-
-                # Save other titles in section text
-                if section_name == "OTHER":
-                    section_texts = title + "<br>" + section_texts
-
-                # Save to keyed section of map, concatenating repeat sections
-                if section_map.get(section_name) is None:
-                    section_map[section_name] = section_texts
-                else:
-                    if section_name != "OTHER":
-                        logger.debug(f"Found another section: {section_name}\twith title\t{title}")
-                    section_map[section_name] = (
-                        section_map[section_name] + f"<br>{title}<br>" + section_texts
-                    )
-
-            # Now that the sections have been parsed, save them
-            for section_name, section_text in section_map.items():
-                ps = ProductSection(
-                    label_product=lp,
-                    section_name=section_name.title(),
-                    section_text=section_text,
-                )
-                try:
-                    if insert:
-                        ps.save()
-                        logger.debug(f"Saving new product section {ps}")
-                except IntegrityError as e:
-                    logger.error(str(e))
-                except OperationalError as e:
-                    logger.error(str(e))
-
-    def check_if_unapproved(self, content):
+    def extract_json_zips(self, zips):
+        logger.info("Extracting json zips")
+        file_dir = self.root_dir / "record_zips"
+        os.makedirs(file_dir, exist_ok=True)
         try:
-            approval = content.find("approval")
-            if approval is not None:
-                for code in approval.find_all("code"):
-                    if "unapproved" in code.get("displayname", "").lower():
-                        return True  # It is unapproved
+            for zip_file in zips:
+                with ZipFile(zip_file, "r") as zf:
+                    for zobj in zf.infolist():
+                        if os.path.exists(file_dir / zobj.filename):
+                            logger.info(f"Already extracted file {zobj.filename}")
+                        else:
+                            zf.extract(zobj, file_dir)
+                            logger.info(f"Extracted file {zobj.filename}")
         except Exception as e:
-            logger.warning(e)
-        return False  # Otherwise assume it is approved
+            logger.error("Failed while extracting json zips")
+            logger.error(str(e))
+            raise
+
+    def filter_data(self, raw_json_result):
+        results_by_type = {}
+        for res in raw_json_result:
+            product_type = self.check_type(res)
+            if product_type not in results_by_type.keys():
+                results_by_type[product_type] = [res]
+            else:
+                results_by_type[product_type].append(res)
+        # We only care about the prescription drugs
+        drugs_ref = results_by_type["human_prescription_drug"]
+        drugs = []
+        for dg in drugs_ref:
+            if "is_original_packager" in dg["openfda"].keys():
+                drugs.append(dg)
+
+        errors = []
+        records = {}
+        # restructure to match ema format
+        for drug in drugs:
+            try:
+                info = {}
+                info["metadata"] = drug["openfda"]
+                info["metadata"]["effective_time"] = drug["effective_time"]
+
+                label_text = {}
+                for key, val in drug.items():
+                    # for my purposes I didn't need tables (mostly html formatting)
+                    if (type(val) == list) and ("table" not in key):
+                        label_text[key] = list(set(val))  # de-duplicate contents
+                info["Label Text"] = label_text
+                records[drug["id"]] = info
+            except:
+                # TODO raise and capture an Exception, save ParsingError to DB
+                errors += [drug]
+        return records
+
+    def check_type(self, res):
+        if "product_type" not in res["openfda"].keys():
+            return "uncategorized_drug"
+        pt = res["openfda"]["product_type"]
+        if type(pt) == float:
+            return "uncategorized_drug"
+        if type(pt) == list:
+            assert len(pt) == 1
+            return pt[0].lower().replace(" ", "_")
+        else:
+            logger.info(f"Problem determining type: {pt}")
+
+    def import_records(self, filtered_records, insert, my_label_id=None):
+        logger.info("Building Drug Label DB records from JSON")
+        for key in filtered_records:
+            # If this is a known error, skip it
+            # Get a UUID from the JSON file
+            record = filtered_records[key]
+            try:
+                source_product_number = (
+                    record["metadata"]["product_ndc"]
+                    if "product_ndc" in record["metadata"]
+                    else None
+                )
+                if my_label_id is not None and source_product_number is not None:
+                    source_product_number = f"my_label_{my_label_id}" + source_product_number
+
+                if self.skip_errors:
+                    existing_errors = ParsingError.objects.filter(
+                        source="FDA", source_product_number=source_product_number
+                    )
+                    if existing_errors.count() >= 1:
+                        logger.warning(
+                            self.style.WARNING(
+                                f"Label skipped. Known error(s): {existing_errors[0]}."
+                            )
+                        )
+                        continue
+            except Exception as e:
+                logger.error(str(e))
+                continue
+
+            # If it has been recently imported, skip it
+            existing_labels = DrugLabel.objects.filter(
+                source="FDA", source_product_number=source_product_number
+            ).order_by("-updated_at")
+            if existing_labels.count() >= 1:
+                existing_label = existing_labels[0]
+                if check_recently_updated(
+                    dl=existing_label, skip_timeframe=self.skip_labels_updated_within_span
+                ):
+                    last_updated_ago = (
+                        datetime.datetime.now(datetime.timezone.utc) - existing_label.updated_at
+                    )
+                    logger.warning(
+                        self.style.WARNING(
+                            f"Label skipped. Updated {strfdelta(last_updated_ago)} ago, less than {self.skip_labels_updated_within_span}"
+                        )
+                    )
+                    continue
+
+            # Otherwise, continue
+            try:
+                if my_label_id is not None:
+                    ml = MyLabel.objects.filter(pk=my_label_id).get()
+                    dl = ml.drug_label
+                else:
+                    dl = DrugLabel()
+
+                self.process_json_record(record, dl, insert, my_label_id)
+            # TODO handle more specific exceptions
+            except Exception as e:
+                logger.error(f"Could not parse record {key}")
+                logger.error(str(e))
+                application_num = (
+                    record["metadata"]["application_number"][0][4:]
+                    if "application_number" in record["metadata"]
+                    else None
+                )
+                if application_num:
+                    url = record["metadata"]["url"] if "url" in record["metadata"] else None
+                else:
+                    url = ""
+                parsing_error, created = ParsingError.objects.get_or_create(
+                    source="FDA",
+                    source_product_number=source_product_number,
+                    message=str(e),
+                    url=url,
+                    error_type="data_error",
+                )
+                if created:
+                    logger.warning(f"Created new parsing error for {parsing_error}")
+                else:
+                    logger.warning(f"ParsingError {parsing_error} already exists")
+                continue
+
+    def get_pdf_link(self, fda_url):
+        response = requests.get(fda_url)
+        soup = BeautifulSoup(response.text, "html.parser")
+        table = soup.find("table", attrs={"summary": "Labels for the selected Application"})
+        # Get the pdf link
+        if table is None:
+            return ""
+        rows = table.findAll("tr", attrs={"class": "UnBoldText"})
+        for row in rows:
+            link = row.find("a")["href"]
+            return link
+        return ""
+
+    def process_json_record(self, record, dl, insert, my_label_id=None):
+        dl.source = "FDA"
+        dl.product_name = record["metadata"]["brand_name"]
+        dl.generic_name = record["metadata"]["generic_name"]
+        dl.version_date = datetime.datetime.strptime(record["metadata"]["effective_time"], "%Y%m%d")
+        dl.marketer = record["metadata"]["manufacturer_name"]
+        # TODO: What does it mean when there are more than one product numbers?
+        dl.source_product_number = record["metadata"]["product_ndc"][0]
+        if my_label_id is not None:
+            dl.source_product_number = f"my_label_{my_label_id}" + dl.source_product_number
+
+        application_num = (
+            record["metadata"]["application_number"][0][4:]
+            if "application_number" in record["metadata"]
+            else ""
+        )
+        # If there is no application number, it means it's not approved by fda
+        # Skip it
+        if application_num == "":
+            return
+
+        fda_link = f"https://www.accessdata.fda.gov/scripts/cder/daf/index.cfm?event=overview.process&varApplNo={application_num}"
+        # Try to get the PDF label from the FDA link
+        dl.link = self.get_pdf_link(fda_link)
+
+        if dl.link == "":
+            logger.info(f"No PDF link for {dl.product_name} from {fda_link}")
+            dl.link = fda_link
+        else:
+            logger.info(f"Got PDF link {dl.link} from {fda_link}")
+
+        dl.raw_rext = record["Label Text"]
+        lp = LabelProduct(drug_label=dl)
+        try:
+            if insert:
+                dl.save()
+                logger.info(f"Saving new drug label: {dl}")
+        except IntegrityError as e:
+            logger.error(str(e))
+            return
+        try:
+            if insert:
+                lp.save()
+                logger.info("Saving new label product")
+        except IntegrityError as e:
+            logger.error(str(e))
+            return
+
+        # Now parse the section text
+        for key, value in record["Label Text"].items():
+            logger.info(f"Section found: {key}")
+            ps = ProductSection(
+                label_product=lp,
+                section_name=key,
+                section_text=value,
+            )
+            try:
+                if insert:
+                    ps.save()
+                    logger.debug(f"Saving new product section {ps}")
+            except IntegrityError as e:
+                logger.error(str(e))
+            except OperationalError as e:
+                logger.error(str(e))
 
     def cleanup(self, files):
         for file in files:

@@ -125,9 +125,6 @@ ul.nav li {
     margin-right: 1rem;
   }
 
-  /* hide compare labels form by default */
-  #compare-button-container {
+  .ais-Hits-item:empty{ 
     display: none;
-    color:  #19a2af;
-    font-size: medium;
   }
