@@ -7,7 +7,7 @@
 <!-- If using Searchkit local build ...
   <script type="text/javascript" src="{% static 'search/searchkit-dev/index.global.js' %}"></script>
 -->
-<script src="https://cdn.jsdelivr.net/npm/searchkit@4.6/dist/umd/index.global.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/searchkit@4.7/dist/umd/index.global.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7/themes/algolia-min.css"/>
 <script src="https://cdn.jsdelivr.net/npm/@algolia/autocomplete-js"></script>
 <script>
@@ -79,6 +79,10 @@
           <div id="searchbox" class="ais-SearchBox col-lg"></div>
         </div>
       </div>
+      
+      <div id="drug-label-search-results">
+        {% include "data/_label_search_results.html" %}
+      </div>
       <div id="hits"></div>
       <div id="pagination"></div>
     </div>
@@ -97,7 +101,7 @@
 </script>
 <script type="module" src="{% static 'search/es_search.js' %}"></script>
 <script>
-  /** TODO fix this seems broken **/
+  /** TODO fix this seems broken
   function getUrl() {
     var url = document.URL;
     document.getElementById("id_url").value = url;
@@ -106,6 +110,7 @@
   document.body.addEventListener('click', getUrl, true); 
   document.body.addEventListener('keyup', getUrl, true);
   document.body.addEventListener('click', shouldLabelsBeShown, true);
+  **/
 
   function shouldLabelsBeShown() {
     var checkedBoxes = document.querySelectorAll('input[name=compare]:checked');

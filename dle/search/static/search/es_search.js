@@ -5,6 +5,7 @@
 
 var globalSearchTerm = '';
 var queryType = 'match'; // knn, simpleQueryString, match
+var htmx_setup = false;
 
 const sk = new Searchkit({
     connection: {
@@ -90,7 +91,21 @@ async function vectorizeText(query) {
 }
 
 const client = SearchkitInstantsearchClient(sk, {
-    getQuery: (query, search_attributes) => {
+    // // getKnnQuery: (query, search_attributes, config) => {
+    // getKnnQuery: async (query, search_attributes, config) => {
+    //     console.log(`getKnnQuery: ${query}`);
+    //     console.log(search_attributes);
+    //     let vectorizationRes = await vectorizeText(query);
+    //     console.log(vectorizationRes);
+
+    //     return {
+    //         field: "text_embedding",
+    //         query_vector: vectorizationRes.vector,
+    //         k: 10,
+    //         num_candidates: 100
+    //     }
+    //   },
+      getQuery: (query, search_attributes) => {
         if(queryType == 'simpleQueryString'){
             console.log(`getQuery - simpleQueryString - ${query}`);
             console.log(search_attributes);
@@ -112,8 +127,15 @@ const client = SearchkitInstantsearchClient(sk, {
                     
                 }
             ]
+        } else if (queryType=='knn'){
+            console.log(`getQuery - knn - ${query}`);
+            // return [
+            //     {
+            //         match_all: {}
+            //     }
+            // ]
+            return false
         }
-
     },
     hooks: {
         beforeSearch: async (searchRequests) => {
@@ -125,23 +147,41 @@ const client = SearchkitInstantsearchClient(sk, {
                 return searchRequests;
             }
 
-      const vectorizationRes = await vectorizeText(query);
-      return searchRequests.map((sr) => {
-        return {
-          ...sr,
-          body: {
-            ...sr.body,
-            knn: {
-              "field": "text_embedding",
-              "query_vector": vectorizationRes.vector,
-              "k": 10,
-              "num_candidates": 100
+            const vectorizationRes = await vectorizeText(query);
+            return searchRequests.map((sr) => {
+                return {
+                    ...sr,
+                    body: {
+                        ...sr.body,
+                        knn: {
+                            "field": "text_embedding",
+                            "query_vector": vectorizationRes.vector,
+                            "k": 10,
+                            "num_candidates": 100
+                        }
+                    }
+                }
+            })
+        },
+        afterSearch: (searchRequests, searchResponses) => {
+            console.log(`afterSearch: ${searchResponses}`)
+            // On first search, set up HTMX; have to add the attributes here rather than during page load
+            // as the searchbar is created by SearchKit
+            if(!htmx_setup){
+                let search_button = document.querySelector(".ais-SearchBox-submit");
+                let searchbar = document.querySelector(".ais-SearchBox-input");
+                searchbar.setAttribute("name", "ais-SearchBox-input");
+                search_button.setAttribute("hx-get", "/data/search_label_htmx");
+                search_button.setAttribute("hx-trigger", "click");
+                search_button.setAttribute("hx-target", "#drug-label-search-results");
+                search_button.setAttribute("hx-swap", "innerHTML");
+                search_button.setAttribute("hx-include", "[name='ais-SearchBox-input']");
+                htmx.process(document.body);
+                htmx_setup = true;
             }
-          }
+            return searchResponses;
         }
-      })
     }
-  }
 })
 
 const search = instantsearch({
@@ -160,7 +200,17 @@ search.addWidgets([
         searchAsYouType: false,
         showReset: true,
         showSubmit: true,
-        showLoadingIndicator: true
+        showLoadingIndicator: true,
+        placeholder: "cancer",
+        // templates: {
+        //     submit({ cssClasses }, { html }) {
+        //         return html`<svg class="ais-SearchBox-submitIcon" 
+        //         width="10" height="10" viewBox="0 0 40 40" aria-hidden="true"
+        //         hx-get="/data/search_label_htmx" hx-trigger="click" hx-target="#drug-label-search-results" hx-swap="innerHTML">
+        //         <path d="M26.804 29.01c-2.832 2.34-6.465 3.746-10.426 3.746C7.333 32.756 0 25.424 0 16.378 0 7.333 7.333 0 16.378 0c9.046 0 16.378 7.333 16.378 16.378 0 3.96-1.406 7.594-3.746 10.426l10.534 10.534c.607.607.61 1.59-.004 2.202-.61.61-1.597.61-2.202.004L26.804 29.01zm-10.426.627c7.323 0 13.26-5.936 13.26-13.26 0-7.32-5.937-13.257-13.26-13.257C9.056 3.12 3.12 9.056 3.12 16.378c0 7.323 5.936 13.26 13.258 13.26z"></path>
+        //         </svg>`;
+        //     },
+        // },
     }),
     instantsearch.widgets.currentRefinements({
         container: "#current-refinements"
@@ -253,11 +303,11 @@ search.addWidgets([
       value: 30
     },
     {
-      label: '30 hits per page',
+      label: '50 hits per page',
       value: 50
     },
     {
-      label: '50 hits per page',
+      label: '100 hits per page',
       value: 100
     }
     ],
