@@ -16,7 +16,7 @@ sed '/DATABASE.*/d' -i .env
 sed '/PROVISION_ES.*/d' -i .env
 sed '/ELASTICSEARCH_URL.*/d' -i .env
 
-sed '//d' -i 
+sed '/.*ca_certs.*/d' -i dle/settings.py
 sed '/.*ssl.TLSVersion.TLSv1_2.*/d' -i dle/settings.py
 
 
