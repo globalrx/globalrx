@@ -1,12 +1,10 @@
 {% for dl in labels %}
-    <div class="drug-label">
-        <h2>{{ dl.product_name }}</h2>
-        <h3>{{ dl.generic_name}}</h3>
-        <p>{{ dl.source_product_number }}</p>
-        <p>{{ dl.label_source }}</p>
-        <p>{{ dl.marketer }}</p>
-        <p>{{ dl.link }}</p>
-        <p>{{ dl.version_date }}</p>
-        <p>{{ dl.updated_at }}</p>
-    </div>
+    {% if forloop.counter0 == 0 %}
+        <div class="drug-label">
+            <h2>{{ dl.product_name }}</h2>
+    {% endif %}
+    <p><a href="../data/single_label_view/{{ dl.id }}">{{dl.product_name}} <i>{{dl.source}}</i> {{dl.version_date}} <i>{{dl.marketer}}</i></a></p>
+    {% if forloop.last %}
+        </div>
+    {% endif %}
 {% endfor %}
