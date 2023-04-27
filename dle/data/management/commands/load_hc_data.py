@@ -136,9 +136,9 @@ class Command(BaseCommand):
                     by=By.XPATH,
                     value="/html/body/main/div[1]/div[1]/div[3]/form/fieldset[3]/div[1]/div/select/option[1]",
                 )
-                ActionChains(self.driver).key_down(Keys.CONTROL).click(select_all_status_field).key_up(
-                    Keys.CONTROL
-                ).perform()
+                ActionChains(self.driver).key_down(Keys.CONTROL).click(
+                    select_all_status_field
+                ).key_up(Keys.CONTROL).perform()
 
                 # Click the human field
                 human_class_field = self.driver.find_element(
@@ -151,13 +151,14 @@ class Command(BaseCommand):
                     by=By.XPATH,
                     value="/html/body/main/div[1]/div[1]/div[3]/form/fieldset[3]/div[7]/div/select/option[1]",
                 )
-                ActionChains(self.driver).key_down(Keys.CONTROL).click(select_all_class_field).key_up(
-                    Keys.CONTROL
-                ).perform()
+                ActionChains(self.driver).key_down(Keys.CONTROL).click(
+                    select_all_class_field
+                ).key_up(Keys.CONTROL).perform()
 
                 # Click the search button
                 search_button = self.driver.find_element(
-                    by=By.XPATH, value="/html/body/main/div[1]/div[1]/div[3]/form/div[1]/div/input[1]"
+                    by=By.XPATH,
+                    value="/html/body/main/div[1]/div[1]/div[3]/form/div[1]/div/input[1]",
                 )
                 search_button.click()
 
@@ -174,7 +175,7 @@ class Command(BaseCommand):
                 break
             except Exception as e:
                 logger.error(self.style.ERROR(repr(e)))
-                logger.error(f"Failed to get HC result. Retrying")
+                logger.error("Failed to get HC result. Retrying")
 
         if import_type == "test":
             # Test with the first 25 results
