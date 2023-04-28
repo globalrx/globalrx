@@ -79,6 +79,11 @@ if [[ ($PROVISION_ES) && ("$PROVISION_ES" = "True")]]; then
   echo "Finished provisioning Elasticsearch"
 fi
 
+# Update labels weekly
+if [[ ($UPDATE_WEEKLY) && ("$UPDATE_WEEKLY" = "True") ]]; then
+  crontab ./update_database-cron
+  cron
+fi
 
 # In production, use Gunicorn + Nginx
 # TODO maybe reverse this so if nothing is passed the default is Nginx?

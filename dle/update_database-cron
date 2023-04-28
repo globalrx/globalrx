@@ -1,0 +1,1 @@
+0 0 * * 0 /bin/sh /app/update_database.sh > /var/log/cron.log 2>&1
