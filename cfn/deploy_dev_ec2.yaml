@@ -1,0 +1,148 @@
+Parameters:
+  InstanceTypeParameter:
+    Type: String
+    Default: "m6i.large"
+    AllowedValues:
+      - t2.micro
+      - m5.small
+      - m6i.large
+    Description: Default is t2.micro.
+  KeyIDParameter:
+    Type: String
+    Default: "globalrx_sshkey2"
+  NameParameter:
+    Type: String
+    Default: "CFN_TEST"
+    Description: Value for Name Tag
+  EmailParameter:
+    Type: String
+    Default: "aeg224@g.harvard.edu"
+    Description: email for django admin user
+
+
+  VPCParameter:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /vpc_id
+
+  S3Name:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /cfn_bucket
+
+  ImageIDParameter:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /ami_id
+
+  DBEndpointParameter:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /rds_endpoint
+
+  subnet1:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /public_subnet_1
+
+
+  PublicKeyMaterialParameter:
+    Type: String
+    Default: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQDel37v9xkR2BF6xyaXvSylZ7ZL5nUDynVaPPxXt7JTPVj3AMp6BWx/+YJh75lorOx+rsJJo8uwq67bnfV/BBPkRyvXDU68U2BSmg7YOxDYJH4d6tizQV3NKD0v3NSYdQYk11GJx1HOe/5Ye7YujTaF7bwoDXu45vrE2HzMZLTdDveeMl5866Q78GMOZLTvw9okjT1d/THHmXEwzAftnwir1PuEtEvrQ6QZ0iVO0hDAbSbXYeZl1g/G1qi+Z0AI+aeyshZQFzhYdWA2M5tSNe71RlVw6reBdQ+mP4vQyPI72GxWpTU8mQ65PoB/EEayaF+bQUewaC7lQ1LyygVZbS68KFbUjD03y5DMcdyWXRIjTYGaB0oB1zzQ9A6eGuEmPw4lFTkKRllfRXmAj81E9lp0Ge+eSKmRuuahckvFtDnFD2tSVvVSXnKg/WivNDyVOYVzTPEePdnCFw4EYcwB1anKnBX/0RbfBzq3Cx7S3fVYcJIEwJ66jVKeuQEpHzO9qz0="
+    Description: public key material for ec2
+
+Resources:
+  globalRxKey:
+    Type: AWS::EC2::KeyPair
+    Properties: 
+      KeyName: !Ref KeyIDParameter
+      PublicKeyMaterial: !Ref PublicKeyMaterialParameter
+      Tags:
+        - Key: Name
+          Value: globalRx1
+
+  globalRxEc2:
+    Type: AWS::EC2::Instance
+    DependsOn: globalRxKey
+    Properties:
+      ImageId: !Ref ImageIDParameter
+      InstanceType: !Ref InstanceTypeParameter
+      IamInstanceProfile: "globalRX"
+      KeyName: !Ref KeyIDParameter
+      SubnetId: !Ref subnet1
+      BlockDeviceMappings: 
+        - DeviceName: "/dev/xvda"
+          Ebs: 
+            DeleteOnTermination: True
+            VolumeSize: 100
+            VolumeType: gp3
+      SecurityGroupIds:
+        - !GetAtt "globalRxSecGroupdev.GroupId"
+      Tags:
+        - Key: Name
+          Value: !Ref NameParameter
+      UserData:
+        Fn::Base64: 
+          !Sub |
+            #!/bin/bash
+            yum update -y
+            yum install docker -y
+            systemctl enable docker
+            systemctl start docker
+            yum install git -y
+            curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
+            chmod +x /usr/local/bin/docker-compose
+
+            cd /home/ec2-user
+            git clone https://github.com/searchrx/searchrx.git
+            cd /home/ec2-user/searchrx/dle
+
+            cd /home/ec2-user
+            echo "#!/bin/sh" > start_elastic_script.sh
+            echo "cd /home/ec2-user/searchrx/dle" >> start_elastic_script.sh
+            echo "/usr/local/bin/docker-compose -f elastic-http-deploy.yaml up" >> start_elastic_script.sh
+            chmod 755 start_elastic_script.sh
+            nohup ./start_elastic_script.sh > output &
+
+
+  globalRxSecGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: Open 22 and 8000
+      VpcId: !Ref VPCParameter
+      SecurityGroupIngress:
+          - IpProtocol: tcp
+            FromPort: '22'
+            ToPort: '22'
+            CidrIp: 0.0.0.0/0 
+      SecurityGroupIngress:
+          - IpProtocol: tcp
+            FromPort: '8000'
+            ToPort: '8000'
+            CidrIp: 0.0.0.0/0 
+
+
+
+  globalRxRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+      ManagedPolicyArns: 
+        - arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess
+  GlobalRXProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: "/"
+      InstanceProfileName: globalRX
+      Roles:
+      - !Ref globalRxRole
+
+Outputs:
+  EC2_ID:
+    Description: A reference to the created VPC
+    Value: !Ref globalRxEc2

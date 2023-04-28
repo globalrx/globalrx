@@ -1,0 +1,16 @@
+Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+Properties: 
+  IpAddressType: ipv4
+  LoadBalancerAttributes: 
+    - LoadBalancerAttribute
+  Name: String
+  Scheme: String
+  SecurityGroups: 
+    - String
+  SubnetMappings: 
+    - SubnetMapping
+  Subnets: 
+    - String
+  Tags: 
+    - Tag
+  Type: String

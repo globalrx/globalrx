@@ -1,0 +1,204 @@
+
+name: infra deploy
+on:
+  push:
+    branches: 
+      - main
+    path:
+      - cfn/*
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: pull repo
+        uses: actions/checkout@v3
+ 
+      - name: Configure AWS credentials
+        id: creds
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+        continue-on-error: true
+
+      - name: Set Latest Amazon Linux AMI in SSM Parameter Store
+        run: |
+          AMI_ID=`aws ssm get-parameters --names /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2 --region us-east-1 | jq -r '.Parameters[0].Value'`
+          aws ssm put-parameter --name "ami_id" --type "String" --value $AMI_ID --overwrite
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: 'us-east-1'
+        continue-on-error: true
+
+      - name: get s3 name
+        run: |
+              BUCKET_NAME=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-s3 --query "Stacks[0].Outputs[0].OutputValue"`
+              if [[ -n "$BUCKET_NAME" ]]
+              then
+                 echo "BUCKET_CREATED=true" >> "$GITHUB_ENV"
+              else
+                 echo "BUCKET_CREATED=false" >> "$GITHUB_ENV"
+              fi
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: 'us-east-1'
+        continue-on-error: true
+
+
+      - name: create s3
+        if: env.BUCKET_CREATED == false
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: deploy-s3
+          template: cfn/deploy_s3.yaml  
+        continue-on-error: true
+
+
+      - name: Set Bucket Name SSM Parameter Store
+        run: |
+          BUCKET_NAME=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-s3 --query "Stacks[0].Outputs[0].OutputValue" --output text`
+          aws ssm put-parameter --name "cfn_bucket" --type "String" --value $BUCKET_NAME --overwrite
+          echo "BUCKET_NAME=$BUCKET_NAME" >> "$GITHUB_ENV"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: 'us-east-1'
+        continue-on-error: true
+
+
+      - name: Push cfn to S3
+        run: |
+          aws s3 sync cfn s3://${{ env.BUCKET_NAME }}
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: 'us-east-1'
+        continue-on-error: true
+
+      - name: get VPC ID
+        run: |
+              VPC_ID=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-vpc --query "Stacks[0].Outputs[0].OutputValue"`
+              if [[ -n "$VPC_ID" ]]
+              then
+                echo "VPC_CREATED=true" >> "$GITHUB_ENV"
+              else
+                echo "VPC_CREATED=false" >> "$GITHUB_ENV"
+              fi
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: 'us-east-1'
+        continue-on-error: true
+
+
+      - name: Deploy VPC CFN
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        if: env.VPC_CREATED == false
+        with:
+          name: deploy-vpc
+          capabilities: CAPABILITY_NAMED_IAM
+          template: https://${{ env.BUCKET_NAME }}.s3.amazonaws.com/deploy_vpc.yaml
+
+        continue-on-error: true
+
+      - name: Set VPC Parameter
+        run: |
+          VPC_ID=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-vpc --query "Stacks[0].Outputs[0].OutputValue" --output text`
+          aws ssm put-parameter --name "vpc_id" --type "String" --value $VPC_ID --overwrite
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: 'us-east-1'
+        continue-on-error: true
+
+
+      - name: get RDS Endpoint
+        run: |
+              RDS_ENDPOINT=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-rds --query "Stacks[0].Outputs[0].OutputValue"`
+              if [[ -n "$RDS_ENDPOINT" ]]
+              then
+                echo "RDS_CREATED=true" >> "$GITHUB_ENV"
+              else
+                echo "RDS_CREATED=false" >> "$GITHUB_ENV"
+              fi
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: 'us-east-1'
+        continue-on-error: true
+
+
+      - name: Deploy RDS CFN
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        if: env.RDS_CREATED == false
+        with:
+          name: deploy-rds
+          capabilities: CAPABILITY_NAMED_IAM
+          template: https://${{ env.BUCKET_NAME }}.s3.amazonaws.com/deploy_rds.yaml
+
+
+      - name: Set RDS_ENDPOINT Parameter
+        run: |
+          RDS_ENDPOINT=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-rds --query "Stacks[0].Outputs[0].OutputValue" --output text`
+          aws ssm put-parameter --name "rds_endpoint" --type "String" --value $RDS_ENDPOINT --overwrite
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: 'us-east-1'
+        continue-on-error: true
+
+
+
+      - name: get ECR Repo Name
+        run: |
+              REPO_NAME=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-ecr --query "Stacks[0].Outputs[0].OutputValue"`
+              if [[ -n "$REPO_NAME" ]]
+              then
+                echo "REPO_NAME=true" >> "$GITHUB_ENV"
+              else
+                echo "REPO_NAME=false" >> "$GITHUB_ENV"
+              fi
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: 'us-east-1'
+        continue-on-error: true
+
+      - name: Deploy ECR 
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        if: env.REPO_NAME == false
+        with:
+          name: deploy-ecr
+          capabilities: CAPABILITY_NAMED_IAM
+          template: https://${{ env.BUCKET_NAME }}.s3.amazonaws.com/deploy_ecr.yaml
+        continue-on-error: true
+
+
+      - name: Set REPO_NAME Parameter
+        run: |
+          REPO_NAME=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-ecr --query "Stacks[0].Outputs[0].OutputValue" --output text`
+          aws ssm put-parameter --name "repo_name" --type "String" --value $REPO_NAME --overwrite
+          echo "REPO_NAME=$REPO_NAME" >> "$GITHUB_ENV"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: 'us-east-1'
+        continue-on-error: true
+
+        
+
+      - name: Deploy EC2 
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: deploy-ec2
+          capabilities: CAPABILITY_NAMED_IAM
+          template: https://${{ env.BUCKET_NAME }}.s3.amazonaws.com/deploy_ec2.yaml
+        continue-on-error: true
+
+
+
