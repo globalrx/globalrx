@@ -17,6 +17,7 @@ from .apps import ApiConfig
 def searchkit(request: HttpRequest) -> JsonResponse:
     """Core search API which gets proxied to Elasticsearch"""
     es = get_client()
+    print(request.body)
     res = es.msearch(searches=request.body)
     # res is returned as an elastic_transport.ObjectApiResponse
     return JsonResponse(dict(res))

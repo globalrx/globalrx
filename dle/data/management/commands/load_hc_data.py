@@ -120,59 +120,66 @@ class Command(BaseCommand):
         # Before being able to access the drugs,
         #  we have to do a search with "approved" status and "human" class.
         # Then store the cookies and pass it to the requests
-        self.driver.get(HC_SEARCH_URL)
-        time.sleep(1)
-        # Click the approve field
-        approved_status_field = self.driver.find_element(
-            by=By.XPATH,
-            value="/html/body/main/div[1]/div[1]/div[3]/form/fieldset[3]/div[1]/div/select/option[2]",
-        )
-        approved_status_field.click()
-        # Unclick the select all field
-        select_all_status_field = self.driver.find_element(
-            by=By.XPATH,
-            value="/html/body/main/div[1]/div[1]/div[3]/form/fieldset[3]/div[1]/div/select/option[1]",
-        )
-        ActionChains(self.driver).key_down(Keys.CONTROL).click(select_all_status_field).key_up(
-            Keys.CONTROL
-        ).perform()
+        for t in self.get_backoff_time(5):
+            try:
+                time.sleep(t)
+                self.driver.get(HC_SEARCH_URL)
+                time.sleep(1)
+                # Click the approve field
+                approved_status_field = self.driver.find_element(
+                    by=By.XPATH,
+                    value="/html/body/main/div[1]/div[1]/div[3]/form/fieldset[3]/div[1]/div/select/option[2]",
+                )
+                approved_status_field.click()
+                # Unclick the select all field
+                select_all_status_field = self.driver.find_element(
+                    by=By.XPATH,
+                    value="/html/body/main/div[1]/div[1]/div[3]/form/fieldset[3]/div[1]/div/select/option[1]",
+                )
+                ActionChains(self.driver).key_down(Keys.CONTROL).click(
+                    select_all_status_field
+                ).key_up(Keys.CONTROL).perform()
 
-        # Click the human field
-        human_class_field = self.driver.find_element(
-            by=By.XPATH,
-            value="/html/body/main/div[1]/div[1]/div[3]/form/fieldset[3]/div[7]/div/select/option[3]",
-        )
-        human_class_field.click()
-        # Unclick the select all field
-        select_all_class_field = self.driver.find_element(
-            by=By.XPATH,
-            value="/html/body/main/div[1]/div[1]/div[3]/form/fieldset[3]/div[7]/div/select/option[1]",
-        )
-        ActionChains(self.driver).key_down(Keys.CONTROL).click(select_all_class_field).key_up(
-            Keys.CONTROL
-        ).perform()
+                # Click the human field
+                human_class_field = self.driver.find_element(
+                    by=By.XPATH,
+                    value="/html/body/main/div[1]/div[1]/div[3]/form/fieldset[3]/div[7]/div/select/option[3]",
+                )
+                human_class_field.click()
+                # Unclick the select all field
+                select_all_class_field = self.driver.find_element(
+                    by=By.XPATH,
+                    value="/html/body/main/div[1]/div[1]/div[3]/form/fieldset[3]/div[7]/div/select/option[1]",
+                )
+                ActionChains(self.driver).key_down(Keys.CONTROL).click(
+                    select_all_class_field
+                ).key_up(Keys.CONTROL).perform()
 
-        # Click the search button
-        search_button = self.driver.find_element(
-            by=By.XPATH, value="/html/body/main/div[1]/div[1]/div[3]/form/div[1]/div/input[1]"
-        )
-        search_button.click()
+                # Click the search button
+                search_button = self.driver.find_element(
+                    by=By.XPATH,
+                    value="/html/body/main/div[1]/div[1]/div[3]/form/div[1]/div/input[1]",
+                )
+                search_button.click()
 
-        # Wait a bit for it to load
-        time.sleep(5)
+                # Wait a bit for it to load
+                time.sleep(10)
+
+                # Grab the result webpage
+                soup = BeautifulSoup(self.driver.page_source, "html.parser")
+                table = soup.find("table")
+                table_attrs = json.loads(table.get("data-wb-tables"))
+                # num_displayed_results = table_attrs["iDisplayLength"]
+                num_total_results = table_attrs["iDeferLoading"]
+                # No error means success, break out of the loop
+                break
+            except Exception as e:
+                logger.error(self.style.ERROR(repr(e)))
+                logger.error("Failed to get HC result. Retrying")
 
         if import_type == "test":
             # Test with the first 25 results
             num_total_results = 25
-        else:
-            # else get the total number of results and parse all of them
-            # Grab the result webpage
-            soup = BeautifulSoup(self.driver.page_source, "html.parser")
-            table = soup.find("table")
-            # TODO investigate why this is sometimes None: AttributeError: 'NoneType' object has no attribute 'get'
-            table_attrs = json.loads(table.get("data-wb-tables"))
-            # num_displayed_results = table_attrs["iDisplayLength"]
-            num_total_results = table_attrs["iDeferLoading"]
 
         drug_label_parsed = 0
         # Iterate all the drugs in the table

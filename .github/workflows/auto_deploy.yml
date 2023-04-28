@@ -1,4 +1,4 @@
-name: Django CI
+name: ecs auto deploy
 
 on:
   push:

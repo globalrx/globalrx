@@ -16,6 +16,11 @@ sed '/DATABASE.*/d' -i .env
 sed '/PROVISION_ES.*/d' -i .env
 sed '/ELASTICSEARCH_URL.*/d' -i .env
 
+sed '/.*ca_certs.*/d' -i dle/settings.py
+sed '/.*ssl.TLSVersion.TLSv1_2.*/d' -i dle/settings.py
+
+
+
 
 echo "DATABASE_URL=\"postgres://postgres:$RDS_PW@$DB_ENDPOINT:5432/postgres\"" >> .env
 echo "API_ENDPOINT=\"$EC2_IP\"" >> .env

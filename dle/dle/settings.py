@@ -44,6 +44,8 @@ NLP_MODELS = os.path.join(BASE_DIR, "api/bert_models")
 
 API_ENDPOINT = env.str("API_ENDPOINT", "http://localhost:8000")
 
+NOMIC_KEY = env.str("NOMIC_KEY", None)
+
 # Hosts and CIDR (AWS subnets)
 try:
     ALLOWED_HOSTS = [
@@ -80,6 +82,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django_htmx",
     "elasticsearch_django",
     "django_extensions",
     "users",
@@ -100,6 +103,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django_htmx.middleware.HtmxMiddleware",
 ]
 
 ROOT_URLCONF = "dle.urls"

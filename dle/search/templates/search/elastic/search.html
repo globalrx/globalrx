@@ -7,12 +7,16 @@
 <!-- If using Searchkit local build ...
   <script type="text/javascript" src="{% static 'search/searchkit-dev/index.global.js' %}"></script>
 -->
-<script src="https://cdn.jsdelivr.net/npm/searchkit@4.6/dist/umd/index.global.min.js"></script>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7/themes/algolia-min.css"/>
+<script src="https://cdn.jsdelivr.net/npm/searchkit@4.7/dist/umd/index.global.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/instantsearch.css@7/themes/algolia-min.css" />
 <script src="https://cdn.jsdelivr.net/npm/@algolia/autocomplete-js"></script>
 <script>
-  const { autocomplete } = window['@algolia/autocomplete-js'];
-  const { getAlgoliaFacets } = window['@algolia/autocomplete-js']
+  const {
+    autocomplete
+  } = window['@algolia/autocomplete-js'];
+  const {
+    getAlgoliaFacets
+  } = window['@algolia/autocomplete-js']
 </script>
 
 <!-- Trying to disable cache
@@ -45,6 +49,7 @@
         <p><strong>Drug Label Marketer</strong></p>
         <div id="drug-label-marketer-filter"></div>
         {% if user.is_authenticated %}
+        <hr>
         <h2>Save Search</h2>
         <form method="post" action="/users/saved_searches/create/" enctype="multipart/form-data">
           {% csrf_token %}
@@ -52,38 +57,51 @@
           <input class="btn btn-primary" type="submit" value="Submit">
         </form>
         {% endif %}
+        <hr>
         <div id="compare-button-container">
           <h2>Compare Result Labels</h2>
           <form>
-            <input class="btn btn-primary" type="button" value="Compare Selected Labels" onclick="javascript: compareLabels();"/>
+            {% if user.is_authenticated %}
+              <p><strong>Your Labels</strong></p>
+              {% for my_label in my_labels %}
+                <p><input type="checkbox" name="compare" value="{{ my_label.drug_label.id }}" /> {{ my_label.name }} - {{ my_label.drug_label.product_name }}<br>{{ my_label.drug_label.source }} - {{ my_label.drug_label.version_date }} </p>
+              {% endfor %}
+            {% endif %}
+    
+            <input class="btn btn-primary" type="button" value="Compare Selected Labels" id="compare-labels-button" onclick="javascript: compareLabels();" disabled />
           </form>
         </div>
     </div>
-    <div class="right-panel">
-      <div id="search-container" class="container-fluid">
-        <div class="row" style="margin-left:0px; margin-right:0px;">
-          <div id="search-type" class="col-3" style="display:inline-flex; align-items:center;">
-            <div class="search-type-item" style="margin-right: 10px;">
-              <input type="radio" id="search-type-match" name="search-type" value="match" checked>
-              <label for="search-type-1">Match</label>
-            </div>
-            <div class="search-type-item" style="margin-right: 10px;">
-              <input type="radio" id="search-type-simplequerystring" name="search-type" value="simpleQueryString">
-              <label for="search-type-simplequerystring">Query String</label>
-            </div>
-            <div class="search-type-item" style="margin-right: 10px;">
-              <input type="radio" id="search-type-semantic" name="search-type" value="knn">
-              <label for="search-type-semantic">Semantic (Vector AKNN)</label>
-            </div>
-          </div>
-          <div id="searchbox" class="ais-SearchBox col-lg"></div>
-        </div>
-      </div>
-      <div id="hits"></div>
-      <div id="pagination"></div>
-    </div>
   </div>
-   
+  <div class="right-panel">
+    <div id="search-container" class="container-fluid">
+      <div class="row" style="margin-left:0px; margin-right:0px;">
+        <div id="search-type" class="col-3" style="display:inline-flex; align-items:center;">
+          <div class="search-type-item" style="margin-right: 10px;">
+            <input type="radio" id="search-type-match" name="search-type" value="match" checked>
+            <label for="search-type-1">Match</label>
+          </div>
+          <div class="search-type-item" style="margin-right: 10px;">
+            <input type="radio" id="search-type-simplequerystring" name="search-type" value="simpleQueryString">
+            <label for="search-type-simplequerystring">Query String</label>
+          </div>
+          <div class="search-type-item" style="margin-right: 10px;">
+            <input type="radio" id="search-type-semantic" name="search-type" value="knn">
+            <label for="search-type-semantic">Semantic (Vector AKNN)</label>
+          </div>
+        </div>
+        <div id="searchbox" class="ais-SearchBox col-lg"></div>
+      </div>
+    </div>
+
+    <div id="drug-label-search-results">
+      {% include "data/_label_search_results.html" %}
+    </div>
+    <div id="hits"></div>
+    <div id="pagination"></div>
+  </div>
+</div>
+
 {% endblock %}
 
 {% block footer_scripts %}
@@ -96,47 +114,11 @@
   const VECTORIZE_SERVICE = JSON.parse(document.getElementById('VECTORIZE_SERVICE').textContent);
 </script>
 <script type="module" src="{% static 'search/es_search.js' %}"></script>
-<script>
-  /** TODO fix this seems broken **/
-  function getUrl() {
-    var url = document.URL;
-    document.getElementById("id_url").value = url;
-  }
-  window.addEventListener('load', getUrl);
-  document.body.addEventListener('click', getUrl, true); 
-  document.body.addEventListener('keyup', getUrl, true);
-  document.body.addEventListener('click', shouldLabelsBeShown, true);
+<script type="text/javascript" src="{% static 'search/direct_labels_htmx.js' %}"></script>
 
-  function shouldLabelsBeShown() {
-    var checkedBoxes = document.querySelectorAll('input[name=compare]:checked');
-    var link = document.getElementById('compare-button-container');
+{% if user.is_authenticated %}
+<script type="text/javascript" src="{% static 'search/saved_search.js' %}"></script>
+{% endif %}
+<script type="text/javascript" src="{% static 'search/compare_labels.js' %}"></script>
 
-    if(checkedBoxes.length == 2 || checkedBoxes.length == 3) {
-      link.style.display = 'inline-block';
-      link.style.visibility = 'visible';
-    } else {
-      link.style.display = 'none';
-      link.style.visibility = 'hidden';
-    }
-  }
-
-  function compareLabels() {
-    var checkedBoxes = document.querySelectorAll('input[name=compare]:checked');
-    var compareUrl = '../compare/compare_labels?';
-    var searchTerm = document.querySelector('.ais-SearchBox-input').value;
-
-    compareUrl += 'search_text=' + searchTerm;
-
-    for (i = 0; i < checkedBoxes.length; i++) {
-      if(i == 0) {
-        compareUrl += `&first-label=${checkedBoxes[0].value}`;
-      } else if(i == 1) {
-        compareUrl += `&second-label=${checkedBoxes[1].value}`;
-      } else if(i == 2) {
-        compareUrl += `&third-label=${checkedBoxes[2].value}`;
-      }
-    }
-    location.href = compareUrl;
-  }
-</script>
 {% endblock %}
