@@ -128,3 +128,14 @@ ul.nav li {
   .ais-Hits-item:empty{ 
     display: none;
   }
+
+  .drug-label {
+    border: 2px solid #000;
+    padding: 10px;
+    width: 65%;
+    margin-bottom: 25px;
+  }
+
+  .drug-label:empty{
+    display: none;
+  }
