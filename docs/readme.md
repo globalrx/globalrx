@@ -34,7 +34,7 @@ Run a management command (e.g. `makemigrations` or `load_fda_data`):
     - Potentially, run `pre-commit run --all-files` to run against everything in the repo rather than everything `diffed`. But probably not necessary.
     - From now on, the `precommit` hook will try to update all your files before committing them so that your merges pass the linting Action (`.github/workflows/check.yml`).
 
-3. Set environment variables; see [env.example](../dle/env.example) for a list of required variables. Some of these variables control whether setup scripts (e.g. Django migrations) are run.
+3. Set environment variables; see [env.example](../dle/.env.example) for a list of required variables. Some of these variables control whether setup scripts (e.g. Django migrations) are run.
     - Copy `env.example` to `.env` and update the values
     - For a first run, set `MIGRATE`, `LOAD`, and `INIT_SUPERUSER` to `True`
         - This will take a long time. Check out what is happening in the `entrypoint` script:
