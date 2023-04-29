@@ -23,9 +23,9 @@ class Command(BaseCommand):
             "--agency", type=str, help="'TGA', 'FDA', 'EMA', or 'all'", default="all"
         )
         parser.add_argument(
-            "--create_index",
+            "--delete_and_recreate_index",
             type=strtobool,
-            help="Whether to create the productsection index",
+            help="Whether to delete and recreate the productsection index",
             default=False,
         )
         parser.add_argument(
@@ -37,10 +37,22 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         agency = options["agency"]
-        should_create_index = options["create_index"]
+        delete_and_recreate_index = options["delete_and_recreate_index"]
         mapping_file = options["mapping_file"]
 
-        if should_create_index:
-            create_index("productsection", mapping_file=mapping_file)
+        logger.info(
+            f"Provisioning index 'productsection' - agency: {agency} - delete_and_recreate_index: {delete_and_recreate_index}"
+        )
+        # Index must exist to index documents
+        res = create_index(
+            "productsection", mapping_file=mapping_file, recreate=delete_and_recreate_index
+        )
+        if not res:
+            logger.warning("Did not create or delete/recreate index 'productsection'")
+        else:
+            logger.info("Index creation response:")
+            logger.info(res)
+            logger.info(res.body)
 
+        logger.info(f"Populating index with agency: {agency}")
         populate_index(index_name="productsection", agency=agency)

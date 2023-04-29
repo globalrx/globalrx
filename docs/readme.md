@@ -34,7 +34,7 @@ Run a management command (e.g. `makemigrations` or `load_fda_data`):
     - Potentially, run `pre-commit run --all-files` to run against everything in the repo rather than everything `diffed`. But probably not necessary.
     - From now on, the `precommit` hook will try to update all your files before committing them so that your merges pass the linting Action (`.github/workflows/check.yml`).
 
-3. Set environment variables; see [env.example](./env.example) for a list of required variables. Some of these variables control whether setup scripts (e.g. Django migrations) are run.
+3. Set environment variables; see [env.example](../dle/.env.example) for a list of required variables. Some of these variables control whether setup scripts (e.g. Django migrations) are run.
     - Copy `env.example` to `.env` and update the values
     - For a first run, set `MIGRATE`, `LOAD`, and `INIT_SUPERUSER` to `True`
         - This will take a long time. Check out what is happening in the `entrypoint` script:
@@ -56,6 +56,8 @@ Run a management command (e.g. `makemigrations` or `load_fda_data`):
         - Installs some system dependencies
         - Installs Python dependencies from `requirements.txt`
         - Does not copy the source code into the container - instead, mounts the source code as a volume so you can make changes on your local machine and have them reflected in the container. For ECS deploys, code is copied into the container.
+        - At some point either in this step or a bit later, if you have not already downloaded the `PubMedBERT` model, it will be downloaded from HuggingFace and saved to `api/bert_model/`. That adds a couple minutes.
+        - Estimated time: ~20 minutes
     - Pulls Postgres 14 image
     - Pulls Elasticsearch 8.x (currently 8.7) image and Kibana image, which are used for the `es01` (only running 1 node for now), `elastic-setup`, and `kibana` services
     - Starts all the services, which provisions Elasticsearch and Kibana (not with our schema yet)
@@ -65,28 +67,29 @@ Run a management command (e.g. `makemigrations` or `load_fda_data`):
         - Collects static files if `MIGRATE` is set to `True` (possibly have another env variable for this?)
         - Creates a superuser if `INIT_SUPERUSER` is set to `True` and `SUPERUSER_USERNAME` and `SUPERUSER_PASSWORD` are set. This uses a custom command so it doesn't fail if the user already exists.
         - Loads data:
-            - There are multiple options to get data loaded. Data needs to exist both in Django and Elasticsearch; it is first loaded into Django, then indexed into Elasticsearch. Data needs to both be scraped and parsed from agency websites, XML files, or PDFs and then vectorized. The following options are mutually exclusive (no need to load data from multiple sources)
-            - Option 1: create the data yourself
-                - Set `LOAD` to `True` and `VECTORIZE` to `True`
-                - This takes the longest but generates data from scratch. Probably a couple of days total. Estimated scraping time:
-                    - EMA:
-                    - TGA:
-                    - OpenFDA:
-                    - HC:
-                - Estimated vectorization time:
-                - You can also not set `LOAD` to `True`, and instead run `load_<agency>_data` commands manually to scrape just one agency. Make sure to run `update_latest_drug_labels` as well.
-            - Option 2: load data from a fixture
-                - Set `LOAD_FIXTURES` to `True` and place the appropriate fixture files in `/app/data/fixtures`. These are in the S3 bucket.
-                - This is fairly fast and does not wipe your local database the same way that loading a `PSQL` dump does, but it does potentially use a lot of RAM. Estimated time: 
-            - Option 3: load data from a PSQL dump. This is the fastest option but it will wipe your local database.
-                - Obtain a PSQL dump from the S3 bucket and place it in `/app/media/psql.dump`
-                - Set `LOAD_PSQL_DUMP` to `True`
-                - Loads both data and vectors. Estimated time:
+            - There are multiple options to get data loaded. Data needs to exist both in Django and Elasticsearch; it is first loaded into Django, then indexed into Elasticsearch. Data needs to both be scraped and parsed from agency websites, XML files, or PDFs and then vectorized. We track when each label was last scraped in order to be able to speed up future scrape + ingest jobs; if we only want to update monthly, then the script is parameterized to allow us to skip labels updated more recently than that threshold. The default is to update labels scraped within the past week. Additionally, we save parsing errors so we can skip labels that have known errors; again, this can be overriden, but the combination of these two approaches (skipping errors and recently scraped labels) speeds up many jobs substantially.
+            - The following options are mutually exclusive (no need to load data from multiple sources)
+                - Option 1: create the data yourself
+                    - Set `LOAD` to `True` and `VECTORIZE` to `True`
+                    - This takes the longest but generates data from scratch. Probably a couple of days total. Estimated scraping time:
+                        - EMA:
+                        - TGA:
+                        - OpenFDA:
+                        - HC:
+                    - Estimated vectorization time:
+                    - You can also not set `LOAD` to `True`, and instead run `load_<agency>_data` commands manually to scrape just one agency. Make sure to run `update_latest_drug_labels` as well.
+                - Option 2: load data from a fixture
+                    - Set `LOAD_FIXTURES` to `True` and place the appropriate fixture files in `/app/data/fixtures`. These are in the S3 bucket.
+                    - This is fairly fast and does not wipe your local database the same way that loading a `PSQL` dump does, but it does potentially use a lot of RAM. Estimated time: 30 minutes
+                - Option 3: load data from a PSQL dump. This is the fastest option but it will wipe your local database.
+                    - Obtain a PSQL dump from the S3 bucket and place it in `/app/media/psql.dump`
+                    - Set `LOAD_PSQL_DUMP` to `True`
+                    - Loads both data and vectors. Estimated time:
         - Ingest data from Django into Elasticsearch
             - Set `PROVISION_ES` to `True` to provision Elasticsearch with the `productsection` index and mappings
             - Uses the mapping file at `search/mappings/provision.json` to create the index with our schema
             - Then ingests all the agency data from Django to Elasticsearch
-            - Estimted time: 
+            - Estimted time: 20-30 minutes for 150k sections (TGA, EMA, HC). No estimate for OpenFDA, couldn't run that locally.
         - Runs a webserver for Django
             - Set `USE_NGINX` to `True` for production deployments with Nginx + Gunicorn
             - Otherwise uses Django's built-in `runserver` command on port `8000`

@@ -75,10 +75,15 @@ fi
 # see docs/readme.md
 if [[ ($PROVISION_ES) && ("$PROVISION_ES" = "True")]]; then
   echo "Provisioning and populating Elasticsearch"
-  python3 manage.py provision_elastic --agency all --create_index True --mapping_file "/app/search/mappings/provision.json"
+  python3 manage.py provision_elastic --agency all --mapping_file "/app/search/mappings/provision.json"
   echo "Finished provisioning Elasticsearch"
 fi
 
+# Update labels weekly
+if [[ ($UPDATE_WEEKLY) && ("$UPDATE_WEEKLY" = "True") ]]; then
+  crontab ./update_database-cron
+  cron
+fi
 
 # In production, use Gunicorn + Nginx
 # TODO maybe reverse this so if nothing is passed the default is Nginx?
