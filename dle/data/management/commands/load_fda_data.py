@@ -2,7 +2,6 @@ import datetime
 import json
 import logging
 import os
-import re
 import shutil
 import urllib.request as request
 from contextlib import closing
@@ -32,13 +31,6 @@ FDA_JSON_URL = "https://api.fda.gov/download.json"
 # runs with `python manage.py load_fda_data --type {type}`
 class Command(BaseCommand):
     help = "Loads data from FDA"
-    re_combine_whitespace = re.compile(r"\s+")
-    re_remove_nonalpha_characters = re.compile("[^a-zA-Z ]")
-    dl_json_url = "https://api.fda.gov/download.json"
-    dl_json = json.loads(requests.get(dl_json_url).text)
-    drugs_json = dl_json["results"]["drug"]
-    labels_json = dl_json["results"]["drug"]["label"]
-    urls = [x["file"] for x in labels_json["partitions"]]
 
     def __init__(self, stdout=None, stderr=None, no_color=False, force_color=False):
         self.root_dir = settings.MEDIA_ROOT / "fda"
@@ -329,11 +321,10 @@ class Command(BaseCommand):
 
     def process_json_record(self, record, dl, insert, my_label_id=None):
         dl.source = "FDA"
-        dl.product_name = record["metadata"]["brand_name"]
-        dl.generic_name = record["metadata"]["generic_name"]
+        dl.product_name = record["metadata"]["brand_name"][0]
+        dl.generic_name = record["metadata"]["generic_name"][0]
         dl.version_date = datetime.datetime.strptime(record["metadata"]["effective_time"], "%Y%m%d")
-        dl.marketer = record["metadata"]["manufacturer_name"]
-        # TODO: What does it mean when there are more than one product numbers?
+        dl.marketer = record["metadata"]["manufacturer_name"][0]
         dl.source_product_number = record["metadata"]["product_ndc"][0]
         if my_label_id is not None:
             dl.source_product_number = f"my_label_{my_label_id}" + dl.source_product_number
@@ -381,7 +372,7 @@ class Command(BaseCommand):
             ps = ProductSection(
                 label_product=lp,
                 section_name=key,
-                section_text=value,
+                section_text=value[0],
             )
             try:
                 if insert:
