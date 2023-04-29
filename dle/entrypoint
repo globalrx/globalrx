@@ -71,7 +71,7 @@ if [[ ($LOAD) && ("$LOAD" = "True") ]]; then
 fi
 
 
-# see docs/readme.md
+# Provisions and ingests data into Elasticsearch
 if [[ ($PROVISION_ES) && ("$PROVISION_ES" = "True")]]; then
   echo "Provisioning and populating Elasticsearch"
   python3 manage.py provision_elastic --agency all --mapping_file "/app/search/mappings/provision.json"

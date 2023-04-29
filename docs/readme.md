@@ -25,6 +25,9 @@ Run a management command (e.g. `makemigrations` or `load_fda_data`):
 `docker compose exec django bash`
 `python3 manage.py makemigrations` or any management command
 
+Working with the ECS task (replace with correct vars). Run this from the Elastic EC2 (connect with Session Manager), or from your local machine if you have the AWS CLI configured with an IAM role.
+`aws ecs execute-command --region us-east-1 --cluster <CLUSTER_NAME> --task arn:aws:ecs:us-east-1:123456789:task/searchrx-ecs-cluster/123456789abcdefgh --container django --command "/bin/bash" --interactive`
+
 ### Setup
 1. Clone the repository
 
