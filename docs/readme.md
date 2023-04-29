@@ -35,8 +35,14 @@ Run a management command (e.g. `makemigrations` or `load_fda_data`):
     - From now on, the `precommit` hook will try to update all your files before committing them so that your merges pass the linting Action (`.github/workflows/check.yml`).
 
 3. Set environment variables; see [env.example](../dle/.env.example) for a list of required variables. Some of these variables control whether setup scripts (e.g. Django migrations) are run.
-    - Copy `env.example` to `.env` and update the values
-    - For a first run, set `MIGRATE`, `LOAD`, and `INIT_SUPERUSER` to `True`
+    - For a test run (with HC, TGA, and EMA data):
+        - Copy `env.test-example` to `.env`
+        - Obtain a copy of `2023-04-22_TGA_EMA_HC.dump` from S3.
+        - `mv` and rename the PSQL dump to `/app/media/psql.dump`
+        - `docker compose up --build`
+    - For a first run:
+        - Copy `env.example` to `.env` and update the values
+        - Set `MIGRATE` and `INIT_SUPERUSER` to `True`. You can set `INIT_SUPERUSER` to `False` after the initial run but it won't crash the app any more if you don't. See below for options for loading data.
         - This will take a long time. Check out what is happening in the `entrypoint` script:
             - Wait for PSQL to be ready
             - Django migrations: `makemigrations` and `migrate`
@@ -50,14 +56,14 @@ Run a management command (e.g. `makemigrations` or `load_fda_data`):
     - ~~If you are working on BERT model, you will need to start an Elasticsearch trial license; you can either try to set the `LICENSE` variable to `trial`, or POST this to Elasticsearch after it starts up either in Kibana: or via `curl`: `/_license/start_trial?acknowledge=true`~~ We are no longer using Elastic's NLP pipeline. Set `LICENSE=basic`
     - The API app will run `load_bert_model` and download PubMedBERT from HuggingFace if you don't already have it. We preload the model for reuse in `api.apps.py`. Unfortunately this makes Django take a lot longer to startup, but vectorization of search terms at the `/vectorize` endpoint is pretty snappy.
 
-4. Run `docker compose up` to start the application. This will take a long time the first time. Steps that occur:
+4. Run `docker compose up --build` to start the application. This will take a long time the first time. Steps that occur:
     - Builds the Django container from `Dockerfile.dev`
-        - `python:3.11-slim-buster` base image
+        - `python:3.11-slim-bullseye` base image
         - Installs some system dependencies
         - Installs Python dependencies from `requirements.txt`
         - Does not copy the source code into the container - instead, mounts the source code as a volume so you can make changes on your local machine and have them reflected in the container. For ECS deploys, code is copied into the container.
         - At some point either in this step or a bit later, if you have not already downloaded the `PubMedBERT` model, it will be downloaded from HuggingFace and saved to `api/bert_model/`. That adds a couple minutes.
-        - Estimated time: ~20 minutes
+        - Estimated time: 10-15 minutes
     - Pulls Postgres 14 image
     - Pulls Elasticsearch 8.x (currently 8.7) image and Kibana image, which are used for the `es01` (only running 1 node for now), `elastic-setup`, and `kibana` services
     - Starts all the services, which provisions Elasticsearch and Kibana (not with our schema yet)
@@ -80,11 +86,12 @@ Run a management command (e.g. `makemigrations` or `load_fda_data`):
                     - You can also not set `LOAD` to `True`, and instead run `load_<agency>_data` commands manually to scrape just one agency. Make sure to run `update_latest_drug_labels` as well.
                 - Option 2: load data from a fixture
                     - Set `LOAD_FIXTURES` to `True` and place the appropriate fixture files in `/app/data/fixtures`. These are in the S3 bucket.
-                    - This is fairly fast and does not wipe your local database the same way that loading a `PSQL` dump does, but it does potentially use a lot of RAM. Estimated time: 30 minutes
+                    - This is fairly fast and does not wipe your local database the same way that loading a `PSQL` dump does, but it does potentially use a lot of RAM. Estimated time: 30 minutes (haven't tried this in a while)
                 - Option 3: load data from a PSQL dump. This is the fastest option but it will wipe your local database.
                     - Obtain a PSQL dump from the S3 bucket and place it in `/app/media/psql.dump`
                     - Set `LOAD_PSQL_DUMP` to `True`
-                    - Loads both data and vectors. Estimated time:
+                    - Loads both data and vectors.
+                    - Estimated time: 10-15 minutes. You'll see a bunch of `pg_restore` logs, it will wait for a long time on `public.data_productsection` as that's by far the largest table (includes all the vectors).
         - Ingest data from Django into Elasticsearch
             - Set `PROVISION_ES` to `True` to provision Elasticsearch with the `productsection` index and mappings
             - Uses the mapping file at `search/mappings/provision.json` to create the index with our schema
