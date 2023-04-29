@@ -34,7 +34,7 @@ python3.11 manage.py vectorize --agency all
 echo "Done vectorizing labels"
 
 echo "Begin indexing to ES"
-python3.11 manage.py provision_elastic --agency all --create_index True --mapping_file "/app/search/mappings/provision.json"
+python3.11 manage.py provision_elastic --agency all --mapping_file "/app/search/mappings/provision.json"
 echo "Done indexing"
 
 echo "Weekly update done"
