@@ -52,9 +52,11 @@ class Command(BaseCommand):
         logger.info(f"Agency: {agency}")
 
         if agency == "all":
-            sections = ProductSection.objects.all()
+            sections = ProductSection.objects.filter(bert_vector__isnull=True)
         else:
-            sections = ProductSection.objects.filter(label_product__drug_label__source=agency).all()
+            sections = ProductSection.objects.filter(
+                label_product__drug_label__source=agency
+            ).filter(bert_vector__isnull=True)
         self.total_sections = sections.count()
 
         start = datetime.now()

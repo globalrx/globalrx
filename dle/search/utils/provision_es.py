@@ -1,8 +1,7 @@
 import json
 import logging
 
-from django.http import JsonResponse
-
+import elastic_transport
 from elasticsearch.helpers import streaming_bulk
 from elasticsearch_django.settings import get_client
 from tqdm import tqdm
@@ -10,28 +9,44 @@ from tqdm import tqdm
 from data.models import AGENCY_CHOICES, ProductSection
 
 
+# Set elasticsearch logger to WARNING, otherwise it logs every batch of PUT requests
+# this is a bit too verbose and makes tqdm progress bar look weird
+logging.getLogger("elastic_transport.transport").setLevel(logging.WARNING)
 logger = logging.getLogger(__name__)
 
 
-def create_index(index_name: str, mapping_file: str) -> JsonResponse:
+def create_index(
+    index_name: str, mapping_file: str, recreate: bool = False
+) -> elastic_transport.ObjectApiResponse | None:
     es = get_client()
     # open mapping_file
     with open(mapping_file, "r") as f:
         mapping = json.load(f)
-    if not es.indices.exists(index=index_name):
+
+    # Index gets created if it doesn't exist, or if recreate is True
+    if recreate and es.indices.exists(index=index_name):
+        logger.info(f"Recreating index {index_name} by deleting index")
+        del_res = es.indices.delete(index=index_name)
+        logger.info(f"Delete response: {del_res}")
+        logger.info(del_res.body)
+        res = es.indices.create(index=index_name, mappings=mapping)
+        return res
+    elif not es.indices.exists(index=index_name):
         logger.info(
             f"Creating index {index_name} with the following schema: {json.dumps(mapping, indent=2)}"
         )
         settings = {"index": {"routing.allocation.total_shards_per_node": 5}}
         res = es.indices.create(index=index_name, mappings=mapping, settings=settings)
-        return JsonResponse(dict(res))
+        return res
     else:
-        return JsonResponse({})
+        return None
 
 
 def populate_index(index_name: str = "productsection", agency: str = "all"):
     """Populate the index with the given agency's sections
-    Only vectorized sections are ingested.
+    Only vectorized sections are ingested. We are using section.id as the doc._id,
+    so if a section is already in the index, it will be updated rather than duplicated.
+    Indexing is fast enough that we can do this every time we ingest new sections.
     """
     if agency == "all":
         sections_w_vectors = ProductSection.objects.filter(bert_vector__isnull=False)
