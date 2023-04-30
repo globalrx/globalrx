@@ -3,7 +3,7 @@ body {
     margin-top: 100px;
   }
   
-  .search-type-item {
+  .tri-state-toggle {
       background: rgba(165,170,174,0.25);
       box-shadow: inset 0 2px 8px 0 rgba(165,170,174,0.25);
       border-radius: 24px;
@@ -14,7 +14,7 @@ body {
     transition: all 500ms ease; 
   }
   
-  .search-type-radio {
+  .tri-state-toggle-button {
       border-radius: 22px;
       height: 44px;
       display: flex;
@@ -26,10 +26,15 @@ body {
       margin: 2px;
       color: #727C8F;
       cursor: pointer;
-      transition:         all 0.5s ease;
+    
+  /*    -webkit-transition: all 0.5s ease-in-out;
+    -moz-transition:    all 0.5s ease-in-out;
+    -ms-transition:     all 0.5s ease-in-out;
+    -o-transition:      all 0.5s ease-in-out; */
+    transition:         all 0.5s ease;
   }
   
-  .search-type-item-radio.active {
+  .tri-state-toggle-button.active {
       background-image: linear-gradient(-180deg, #fff 0%, #FAFAFA 81%, #F2F2F2 100%);
       border: 1px solid rgba(207,207,207,0.6);
       box-shadow: 0 8px 16px 0 rgba(0,0,0,0.1);
@@ -38,3 +43,6 @@ body {
     transition: all .5s ease-in;
   }
   
+  .tri-state-toggle-button:focus {
+    outline: none;
+  }
