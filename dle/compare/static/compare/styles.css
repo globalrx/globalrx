@@ -1,14 +1,20 @@
+/*change interaction add column additional to row */
+.column {
+    margin: 2px;
+    padding-left: 10px; 
+    padding-bottom: 10px;
+}
 .row {
     margin: 2px;
     padding-left: 12px; 
 }
 
-/* Style collapsible section button */
+/* Change Style collapsible section button */
 .collapsible {
-    background-color:  #19a2af;
-    color: black;
+    background-color:rgb(250, 247, 247);
+    color:black;
     cursor: pointer;
-    padding: 18px;
+    padding: 20px;
     width: 100%;
     text-align: left;
     outline: auto;
@@ -17,44 +23,46 @@
 
 /* Change background color of button when hovering over it and when clicked on */
 .active, .collapsible:hover {
-    background-color:  #b0b4b4;
+    background-color:#19a2af;opacity: 50%;
 }
 
 /* Style the collapsible content. Note: hidden by default */
 .sec-content {
     padding-left: 10px;
 }
-
+/*change section table interaction*/
 .section-table, #headerTable {
     table-layout: fixed;
-    border: 1px solid  #cfd0d0;
+    /*border: 0.5px solid rgb(197, 195, 195);*/
     border-collapse: collapse;
     width: 100%;
 }
-
+/*change section td interaction*/
 .section-td {
-    border: 2px solid  #ced0d0;
-    vertical-align: top;
+    /*border: 0.5px solid rgb(197, 195, 195);*/
+    vertical-align: left;
+    align-items: left;
+    padding: 2px;
 }
 
 /* highlight green if the sections are exact matches */
 .td-matching-section {
     border:3px solid green;
-    vertical-align: top;
+    vertical-align: left;
 }
 
-/* highlight red if the sections have diffs */
+/* change highlight to less vibrant red if the sections have diffs */
 .td-diff-section {
-    border:3px solid rgba(243, 99, 186, 0.785);
+    border:3px solid rgba(235, 62, 178, 0.575);
     vertical-align: top;
 }
-
+/*change color interaction*/
 .diff-text-highlight {
-    background-color:rgba(243, 99, 186, 0.785);
+    background-color:rgba(235, 62, 178, 0.575);
 }
 
 #sectionFilterContainer {
-    margin: 10px;
+    margin: 12px;
 }
 #sectionFilter {
     margin: 10px;

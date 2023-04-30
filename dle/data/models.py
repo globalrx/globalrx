@@ -67,6 +67,21 @@ class DrugLabel(models.Model):
             f"marketer: {self.marketer}"
         )
 
+    def as_dict(self):
+        return {
+            "source": self.source,
+            "product_name": self.product_name,
+            "generic_name": self.generic_name,
+            "version_date": self.version_date,
+            "source_product_number": self.source_product_number,
+            "marketer": self.marketer,
+            "link": self.link,
+            # "raw_text": self.raw_text,
+            "created_at": self.created_at,
+            "updated_at": self.updated_at,
+            "id": self.id,
+        }
+
 
 # LABEL PRODUCT
 class LabelProduct(models.Model):

@@ -10,4 +10,6 @@ urlpatterns = [
     # This is used so we can reverse it in search/views.py for the search.html context
     path("v1/searchkit", views.searchkit, name="searchkit_root"),
     path("v1/vectorize", views.vectorize, name="vectorize"),
+    path("v1/search", views.search, name="search"),
+    path("v1/search_label", views.search_label, name="search_label")
 ]

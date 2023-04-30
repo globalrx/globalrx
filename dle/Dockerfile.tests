@@ -1,15 +1,22 @@
-FROM python:3.11-slim-buster as python-build
+FROM python:3.11-slim-bullseye as python-build
 
 WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
+# Include PSQL 14 so we can use pg_restore
 # g++ for Pillow
 RUN apt-get update --fix-missing \
-    && apt-get install -y nginx postgresql \
+    && apt-get install -y wget ca-certificates gnupg \
+    && wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | apt-key add - \
+    && sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt/ bullseye-pgdg main" \
+    > /etc/apt/sources.list.d/postgresql.list' \
+    && apt-get update --fix-missing \
+    && apt-get install -y nginx postgresql-14 \
     libpq-dev gcc g++ firefox-esr unzip curl \
-    libxml2-dev libxslt1-dev
+    libxml2-dev libxslt1-dev \
+    && apt-get install -f
 
 # Install geckodriver for Firefox Selenium
 # Compatibility chart: https://firefox-source-docs.mozilla.org/testing/geckodriver/Support.html

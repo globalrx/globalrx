@@ -33,13 +33,5 @@ Due to changes, DLE 2022 may no longer work as originally designed. See [Drug La
 - DLE setup instructions: [Setup](./docs/dle/setup/readme.md)
 - 2022 project slides are [Here](./docs/dle/dle.pdf)
 
-#### Design
-
-We decide to use Searchkit
-
-Searchkit to simplify using Elasticsearch for Search:
-
-UI Search Components for React, Vue, Angular, and more
-Searchkit Node API proxies Elasticsearch requests from the browser.
-Ability to use Elasticsearch Query DSL for advanced queries
-
+### Design
+We are using [Searchkit](https://www.searchkit.co/) as a core part of our search experience. Searchkit is an open source library that provides a UI for Elasticsearch. It has components (React, Vue) but we are using the vanilla [Algolia Instantsearch](https://www.algolia.com/doc/guides/building-search-ui/what-is-instantsearch/js/) widgets.

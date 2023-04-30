@@ -66,9 +66,9 @@
                     <i class="fa fa-plus-square-o" style="display:block"> <strong>{{ section.section_name|title }}</strong></i>
                     <i class="fa fa-minus-square-o" style="display:none"> <strong>{{ section.section_name|title }}</strong></i>
                 </button>
-                <table class="section-table" style="display:none" style="width:100%">
+                <table class="section-table" style="display:none" style="line-height:100%">
                     <tr>
-                        <td class="td-{{section.textMatches}} section-td" style="width:50%">
+                        <td class="td-{{section.textMatches}} section-td" style="line-height:50%">
                             <p>
                             {% for tuple in section.section_text1 %}
                                 {% if tuple.0 == 0 %}
@@ -79,7 +79,7 @@
                             {% endfor %}
                             </p>
                         </td>
-                        <td class="td-{{section.textMatches}} section-td" style="width:50%">
+                        <td class="td-{{section.textMatches}} section-td" style="line-height:50%">
                             <p>
                             {% for tuple in section.section_text2 %}
                                 {% if tuple.0 == 0 %}

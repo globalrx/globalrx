@@ -1,6 +1,9 @@
 
 top_displaynames.csv
 
+# Ignore Mac files
+.DS_Store
+
 # ignore media dir
 dle/media/
 
@@ -153,3 +156,4 @@ dle/static
 !dle/static/favicon.ico
 !dle/static/robots.txt
 dle/data/fixtures/TGA_EMA.json
+dle-env/*
