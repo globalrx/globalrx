@@ -29,6 +29,7 @@
 -->
 
 <link href="../../static/search/styles.css" rel="stylesheet" />
+<!---cite some style code in toggle card https://codepen.io/nindev/pen/BaapjEN -->
 
 {% endblock %}
 {% block content %}
@@ -74,21 +75,29 @@
     </div>
   </div>
   <div class="right-panel">
+    <p> </p>
+    <h5>Select one of three options:</h5>
     <div id="search-container" class="container-fluid">
-      <div class="row" style="margin-left:0px; margin-right:0px;">
-        <div id="search-type" class="col-3" style="display:inline-flex; align-items:center;">
-          <div class="search-type-item" style="margin-right: 10px;">
+      <div class="search-type-item" 
+      style="margin-right:10px;background: rgba(165,170,174,0.25);
+      box-shadow: inset 0 2px 8px 0 rgba(165,170,174,0.25);
+      border-radius: 10px;display: inline-block;overflow: hidden;
+      display: inline-flex;flex-direction: column;transition: all 500ms ease;">
+        <div id="search-type-item" class="col-3" 
+        style="display:inline-flex; align-items:center;"></div>
+      <div class="search-type-item" style="margin-right: 10px;color:black">
             <input type="radio" id="search-type-match" name="search-type" value="match" checked>
-            <label for="search-type-1">Match</label>
+            <label for="search-type-match">Match</label>
           </div>
-          <div class="search-type-item" style="margin-right: 10px;">
+          <div class="search-type-item" style="margin-right: 10px;color:black">
             <input type="radio" id="search-type-simplequerystring" name="search-type" value="simpleQueryString">
             <label for="search-type-simplequerystring">Query String</label>
           </div>
-          <div class="search-type-item" style="margin-right: 10px;">
+          <div class="search-type-item" style="margin-right: 10px;color: black;">
             <input type="radio" id="search-type-semantic" name="search-type" value="knn">
             <label for="search-type-semantic">Semantic (Vector AKNN)</label>
           </div>
+        </div>
         </div>
         <div id="searchbox" class="ais-SearchBox col-lg"></div>
       </div>
@@ -122,3 +131,5 @@
 <script type="text/javascript" src="{% static 'search/compare_labels.js' %}"></script>
 
 {% endblock %}
+
+
