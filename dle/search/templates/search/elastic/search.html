@@ -74,13 +74,16 @@
     </div>
   </div>
   <div class="right-panel">
+    <p> </p>
+    <h5>Select one of three options:</h5>
+    
     <div id="search-container" class="container-fluid">
       <div class="row" style="margin-left:0px; margin-right:0px;">
-        <div id="search-type" class="col-3" style="display:inline-flex; align-items:center;">
-          <div class="search-type-item" style="margin-right: 10px;">
+      
+        <div id="search-type-item" class="col-3" style="display:inline-flex; align-items:center;">
+          <div class="search-type-item-button" style="margin-right: 10px;">
             <input type="radio" id="search-type-match" name="search-type" value="match" checked>
-            <label for="search-type-1">Match</label>
-          </div>
+            <label for="search-type-match">Match</label>
           <div class="search-type-item" style="margin-right: 10px;">
             <input type="radio" id="search-type-simplequerystring" name="search-type" value="simpleQueryString">
             <label for="search-type-simplequerystring">Query String</label>
@@ -89,6 +92,7 @@
             <input type="radio" id="search-type-semantic" name="search-type" value="knn">
             <label for="search-type-semantic">Semantic (Vector AKNN)</label>
           </div>
+        </div>
         </div>
         <div id="searchbox" class="ais-SearchBox col-lg"></div>
       </div>
