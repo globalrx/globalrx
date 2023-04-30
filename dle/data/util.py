@@ -8,7 +8,15 @@ import dateparser
 import numpy as np
 from dateparser.search import search_dates
 
+from data.constants import METACATEGORIES_MAP
 from data.models import DrugLabel
+
+
+def map_header_to_metacategory(country: str, header: str) -> str:
+    for metacategory, lists in METACATEGORIES_MAP.items():
+        if header in lists[country]:
+            return metacategory
+    return ""
 
 
 def highlight_query_string(text: str, qstring: str) -> str:
