@@ -265,6 +265,13 @@ search.addWidgets([
                 } else {
                     singleItemUrl = `../data/single_label_view/${hit.drug_label_id}, ${globalSearchTerm}`;
                 }
+
+                if (foundDrugLabels.includes(hit.drug_label_id)) {
+                return html``;
+                } 
+
+                foundDrugLabels.push(hit.drug_label_id);                
+
                 return html `
                       <input type="checkbox" name="compare" value="${hit.drug_label_id}" />
                       <a href="${singleItemUrl}"style='font-weight:bold'>${components.Highlight({ attribute: 'drug_label_product_name', hit })}</a> <br />
