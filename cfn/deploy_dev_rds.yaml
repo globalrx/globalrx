@@ -16,7 +16,7 @@ Parameters:
     Default: /public_subnet_2
   rdsPassword:
     Type: AWS::SSM::Parameter::Value<String>
-    Default: /rdsPassword
+    Default: /rds_pw
 
 
 
