@@ -5,6 +5,13 @@ Parameters:
     Default: "django"
 
 Resources:
+  Repo1:
+    Type: AWS::ECR::Repository
+    Properties: 
+      ImageScanningConfiguration: 
+        ScanOnPush: True
+      RepositoryName: !Ref RepoName
+
   ecrRepo:
     Type: AWS::SSM::Parameter
     Properties: 
@@ -13,6 +20,6 @@ Resources:
       Value: !Ref RepoName
 
 Outputs:
-  ecrRepo:
-    Description: ECR Repo 
-    Value: !Ref ecrRepo
+  ecr:
+    Description: Elastic IP 
+    Value: !Ref searchRxElasticIP
