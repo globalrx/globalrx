@@ -95,16 +95,6 @@ jobs:
 
         continue-on-error: true
 
-      - name: Set VPC Parameter
-        run: |
-          VPC_ID=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-vpc --query "Stacks[0].Outputs[0].OutputValue" --output text`
-          aws ssm put-parameter --name "vpc_id" --type "String" --value $VPC_ID --overwrite
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: 'us-east-1'
-        continue-on-error: true
-
 
       - name: get RDS Endpoint
         run: |
@@ -143,17 +133,6 @@ jobs:
           template: cfn/deploy_rds.yaml
 
 
-      - name: Set RDS_ENDPOINT Parameter
-        run: |
-          RDS_ENDPOINT=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-rds --query "Stacks[0].Outputs[0].OutputValue" --output text`
-          aws ssm put-parameter --name "rds_endpoint" --type "String" --value $RDS_ENDPOINT --overwrite
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: 'us-east-1'
-        continue-on-error: true
-
-
 
       - name: get ECR Repo Name
         run: |
@@ -169,6 +148,8 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: 'us-east-1'
         continue-on-error: true
+
+
 
       - name: Deploy ECR 
         uses: aws-actions/aws-cloudformation-github-deploy@v1
@@ -232,19 +213,15 @@ jobs:
           chmod 755 aws_setup.sh
           ./aws_setup.sh
 
-#      - name: Push Django to ECR  # adapted from https://towardsaws.com/build-push-docker-image-to-aws-ecr-using-github-actions-8396888a8f9e
-#        env:
-#          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-#          ECR_REPOSITORY: django
-#          IMAGE_TAG: latest
-#        run: |
-#          cd dle
-#          docker build -t  ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/django:latest .
-#          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/django:latest
-
-
-#              LB_DEPLOYED=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-lb --query "Stacks[0].Outputs[0].OutputValue"`
-
+      - name: Push Django to ECR  # adapted from https://towardsaws.com/build-push-docker-image-to-aws-ecr-using-github-actions-8396888a8f9e
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: django
+          IMAGE_TAG: latest
+        run: |
+          cd dle
+          docker build -t  ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/django:latest .
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/django:latest
 
 
 
