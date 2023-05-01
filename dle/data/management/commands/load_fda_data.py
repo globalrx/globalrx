@@ -97,7 +97,7 @@ class Command(BaseCommand):
         json_zips = self.download_json(urls)
         self.extract_json_zips(json_zips)
         file_dir = self.root_dir / "record_zips"
-        
+
         if import_type == "my_label":
             if my_label_id is None:
                 raise Exception("--my_label_id has to be set if --type is my_label")
@@ -318,7 +318,7 @@ class Command(BaseCommand):
             link = row.find("a")["href"]
             return link
         return ""
-    
+
     # openFDA uses JSON files
     def process_json_record(self, record, dl, insert, my_label_id=None):
         dl.source = "FDA"
@@ -388,7 +388,7 @@ class Command(BaseCommand):
         for file in files:
             logger.debug(f"remove: {file}")
             os.remove(file)
-    
+
     # For the private label feature, XML formatted file is expected from the user
     def process_xml_file(self, xml_file, insert, dl, my_label_id=None):
         with open(xml_file) as f:
@@ -493,9 +493,7 @@ class Command(BaseCommand):
                 if section_map.get(title) is None:
                     section_map[title] = section_texts
                 else:
-                    section_map[title] = (
-                        section_map[title] + f"<br>{title}<br>" + section_texts
-                    )
+                    section_map[title] = section_map[title] + f"<br>{title}<br>" + section_texts
 
             # Now that the sections have been parsed, save them
             for section_name, section_text in section_map.items():

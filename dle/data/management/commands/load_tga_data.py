@@ -160,7 +160,9 @@ class Command(BaseCommand):
             dl = ml.drug_label
             lp = LabelProduct(drug_label=dl)
             lp.save()
-            dl.raw_text, label_text= self.process_tga_pdf_file(tga_file, my_label_id=my_label_id):
+            dl.raw_text, label_text = self.process_tga_pdf_file(
+                tga_file=tga_file, my_label_id=my_label_id
+            )
             dl.save()
             self.save_product_sections(lp, label_text)
             ml.is_successfully_parsed = True
@@ -463,14 +465,16 @@ class Command(BaseCommand):
         else:
             return self.centers[ix]
 
-    def process_tga_pdf_file(self, tga_file, source_product_number="", pdf_url="", my_label_id=None):
+    def process_tga_pdf_file(
+        self, tga_file, source_product_number="", pdf_url="", my_label_id=None
+    ):
         raw_text = []
         label_text = {}  # next level = product page w/ metadata
 
         try:
             raw_text = read_pdf(tga_file, no_annex=False)
             info = {}
-            if my_label_id != None:
+            if my_label_id is not None:
                 product_code = my_label_id
             else:
                 product_code = source_product_number

@@ -24,6 +24,7 @@ from selenium.webdriver.firefox.options import Options
 
 from data.models import DrugLabel, LabelProduct, ParsingError, ProductSection
 from data.util import PDFParseException, check_recently_updated, strfdelta
+from users.models import MyLabel
 
 from .pdf_parsing_helper import filter_headers, get_pdf_sections, read_pdf
 
@@ -133,7 +134,7 @@ class Command(BaseCommand):
             dl = ml.drug_label
             lp = LabelProduct(drug_label=dl)
             lp.save()
-            dl.raw_text = self.process_hc_pdf_file(hc_file, lp=lp)
+            dl.raw_text = self.process_hc_pdf_file(hc_file=hc_file, lp=lp)
             dl.save()
             ml.is_successfully_parsed = True
             ml.save()
@@ -429,7 +430,7 @@ class Command(BaseCommand):
         )
         logger.info(f"saved {pdf_url} file to: {filename}")
         hc_file = settings.MEDIA_ROOT / filename
-        raw_text = self.process_hc_pdf_file(hc_file, source_product_number, lp, pdf_url)
+        raw_text = self.process_hc_pdf_file(hc_file, lp, source_product_number, pdf_url)
         # delete the file when done
         default_storage.delete(filename)
         return raw_text
@@ -507,7 +508,7 @@ class Command(BaseCommand):
                     label_text[header].append(s)
         return label_text
 
-    def process_hc_pdf_file(self, hc_file, source_product_number="", lp, pdf_url=""):
+    def process_hc_pdf_file(self, hc_file, lp, source_product_number="", pdf_url=""):
         raw_text = []
         label_text = {}  # next level = product page w/ metadata
 
