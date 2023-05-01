@@ -22,4 +22,4 @@ Resources:
 Outputs:
   ecr:
     Description: Elastic IP 
-    Value: !Ref searchRxElasticIP
+    Value: !Ref Repo1
