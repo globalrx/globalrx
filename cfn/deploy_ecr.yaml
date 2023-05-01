@@ -8,8 +8,6 @@ Resources:
   ecrRepo:
     Type: AWS::SSM::Parameter
     Properties: 
-      ImageScanningConfiguration: 
-        ScanOnPush: True
       Name: ecr_repo
       Type: String
       Value: !Ref RepoName
