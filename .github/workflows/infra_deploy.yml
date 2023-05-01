@@ -133,6 +133,18 @@ jobs:
         continue-on-error: true
 
 
+      - name: Set RDS PW
+        if: env.RDS_CREATED == false
+        run: |
+          RDS_PW=`date +%s | sha256sum | base64 | head -c 32 ; echo`
+          aws ssm put-parameter --name "rds_pw" --type "String" --value $RDS_PW --overwrite
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: 'us-east-1'
+        continue-on-error: true
+
+
       - name: Deploy RDS CFN
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         if: env.RDS_CREATED == false
