@@ -60,6 +60,7 @@ OTHER_FORMATTED_SECTIONS = [
 # add `--type full` to import the full dataset
 # add `--verbosity 2` for info output
 # add `--verbosity 3` for debug output
+# support for my_labels with: --type my_label --my_label_id ml.id
 class Command(BaseCommand):
     help = "Loads data from HC"
     records = {}
@@ -78,8 +79,14 @@ class Command(BaseCommand):
         parser.add_argument(
             "--type",
             type=str,
-            help="'full', 'test'",
+            help="'full', 'test', or 'my_label'",
             default="test",
+        )
+        parser.add_argument(
+            "--my_label_id",
+            type=int,
+            help="set my_label_id for --type my_label",
+            default=None,
         )
         parser.add_argument(
             "--skip_more_recent_than_n_hours",
@@ -100,8 +107,8 @@ class Command(BaseCommand):
         )
         self.skip_errors = options["skip_known_errors"]
         import_type = options["type"]
-        if import_type not in ["full", "test"]:
-            raise CommandError("'type' parameter must be 'full' or 'test'")
+        if import_type not in ["full", "test", "my_label"]:
+            raise CommandError("'type' parameter must be 'full', 'test', or 'my_label'")
 
         # basic logging config is in settings.py
         # verbosity is 1 by default, gives critical, error and warning output
@@ -116,6 +123,22 @@ class Command(BaseCommand):
 
         logger.info(self.style.SUCCESS("start process"))
         logger.info(f"import_type: {import_type}")
+
+        if import_type == "my_label":
+            my_label_id = options["my_label_id"]
+            if my_label_id is None:
+                raise Exception("--my_label_id has to be set if --type is my_label")
+            ml = MyLabel.objects.filter(pk=my_label_id).get()
+            hc_file = ml.file.path
+            dl = ml.drug_label
+            lp = LabelProduct(drug_label=dl)
+            lp.save()
+            dl.raw_text = self.process_hc_pdf_file(hc_file, lp=lp)
+            dl.save()
+            ml.is_successfully_parsed = True
+            ml.save()
+            logger.info(self.style.SUCCESS("process complete"))
+            return
 
         # Before being able to access the drugs,
         #  we have to do a search with "approved" status and "human" class.
@@ -484,7 +507,7 @@ class Command(BaseCommand):
                     label_text[header].append(s)
         return label_text
 
-    def process_hc_pdf_file(self, hc_file, source_product_number, lp, pdf_url=""):
+    def process_hc_pdf_file(self, hc_file, source_product_number="", lp, pdf_url=""):
         raw_text = []
         label_text = {}  # next level = product page w/ metadata
 

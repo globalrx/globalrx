@@ -22,6 +22,7 @@ from selenium.webdriver.firefox.options import Options
 
 from data.models import DrugLabel, LabelProduct, ParsingError, ProductSection
 from data.util import PDFParseException, check_recently_updated, convert_date_string, strfdelta
+from users.models import MyLabel
 
 from .pdf_parsing_helper import get_pdf_sections, read_pdf
 
@@ -54,6 +55,7 @@ OTHER_FORMATTED_SECTIONS = [
 # add `--type full` to import the full dataset
 # add `--verbosity 2` for info output
 # add `--verbosity 3` for debug output
+# support for my_labels with: --type my_label --my_label_id ml.id
 class Command(BaseCommand):
     help = "Loads data from TGA"
 
@@ -77,8 +79,14 @@ class Command(BaseCommand):
         parser.add_argument(
             "--type",
             type=str,
-            help="'full', 'test'",
+            help="'full', 'test', 'rand_test' or 'my_label'",
             default="test",
+        )
+        parser.add_argument(
+            "--my_label_id",
+            type=int,
+            help="set my_label_id for --type my_label",
+            default=None,
         )
         parser.add_argument(
             "--skip_more_recent_than_n_hours",
@@ -119,8 +127,8 @@ class Command(BaseCommand):
         )
         self.skip_errors = options["skip_known_errors"]
         import_type = options["type"]
-        if import_type not in ["full", "test"]:
-            raise CommandError("'type' parameter must be 'full' or 'test'")
+        if import_type not in ["full", "test", "my_label"]:
+            raise CommandError("'type' parameter must be 'full', 'test', or 'my_label'")
 
         # basic logging config is in settings.py
         # verbosity is 1 by default, gives critical, error and warning output
@@ -143,6 +151,22 @@ class Command(BaseCommand):
                 "https://www.ebs.tga.gov.au/ebs/picmi/picmirepository.nsf/PICMI?OpenForm&t=PI&k=5&r=/",
                 "https://www.ebs.tga.gov.au/ebs/picmi/picmirepository.nsf/PICMI?OpenForm&t=PI&k=Y&r=/",
             ]
+        elif import_type == "my_label":
+            my_label_id = options["my_label_id"]
+            if my_label_id is None:
+                raise Exception("--my_label_id has to be set if --type is my_label")
+            ml = MyLabel.objects.filter(pk=my_label_id).get()
+            tga_file = ml.file.path
+            dl = ml.drug_label
+            lp = LabelProduct(drug_label=dl)
+            lp.save()
+            dl.raw_text, label_text= self.process_tga_pdf_file(tga_file, my_label_id=my_label_id):
+            dl.save()
+            self.save_product_sections(lp, label_text)
+            ml.is_successfully_parsed = True
+            ml.save()
+            logger.info(self.style.SUCCESS("process complete"))
+            return
         else:
             # Get full list of addresses to query
             urls = self.get_tga_pi_urls()
@@ -439,14 +463,17 @@ class Command(BaseCommand):
         else:
             return self.centers[ix]
 
-    def process_tga_pdf_file(self, tga_file, source_product_number, pdf_url=""):
+    def process_tga_pdf_file(self, tga_file, source_product_number="", pdf_url="", my_label_id=None):
         raw_text = []
         label_text = {}  # next level = product page w/ metadata
 
         try:
             raw_text = read_pdf(tga_file, no_annex=False)
             info = {}
-            product_code = source_product_number
+            if my_label_id != None:
+                product_code = my_label_id
+            else:
+                product_code = source_product_number
             # row = self.df[self.df["Product number"] == product_code]
             # info["metadata"] = row.iloc[0].apply(str).to_dict()
 

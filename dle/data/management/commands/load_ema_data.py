@@ -116,11 +116,11 @@ class Command(BaseCommand):
             ]
         elif import_type == "my_label":
             my_label_id = options["my_label_id"]
+            if my_label_id is None:
+                raise Exception("--my_label_id has to be set if --type is my_label")
             ml = MyLabel.objects.filter(pk=my_label_id).get()
-
             ema_file = ml.file.path
             dl = ml.drug_label
-
             lp = LabelProduct(drug_label=dl)
             lp.save()
 

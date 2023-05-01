@@ -97,16 +97,16 @@ class Command(BaseCommand):
         json_zips = self.download_json(urls)
         self.extract_json_zips(json_zips)
         file_dir = self.root_dir / "record_zips"
-
+        
         if import_type == "my_label":
+            if my_label_id is None:
+                raise Exception("--my_label_id has to be set if --type is my_label")
+            # It expects XML file from user
             logger.info(f"processing my_label_id: {my_label_id}")
             ml = MyLabel.objects.filter(pk=my_label_id).get()
-            json_file = ml.file.path
-            with open(json_file, encoding="utf-8-sig") as f:
-                raw_json_result = json.load(f)
-                logger.info(f"start loading json {json_file}")
-            raw_json_result = raw_json_result["results"]
-            self.import_records(raw_json_result, insert, my_label_id)
+            xml_file = ml.file.path
+            dl = ml.drug_label
+            self.process_xml_file(xml_file, insert, dl, my_label_id)
             ml.is_successfully_parsed = True
             ml.save()
         else:
@@ -318,7 +318,8 @@ class Command(BaseCommand):
             link = row.find("a")["href"]
             return link
         return ""
-
+    
+    # openFDA uses JSON files
     def process_json_record(self, record, dl, insert, my_label_id=None):
         dl.source = "FDA"
         dl.product_name = record["metadata"]["brand_name"][0]
@@ -387,3 +388,127 @@ class Command(BaseCommand):
         for file in files:
             logger.debug(f"remove: {file}")
             os.remove(file)
+    
+    # For the private label feature, XML formatted file is expected from the user
+    def process_xml_file(self, xml_file, insert, dl, my_label_id=None):
+        with open(xml_file) as f:
+            content = BeautifulSoup(f.read(), "lxml")
+
+            dl.source = "FDA"
+            dl.product_name = content.find("subject").find("name").text.title()
+            try:
+                generic_name = content.find("genericmedicine").find("name").text
+            except AttributeError:
+                # don't insert record if we cannot find this
+                logger.error("unable to find generic_name")
+                return
+            dl.generic_name = generic_name[:255].title()
+
+            try:
+                dl.version_date = datetime.strptime(
+                    content.find("effectivetime").get("value"), "%Y%m%d"
+                )
+            except ValueError:
+                dl.version_date = datetime.now()
+
+            try:
+                dl.marketer = content.find("author").find("name").text.title()
+            except AttributeError:
+                dl.marketer = ""
+
+            # Ensure always selecting the same ndc code if multiple
+            ndc_codes = [
+                ndc_code.get("code")
+                for ndc_code in content.find_all(
+                    "code", attrs={"codesystem": "2.16.840.1.113883.6.69"}
+                )
+            ]
+            dl.source_product_number = sorted(ndc_codes)[0]
+
+            if my_label_id is not None:
+                dl.source_product_number = f"my_label_{my_label_id}" + dl.source_product_number
+
+            # texts = [p.text for p in content.find_all("paragraph")]
+            # dl.raw_text = "\n".join(texts)
+            dl.raw_rext = ""
+
+            lp = LabelProduct(drug_label=dl)
+
+            root = content.find("setid").get("root")
+            dl.link = f"https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid={root}"
+
+            try:
+                if insert:
+                    dl.save()
+                    logger.info(f"Saving new drug label: {dl}")
+            except IntegrityError as e:
+                logger.error(str(e))
+                return
+
+            try:
+                if insert:
+                    lp.save()
+                    logger.info("Saving new label product")
+            except IntegrityError as e:
+                logger.error(str(e))
+                return
+
+            # In the following section we will build the different sections. We do this by matching XML components
+            # to predetermined FDA_SECTION_NAMES, and for components that do not match, we add them to an "OTHER"
+            # category
+            section_map = {}
+            for section in content.find_all("component"):
+                # the structuredbody component is the parent that contains everything, skip it
+                structured_body = section.find_next("structuredbody")
+                if structured_body is not None:
+                    logger.debug("SKIPPING: structuredbody")
+                    continue
+                logger.debug(f"section: {repr(section)}")
+
+                code = section.find("code", attrs={"codesystem": "2.16.840.1.113883.6.1"})
+                if code is None:
+                    continue
+
+                title = str(code.get("displayname")).upper()
+                logger.debug(f"title: {title}")
+
+                if title == "SPL UNCLASSIFIED SECTION":
+                    try:
+                        title = code.find_next_sibling().get_text(strip=True)
+                        logger.debug(f"UNCLASSIFIED title: {title}")
+                    except AttributeError:
+                        pass
+
+                title = self.re_combine_whitespace.sub(" ", title).strip()
+                title = self.re_remove_nonalpha_characters.sub("", title)
+                title = self.re_combine_whitespace.sub(" ", title).strip()
+
+                # Now that we have determined what section, grab all the text in the component and add it as the
+                # value to a corresponding hashmap. If a value already exists, add it to the end
+                raw_section_texts = [str(p) for p in section.find_all("text")]
+                section_texts = "<br>".join(raw_section_texts)
+                logger.debug(f"section_texts: {section_texts}")
+
+                # Save to keyed section of map, concatenating repeat sections
+                if section_map.get(title) is None:
+                    section_map[title] = section_texts
+                else:
+                    section_map[title] = (
+                        section_map[title] + f"<br>{title}<br>" + section_texts
+                    )
+
+            # Now that the sections have been parsed, save them
+            for section_name, section_text in section_map.items():
+                ps = ProductSection(
+                    label_product=lp,
+                    section_name=section_name,
+                    section_text=section_text,
+                )
+                try:
+                    if insert:
+                        ps.save()
+                        logger.debug(f"Saving new product section {ps}")
+                except IntegrityError as e:
+                    logger.error(str(e))
+                except OperationalError as e:
+                    logger.error(str(e))
