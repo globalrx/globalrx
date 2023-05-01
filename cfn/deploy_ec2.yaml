@@ -58,8 +58,10 @@ Resources:
 
   searchRxEc2:
     Type: AWS::EC2::Instance
-    DependsOn: searchRxKey
-    DependsOn: searchRxSecGroup
+    DependsOn: 
+      - searchRxKey
+    DependsOn: 
+      - searchRxSecGroup
     Properties:
       ImageId: !Ref ImageIDParameter
       InstanceType: !Ref InstanceTypeParameter
@@ -119,8 +121,9 @@ Resources:
 
   searchRxElasticIP:
     Type: AWS::EC2::EIP
+    DependsOn: 
+      - searchRxEc2
     Properties: 
-      DependsOn: searchRxEc2
       Domain: vpc
       InstanceId: !Ref searchRxEc2
 
