@@ -1,16 +1,31 @@
-Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-Properties: 
-  IpAddressType: ipv4
-  LoadBalancerAttributes: 
-    - LoadBalancerAttribute
-  Name: String
-  Scheme: String
-  SecurityGroups: 
-    - String
-  SubnetMappings: 
-    - SubnetMapping
-  Subnets: 
-    - String
-  Tags: 
-    - Tag
-  Type: String
+AWSTemplateFormatVersion: 2010-09-09
+Parameters:
+  subnet1:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /public_subnet_1
+  subnet2:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /public_subnet_2
+
+Resources:
+  LoadBalancer:
+    Properties:
+      LoadBalancerAttributes:
+      - Key: load_balancing.cross_zone.enabled
+        Value: "true"
+      Scheme: internet-facing
+      Subnets:
+      - !Ref subnet1
+      - !Ref subnet2
+      Tags:
+      - Key: com.docker.compose.project
+        Value: dle
+      Type: network
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+
+  LoadBalanerArn:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Name: load_balancer
+      Type: String
+      Value: !Ref LoadBalancer
