@@ -137,7 +137,7 @@ jobs:
         if: env.RDS_CREATED == false
         run: |
           RDS_PW=`date +%s | sha256sum | base64 | head -c 32 ; echo`
-          aws ssm put-parameter --name "rds_pw" --type "String" --value $RDS_PW --overwrite
+          aws ssm put-parameter --name "rds_pword" --type "String" --value $RDS_PW --overwrite
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -256,6 +256,32 @@ jobs:
 
 
 
+      - name: get LB Name
+        run: |
+              LB_DEPLOYED=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-lb --query "Stacks[0].Outputs[0].OutputValue"`
+              if [[ -n "$LB_DEPLOYED" ]]
+              then
+                echo "LB_DEPLOYED=true" >> "$GITHUB_ENV"
+              else
+                echo "LB_DEPLOYED=false" >> "$GITHUB_ENV"
+              fi
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: 'us-east-1'
+        continue-on-error: true
+
+
+
+      - name: Deploy Load Balancer 
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        if: env.LB_DEPLOYED == false
+        with:
+          name: deploy-ecs
+          capabilities: CAPABILITY_NAMED_IAM
+          template: cfn/deploy_lb.yaml
+        continue-on-error: true
+
 
 
       - name: get Task Name
@@ -273,6 +299,32 @@ jobs:
           AWS_DEFAULT_REGION: 'us-east-1'
         continue-on-error: true
 
+
+      - name: Set ECS Params
+        if: env.TASK_NAME == false
+        run: |
+          aws ssm put-parameter --name "aws_access_key" --type "String" --value ${{ secrets.AWS_ACCESS_KEY_ID }} --overwrite
+          aws ssm put-parameter --name "aws_secret_key" --type "String" --value ${{ secrets.AWS_ACCESS_KEY_ID }} --overwrite
+
+          aws ssm put-parameter --name "ecs_cluster_name" --type "String" --value "searchrx" --overwrite
+          aws ssm put-parameter --name "ecs_service_name" --type "String" --value "searchrxService" --overwrite
+
+          aws ssm put-parameter --name "image_url" --type "String" --value ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/django:latest --overwrite
+
+          KIBANA_PW=`date +%s | sha256sum | base64 | head -c 32 ; echo`
+          SECRET_PW=`date +%s | sha256sum | base64 | head -c 32 ; echo`
+          ELASTIC_PW=`date +%s | sha256sum | base64 | head -c 32 ; echo`
+
+          aws ssm put-parameter --name "kibana_pw" --type "String" --value $KIBANA_PW --overwrite
+          aws ssm put-parameter --name "secret_pw" --type "String" --value $SECRET_PW --overwrite
+          aws ssm put-parameter --name "elastic_pw" --type "String" --value $ELASTIC_PW --overwrite
+
+
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: 'us-east-1'
+        continue-on-error: true
 
 
       - name: Deploy ECS 
