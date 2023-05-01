@@ -26,6 +26,6 @@ Resources:
   LoadBalanerArn:
     Type: AWS::SSM::Parameter
     Properties: 
-      Name: load_balancer
+      Name: ecs_lb
       Type: String
       Value: !Ref LoadBalancer
