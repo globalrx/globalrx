@@ -254,13 +254,14 @@ jobs:
 #          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/django:latest
 
 
+#              LB_DEPLOYED=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-lb --query "Stacks[0].Outputs[0].OutputValue"`
+
+
 
 
       - name: get LB Name
         run: |
-
               aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-lb
-#              LB_DEPLOYED=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-lb --query "Stacks[0].Outputs[0].OutputValue"`
               if [[ "$?" == 0 ]]
               then
                 echo "LB_DEPLOYED=true" >> "$GITHUB_ENV"
