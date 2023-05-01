@@ -99,6 +99,10 @@ Resources:
             echo "#!/bin/sh" > start_elastic_script.sh
             echo "cd /home/ec2-user/searchrx/dle" >> start_elastic_script.sh
             echo "/usr/local/bin/docker-compose -f elastic-http-deploy.yaml up" >> start_elastic_script.sh
+
+            cp .env.example .env
+    
+
             chmod 755 start_elastic_script.sh
             nohup ./start_elastic_script.sh > output &
 
