@@ -59,6 +59,7 @@ Resources:
   searchRxEc2:
     Type: AWS::EC2::Instance
     DependsOn: searchRxKey
+    DependsOn: searchRxSecGroup
     Properties:
       ImageId: !Ref ImageIDParameter
       InstanceType: !Ref InstanceTypeParameter
@@ -72,7 +73,7 @@ Resources:
             VolumeSize: 100
             VolumeType: gp3
       SecurityGroupIds:
-        - !GetAtt "searchRxSecGroupdev.GroupId"
+        - !GetAtt "searchRxSecGroup.GroupId"
       Tags:
         - Key: Name
           Value: !Ref NameParameter
