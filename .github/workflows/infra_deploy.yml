@@ -244,6 +244,7 @@ jobs:
           ./aws_setup.sh
 
       - name: Push Django to ECR  # adapted from https://towardsaws.com/build-push-docker-image-to-aws-ecr-using-github-actions-8396888a8f9e
+	if: env.EC2_IP == false
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: django
@@ -260,7 +261,7 @@ jobs:
 
       - name: get Task Name
         run: |
-              TASK_NAME=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-ec2 --query "Stacks[0].Outputs[0].OutputValue"`
+              TASK_NAME=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-ecs --query "Stacks[0].Outputs[0].OutputValue"`
               if [[ -n "$TASK_NAME" ]]
               then
                 echo "TASK_NAME=true" >> "$GITHUB_ENV"
