@@ -258,8 +258,10 @@ jobs:
 
       - name: get LB Name
         run: |
-              LB_DEPLOYED=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-lb --query "Stacks[0].Outputs[0].OutputValue"`
-              if [[ -n "$LB_DEPLOYED" ]]
+
+              aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-lb
+#              LB_DEPLOYED=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-lb --query "Stacks[0].Outputs[0].OutputValue"`
+              if [[ "$?" == 0 ]]
               then
                 echo "LB_DEPLOYED=true" >> "$GITHUB_ENV"
               else
