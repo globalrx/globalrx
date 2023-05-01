@@ -41,10 +41,10 @@ Parameters:
     Default: /ecs_cluster_name
   awsAccessKey:
     Type: AWS::SSM::Parameter::Value<String>
-    Default: /access_key
+    Default: /aws_access_key
   awsSecretKey:
     Type: AWS::SSM::Parameter::Value<String>
-    Default: /secret_key
+    Default: /aws_secret_key
 
 Resources:
   CloudMap:

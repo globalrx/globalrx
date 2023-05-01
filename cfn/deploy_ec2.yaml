@@ -119,8 +119,8 @@ Resources:
             CidrIp: 0.0.0.0/0 
       SecurityGroupIngress:
           - IpProtocol: tcp
-            FromPort: '8000'
-            ToPort: '8000'
+            FromPort: '9200'
+            ToPort: '9200'
             CidrIp: 0.0.0.0/0 
 
   searchRxElasticIP:

@@ -10,6 +10,8 @@ Resources:
       Name: s3_bucket
       Type: String
       Value: !Ref searchRxBucket
+
+
 Outputs:
   bucketname:
     Value: !Ref searchRxBucket
