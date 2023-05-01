@@ -157,6 +157,6 @@ Resources:
       Value: !Ref searchRxElasticIP
 
 Outputs:
-  EC2_IP:
+  ec2ip:
     Description: Elastic IP 
     Value: !Ref searchRxElasticIP
