@@ -277,7 +277,7 @@ jobs:
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         if: env.LB_DEPLOYED == false
         with:
-          name: deploy-ecs
+          name: deploy-lb
           capabilities: CAPABILITY_NAMED_IAM
           template: cfn/deploy_lb.yaml
         continue-on-error: true
