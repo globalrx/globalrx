@@ -3,9 +3,9 @@ name: infra deploy
 on:
   push:
     branches: 
-      - infra_deploy.yml
-    path:
-      - cfn/*
+      - alex-infra-deploy
+#    path:
+#      - cfn/*
   workflow_dispatch:
 jobs:
   build:
