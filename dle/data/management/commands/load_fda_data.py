@@ -2,6 +2,7 @@ import datetime
 import json
 import logging
 import os
+import re
 import shutil
 import urllib.request as request
 from contextlib import closing
@@ -31,6 +32,8 @@ FDA_JSON_URL = "https://api.fda.gov/download.json"
 # runs with `python manage.py load_fda_data --type {type}`
 class Command(BaseCommand):
     help = "Loads data from FDA"
+    re_combine_whitespace = re.compile(r"\s+")
+    re_remove_nonalpha_characters = re.compile("[^a-zA-Z ]")
 
     def __init__(self, stdout=None, stderr=None, no_color=False, force_color=False):
         self.root_dir = settings.MEDIA_ROOT / "fda"
@@ -75,8 +78,8 @@ class Command(BaseCommand):
         self.skip_errors = options["skip_known_errors"]
 
         import_type = options["type"]
-        if import_type not in ["full", "test"]:
-            raise CommandError("'type' parameter must be 'full' or 'test'")
+        if import_type not in ["full", "test", "my_label"]:
+            raise CommandError("'type' parameter must be 'full', 'test', or 'my_label'")
 
         my_label_id = options["my_label_id"]
 
@@ -405,7 +408,7 @@ class Command(BaseCommand):
             dl.generic_name = generic_name[:255].title()
 
             try:
-                dl.version_date = datetime.strptime(
+                dl.version_date = datetime.datetime.strptime(
                     content.find("effectivetime").get("value"), "%Y%m%d"
                 )
             except ValueError:

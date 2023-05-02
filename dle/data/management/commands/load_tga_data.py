@@ -474,9 +474,7 @@ class Command(BaseCommand):
         try:
             raw_text = read_pdf(tga_file, no_annex=False)
             info = {}
-            if my_label_id is not None:
-                product_code = my_label_id
-            else:
+            if my_label_id is None:
                 product_code = source_product_number
             # row = self.df[self.df["Product number"] == product_code]
             # info["metadata"] = row.iloc[0].apply(str).to_dict()
@@ -505,7 +503,8 @@ class Command(BaseCommand):
                         label_text[header].append(s)
 
             info["Label Text"] = label_text
-            self.records[product_code] = info
+            if my_label_id is None:
+                self.records[product_code] = info
         except PDFParseException as e:
             logger.error(self.style.ERROR(repr(e)))
             logger.error(self.style.ERROR(f"Failed to process {tga_file}, url = {pdf_url}"))

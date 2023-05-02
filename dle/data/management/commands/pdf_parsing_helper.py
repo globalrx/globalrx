@@ -95,7 +95,8 @@ def read_pdf(filename, no_margins=True, no_blanks=False, no_tables=False, no_ann
     if no_annex:
         annex_lines = [re.match(r".*ANNEX\s+I.*", line) is not None for line in text]
         annex_index = [i for i, v in enumerate(annex_lines) if v]
-        text = text[annex_index[0] : annex_index[1]]
+        if len(annex_index) > 1:
+            text = text[annex_index[0] : annex_index[1]]
 
     if no_blanks:
         text = [line for line in text if not line.isspace()]

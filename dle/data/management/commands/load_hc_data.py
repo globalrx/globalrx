@@ -134,7 +134,7 @@ class Command(BaseCommand):
             dl = ml.drug_label
             lp = LabelProduct(drug_label=dl)
             lp.save()
-            dl.raw_text = self.process_hc_pdf_file(hc_file=hc_file, lp=lp)
+            dl.raw_text = self.process_hc_pdf_file(hc_file=hc_file, lp=lp, my_label_id=my_label_id)
             dl.save()
             ml.is_successfully_parsed = True
             ml.save()
@@ -508,7 +508,9 @@ class Command(BaseCommand):
                     label_text[header].append(s)
         return label_text
 
-    def process_hc_pdf_file(self, hc_file, lp, source_product_number="", pdf_url=""):
+    def process_hc_pdf_file(
+        self, hc_file, lp, source_product_number="", pdf_url="", my_label_id=None
+    ):
         raw_text = []
         label_text = {}  # next level = product page w/ metadata
 
@@ -516,7 +518,8 @@ class Command(BaseCommand):
             raw_text = read_pdf(hc_file, no_margins=False, no_annex=False)
 
             info = {}
-            product_code = source_product_number
+            if my_label_id is None:
+                product_code = source_product_number
 
             headers, sections = [], []
             # Match headers that start with section numbers (e,g, 4.1)
@@ -543,8 +546,9 @@ class Command(BaseCommand):
                 ps = ProductSection(label_product=lp, section_name=key, section_text=text_block)
                 ps.save()
 
-            info["Label Text"] = label_text
-            self.records[product_code] = info
+            if my_label_id is None:
+                info["Label Text"] = label_text
+                self.records[product_code] = info
             logger.info(f"{hc_file} parsed Successfully")
         except PDFParseException as e:
             logger.error(self.style.ERROR(repr(e)))
