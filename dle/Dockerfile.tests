@@ -30,6 +30,9 @@ COPY requirements.txt /app
 COPY requirements-dev.txt /app
 RUN pip install -r requirements-dev.txt
 
+# Install Playwright for E2E tests
+RUN python3 -m playwright install
+
 # Setup app
 COPY entrypoint /app
 
