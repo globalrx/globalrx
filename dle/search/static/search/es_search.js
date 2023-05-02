@@ -3,7 +3,12 @@
 // See below - need to figure out how to disable caching
 // import { createNullCache } from 'https://cdn.jsdelivr.net/npm/@algolia/cache-common/+esm';
 
-var globalSearchTerm = '';
+const queryString = window.location.search;
+const urlParams = new URLSearchParams(queryString);
+var globalSearchTerm =  urlParams.get('productsection[query]') || '';
+// above is code to make sure we're getting the search term on a first page
+// load after coming from the home page
+
 var queryType = 'match'; // knn, simpleQueryString, match
 var searchkit_ready = false;
 
@@ -267,7 +272,7 @@ search.addWidgets([
                 }
 
 
-                if (globalSearchTerm.lengh > 4) {
+                if (globalSearchTerm.length > 4) {
                     // do to scaling issues, we only want to do this potentially costly check
                     // of which drug labels are in the array of there's enough categories to
                     // have a legitimate search and not using filtering methods.
