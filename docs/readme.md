@@ -218,11 +218,15 @@ Working with the ECS task (replace with correct vars). Run this from the Elastic
         - Activate the virtual environment. Run `source dle-env/bin/activate`
         - Install dependencies. Run `pip install -r requirements.txt` and `pip install -r tests/pytest_requirements.txt`
         - Run tests: `python3.11 -m pytest -vv -s`
+        - Run just the Playwright tests: `python3.11 -m pytest --headed -vv tests/e2e`, or drop the `--headed` flag to run headless
     - Running these tests in Docker is technically possible (Docker in Docker) but have not explored this yet.
 - To write tests:
     - Check out `pytest` documentation: https://docs.pytest.org/en/7.3.x/
     - Check out `pytest-docker` documentation: https://github.com/avast/pytest-docker
-    - Place tests in `dle/tests/unit` or create new directories if adding integration, load, or functional tests
+    - Checkout `playwright` documentation: https://playwright.dev/python/docs/intro
+    - Place unit tests in `dle/tests/unit`
+    - Place E2E tests (Playwright) in `dle/tests/e2e`
+    - Create new directories if adding integration or load tests
     - Test files should be prefaced with `test_` and end with `.py`. Typically use one file per Django app.
     
 ## Deployment
