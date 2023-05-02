@@ -1,8 +1,7 @@
 {% for dl in labels %}
     {% if forloop.counter0 == 0 %}
         <div class="drug-label">
-            <h2>{{ dl.product_name }}</h2>
-            <h2>{{ dl.generic_name}}</h2>
+            <h2>{{ dl.product_name }} Labels</h2>
     {% endif %}
     <p>
         <input type="checkbox" name="compare" value="{{dl.id}}" />
