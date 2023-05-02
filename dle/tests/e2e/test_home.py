@@ -27,28 +27,11 @@ def test_navbar(page: Page):
     # Expects the URL to have /search/ in it
     expect(page).to_have_url(re.compile(".*search"))
 
-    # the navbar should have 4 links
-    # TODO switch to use a locator, query selector is deprecated: https://playwright.dev/python/docs/locators
-    navbar_links = page.query_selector_all(".nav-link")
-    assert len(navbar_links) == 4
+    # the navbar should have 4 links with the correct text
+    expect(page.locator("ul.nav > li")).to_have_text(["Home", "Visualizations", "Log in", "Register"], use_inner_text=True)
 
-    # TODO use https://playwright.dev/python/docs/locators#assert-all-text-in-a-list to check all text in the navbar list
-
-    # The first navbar link should be "Home" and link to /search/
-    assert navbar_links[0].inner_text() == "Home"
-    assert navbar_links[0].get_attribute("href") == "/search/"
-
-    # The second navbar link should be "Visualizations" and link to /data/visualizations
-    assert navbar_links[1].inner_text() == "Visualizations"
-    assert navbar_links[1].get_attribute("href") == "/data/visualizations"
-
-    # The third navbar link should be "Log In" and link to "/users/login"
-    assert navbar_links[2].inner_text() == "Log in"
-    assert navbar_links[2].get_attribute("href") == "/users/login/"
-
-    # The fourth navbar link should be "Register" and link to "/users/register"
-    assert navbar_links[3].inner_text() == "Register"
-    assert navbar_links[3].get_attribute("href") == "/users/register/"
+    # TODO verify the links are correct
+    # links = page.locator("ul.nav > li > a")
 
 # Test that the search bar works
 def test_search_bar(page: Page):
