@@ -1,6 +1,11 @@
 {% extends "search/base.html" %}
 {% block head %}
 {% load static %}
+<!-- Bootstrap JS-->
+<script src="https://code.jquery.com/jquery-3.4.1.slim.min.js" integrity="sha384-J6qa4849blE2+poT4WnyKhv5vZF5SrPo0iEjwBvKU7imGFAV0wwj1yYfoRSJoZ+n" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.4.1/dist/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+
 <!-- Searchkit and Algolia Instantsearch assets -->
 <script src="https://cdn.jsdelivr.net/npm/@searchkit/instantsearch-client@latest"></script>
 <script src="https://cdn.jsdelivr.net/npm/instantsearch.js@4"></script>
@@ -85,20 +90,68 @@
       display: inline-flex;flex-direction: column;transition: all 500ms ease;">
         <div id="search-type-item" class="col-3" 
         style="display:inline-flex; align-items:center;"></div>
-        <div class="modal-body">
-          <p><a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html" class="tooltip-test" title="This query uses a simple syntax to parse and split the provided query string into terms based on special operators. ">Query String</a> and <a href="https://www.elastic.co/guide/en/elasticsearch/reference/master/knn-search.html" class="tooltip-test" title="A k-nearest neighbor (kNN) search finds the k nearest vectors to a query vector, as measured by a similarity metric.">Semantic</a> search type item</p>
+        <!-- Modal -->
+        <div class="modal fade" id="explanationModal" tabindex="-1" role="dialog" aria-labelledby="explanationModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title" id="explanationModalLabel">Search Types</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body">
+
+                <h6>Match</h6>
+                <p>The default search type, which uses <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-multi-match-query.html">Elasticsearch's multi-match query</a> 
+                  as implemented by Searchkit. It combines a phrase search, a boolean prefix search, and a fuzziness factor. Implementation
+                  details are available <a href="https://github.com/searchkit/searchkit/blob/6ef632f022d327878d800c0467ffbe9151f27fcc/packages/searchkit/src/transformRequest.ts#L147-L189">here</a>.
+                </p>
+
+                <h6>Query String</h6>
+                <p>Uses <a href="https://www.elastic.co/guide/en/elasticsearch/reference/current/query-dsl-simple-query-string-query.html">Elasticsearch's "simple query string syntax"</a>, which uses a powerful yet fault-tolerant parser to allow for special operators. simple_query_string queries do not error with invalid syntax, they simply ignore invalid parts of the query string.</p>
+                <p>The <code>simple_query_string</code> query syntax supports the following operators:</p>
+                <ul>
+                  <li><code>+</code> signifies <code>AND</code> operation</li>
+                  <li><code>|</code> signifies <code>OR</code>> operation</li>
+                  <li><code>-</code>negates a single token</li>
+                  <li><code>"</code>> wraps a number of tokens to signify a phrase for searching</li>
+                  <li><code>*</code> at the end of a term signifies a prefix query</li>
+                  <li><code>( and )</code>> signify precedence</li>
+                  <li><code>~N</code> after a word signifies edit distance (fuzziness)</li>
+                  <li><code>~N</code> after a phrase signifies slop amount</li>
+                </ul>
+                <p>To use one of these characters literally, escape it with a preceding backslash (<code>\</code>).</p>
+                <p>The default operator is <code>OR</code>, which could cause confusing outputs in some scenarios.
+                  For example, the search <code>foo bar -baz</code> looks like it might return results with <code>foo</code> or <code>bar</code>> that also do not include <code>baz</code>>, 
+                  but because the default operator is <code>OR</code>>, it returns documents that contain <code>foo</code> or <code>bar</code>> and any documents that 
+                  don’t contain <code>baz</code>>. In this situation, change the search to <code>foo bar +-baz</code>.
+                </p>
+
+                <h6>Semantic (Vector AKNN)</h6>
+                <p>Traditional search metrics like TF-IDF or BM25 search on keywords, while <em>semantic search or vector search</em> tries to find results that include similar concepts. For example, a search for "brain bleeding" should return results for "cerebral hemorrage" because the concepts are very similar, even if neither "brain" nor "bleeding" are in the target document.</p>
+                <p><a href="https://www.elastic.co/guide/en/elasticsearch/reference/master/knn-search.html">Semantic search</a> is also known as vector search because it is typically implemented through vectorization. A text document is represented in a high-dimensional space as an array, which allows search engines to quickly perform vector math to find similar documents with an <em>approximate nearest neighbors algorithm (AKNN)</em>. Elasticsearch added this feature in 2022 and has been steadily improving it. SearchRx uses a HuggingFace sentence transformers model from Microsoft that starts with a BERT model trained on PubMed abstracts and PubMedCentral full text articles, then fine-tuned on the MS-MARCO (Machine Reading Comprehension) dataset (see: <a href="https://huggingface.co/pritamdeka/S-PubMedBert-MS-MARCO">HuggingFace</a>).</p>
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
         </div>
       <div class="search-type-item" style="margin-right: 10px;color:black">
             <input type="radio" id="search-type-match" name="search-type" value="match" checked>
-            <label for="search-type-match">Match</label>
+            <label for="search-type-match" title="The default search type, which uses Elasticsearch's multi-match to combine a phrase search, a boolean prefix search, and a fuzziness factor">Match</label>
+            <i class="fa fa-question-circle" aria-hidden="true" data-toggle="modal" data-target="#explanationModal"></i>
           </div>
           <div class="search-type-item" style="margin-right: 10px;color:black">
             <input type="radio" id="search-type-simplequerystring" name="search-type" value="simpleQueryString">
-            <label for="search-type-simplequerystring">Query String</label>
+            <label for="search-type-simplequerystring" title="This query uses a simple syntax to parse and split the provided query string into terms based on special operators.">Query String</label>
+            <i class="fa fa-question-circle" aria-hidden="true" data-toggle="modal" data-target="#explanationModal"></i>
           </div>
           <div class="search-type-item" style="margin-right: 10px;color: black;">
             <input type="radio" id="search-type-semantic" name="search-type" value="knn">
-            <label for="search-type-semantic">Semantic (Vector AKNN)</label>
+            <label for="search-type-semantic" title="A k-nearest neighbor (kNN) search finds the k nearest vectors to a query vector, as measured by a similarity metric.">Semantic (Vector AKNN)</label>
+            <i class="fa fa-question-circle" aria-hidden="true" data-toggle="modal" data-target="#explanationModal"></i>
           </div>
         </div>
         </div>
