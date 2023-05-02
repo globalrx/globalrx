@@ -26,6 +26,9 @@ jobs:
         run: |
           pip install -r ./dle/tests/pytest_requirements.txt \
           pip install -r ./dle/requirements.txt
+      
+      - name: Ensure browsers are installed for Playwright
+        run: python -m playwright install --with-deps
 
       - name: Run Pytest tests with pytest-docker
         working-directory: dle
