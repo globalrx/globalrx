@@ -64,39 +64,11 @@ def test_search_bar(page: Page):
     print(f"page url: {page.url}")
     # TODO switch to use a test_id or other selector https://playwright.dev/python/docs/other-locators#id-data-testid-data-test-id-data-test-selectors
     htmx_div = page.get_by_test_id("htmx-dl-search-results")
-    # print(htmx_div.inner_html())
-    # print(htmx_div.inner_text())
-    # count = htmx_div.count()
-    # for i in range(count):
-    #     print(i)
-    #     print(htmx_div.nth(i).inner_text())
-    # there should be at least 3 results which are <p> tags under htmx_results
-    # for some reason .drug-label p is not working
-    # htmx_results = page.locator("p") #6
+    first_result = htmx_div.get_by_role("paragraph").nth(0)
+    expect(first_result).to_be_visible()
 
-    # need to wait until we get results
-    # htmx_results = htmx_div.locator("p").wait_for()
-    # htmx_results = htmx_div.get_by_role("paragraph")
-    # htmx_results = htmx_div.get_by_role("paragraph").wait_for()
-    # print(f"htmx_results.count(): {htmx_results.count()}")
-    # print(htmx_results)
-    # assert len(htmx_results) >= 3
-    # expect(htmx_results.to_have_count(3))
-    # await htmx_div.get_by_role("paragraph").nth(0).wait_for()
-    expect(htmx_div.get_by_role("paragraph")).to_be_visible()
+    # at least three results should be displayed for "rash" search
     assert htmx_div.get_by_role("paragraph").count() >= 3
-    # expect(htmx_results).to_have_count(3)
-    # expect(htmx_results.count()).to_be_greater_than_or_equal_to(4)
 
-    # assert htmx_results.count() >= 3
-
-    # Expects all results to have the word "rash" in it
-    # assert "rash" in htmx_results[0].inner_text().lower()
-    # expect(locator).to_contain_text()
-    # for result in htmx_results.all():
-    #     expect(result.to_contain_text("rash"))
-
-    # Expects all resutls to contain the word "rash"
-    # Pass a list of strings of the same length as the number of elements in the locator
-    # https://playwright.dev/python/docs/api/class-locatorassertions#locator-assertions-to-contain-text
-    expect(htmx_results).to_contain_text(["rash"] * htmx_results.count())
+    # For all items in "rash" search, they should contain "rash" (case insensitive)
+    expect(htmx_div.get_by_role("paragraph")).to_contain_text(["rash"] * htmx_div.get_by_role("paragraph").count(), ignore_case=True)
