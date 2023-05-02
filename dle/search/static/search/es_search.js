@@ -266,11 +266,17 @@ search.addWidgets([
                     singleItemUrl = `../data/single_label_view/${hit.drug_label_id}, ${globalSearchTerm}`;
                 }
 
-                if (foundDrugLabels.includes(hit.drug_label_id)) {
-                return html``;
-                } 
 
-                foundDrugLabels.push(hit.drug_label_id);                
+                if (globalSearchTerm.lengh > 4) {
+                    // do to scaling issues, we only want to do this potentially costly check
+                    // of which drug labels are in the array of there's enough categories to
+                    // have a legitimate search and not using filtering methods.
+                    if (foundDrugLabels.includes(hit.drug_label_id)) {
+                        return html``;
+                    }
+
+                    foundDrugLabels.push(hit.drug_label_id);
+                }
 
                 return html `
                       <input type="checkbox" name="compare" value="${hit.drug_label_id}" />
