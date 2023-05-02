@@ -4,7 +4,9 @@
             <h2>{{ dl.product_name }}</h2>
             <h2>{{ dl.generic_name}}</h2>
     {% endif %}
-    <p><a href="../data/single_label_view/{{ dl.id }}"><i>{{dl.product_name}}</i> <i>{{dl.source}}</i> {{dl.version_date}} <i>{{dl.marketer}}</i>
+    <p>
+        <input type="checkbox" name="compare" value="{{dl.id}}" />
+        <a href="../data/single_label_view/{{ dl.id }}"><i>{{dl.product_name}}</i> <i>{{dl.source}}</i> {{dl.version_date}} <i>{{dl.marketer}}</i>
         <i>{{ dl.link }}</i>
         <i>{{ dl.version_date }}</i>
         <i>{{ dl.updated_at }}</i>
