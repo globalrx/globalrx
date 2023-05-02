@@ -46,6 +46,9 @@ API_ENDPOINT = env.str("API_ENDPOINT", "http://localhost:8000")
 
 NOMIC_KEY = env.str("NOMIC_KEY", None)
 
+CSRF_TRUSTED_ORIGINS = ["https://searchrx.org"]
+CORS_ORIGIN_ALLOW_ALL = True
+
 # Hosts and CIDR (AWS subnets)
 try:
     ALLOWED_HOSTS = [
