@@ -1,5 +1,4 @@
 from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Q
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.views.decorators.http import require_GET
@@ -92,9 +91,7 @@ def search_label_htmx(request: HtmxHttpRequest) -> HttpResponse:
     if request.htmx:
         q = request.GET.get("query", "")
         if q:
-            labels = DrugLabel.objects.filter(
-                Q(product_name__icontains=q) | Q(generic_name__icontains=q)
-            )
+            labels = DrugLabel.objects.filter(product_name__iexact=q).order_by("version_date")[:10]
 
         else:
             print("No query string")
