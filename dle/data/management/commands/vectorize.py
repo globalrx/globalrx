@@ -45,7 +45,7 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         agency = options["agency"]
 
-        if agency not in ["EMA", "FMA", "TGA", "HC", "all"]:
+        if agency not in ["EMA", "FDA", "TGA", "HC", "all"]:
             raise CommandError("'agency' parameter must be an agency")
 
         logger.info(self.style.SUCCESS("start vectorizing"))
