@@ -91,8 +91,9 @@ def search_label_htmx(request: HtmxHttpRequest) -> HttpResponse:
     if request.htmx:
         q = request.GET.get("query", "")
         if q:
-            labels = DrugLabel.objects.filter(product_name__iexact=q).order_by("version_date")[:10]
-
+            labels = DrugLabel.objects.filter(product_name__icontains=q).order_by("version_date")[
+                :10
+            ]
         else:
             print("No query string")
             labels = []
