@@ -309,6 +309,12 @@ Resources:
 
 
 
+  ec2ElasticIp:
+    Type: AWS::SSM::Parameter
+    Properties: 
+      Name: task_id
+      Type: String
+      Value: !Ref DjangoTaskDefinition
 
 
 Outputs:
