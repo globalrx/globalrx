@@ -8,18 +8,6 @@ def copy_field(apps, schema):
     ProductSection = apps.get_model('data', 'ProductSection')
     ProductSection.objects.all().update(agency_section_name=F('section_name'))
 
-# def set_defaults(apps, schema_editor):
-#     ProductSection = apps.get_model('data', 'ProductSection')
-#     # RAM issue - see: https://stackoverflow.com/questions/34843668/django-migration-being-killed
-#     # Use iterator() to avoid loading all objects into memory at once.
-#     qs = ProductSection.objects.all()
-#     for ps in qs.iterator():
-#         agency_section_name = ps.agency_section_name
-#         agency = ps.label_product.drug_label.source
-#         ps.section_name = map_header_to_inverted_meta(agency=agency, header=agency_section_name)
-#         # ps.save()
-#     ProductSection.objects.bulk_update(qs, ['section_name'])
-
 def update_section_names(apps, schema):
     ProductSection = apps.get_model('data', 'ProductSection')
     qs = ProductSection.objects.all()
@@ -32,8 +20,6 @@ def update_section_names(apps, schema):
         finished += 1
         if finished % 10000 == 0:
             print(f'Finished {finished} rows')
-        # ps.save()
-    # ProductSection.objects.bulk_update(qs, ['section_name'])
 
 
 class Migration(migrations.Migration):
