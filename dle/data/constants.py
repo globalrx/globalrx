@@ -395,6 +395,7 @@ INVERTED_SECTION_MAP = {
         "Pharmacological Properties": "Pharmacological Properties",
         "Pregnancy And Lactation": "Pregnancy And Lactation",
         "Fertility Pregnancy And Lactation": "Pregnancy And Lactation",
+        "Fertility, Pregnancy And Lactation": "Pregnancy And Lactation",
         "Special Precautions For Disposal": "Storage Stability and Disposal",
         "Special Precautions For Disposal And Other Handling": "Storage Stability and Disposal",
         "Special Precautions For Storage": "Storage Stability and Disposal",
