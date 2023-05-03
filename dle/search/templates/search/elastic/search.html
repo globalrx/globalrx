@@ -87,7 +87,7 @@
       style="margin-right:10px;background: rgba(165,170,174,0.25);
       box-shadow: inset 0 2px 8px 0 rgba(165,170,174,0.25);
       border-radius: 10px;display: inline-block;overflow: hidden;
-      display: inline-flex;flex-direction: column;transition: all 500ms ease;">
+      display: inline-flex;flex-direction: column;transition: all 500ms ease; padding: 20px;">
         <div id="search-type-item" class="col-3" 
         style="display:inline-flex; align-items:center;"></div>
         <!-- Modal -->
@@ -156,14 +156,13 @@
         </div>
         </div>
         <div id="searchbox" class="ais-SearchBox col-lg"></div>
+        <div id="drug-label-search-results">
+          {% include "data/_label_search_results.html" %}
+        </div>
+        <div id="hits"></div>
+        <div id="pagination"></div>
       </div>
     </div>
-
-    <div id="drug-label-search-results" style="margin-left: 400px" data-testid="htmx-dl-search-results">
-      {% include "data/_label_search_results.html" %}
-    </div>
-    <div id="hits"></div>
-    <div id="pagination"></div>
   </div>
 </div>
 
