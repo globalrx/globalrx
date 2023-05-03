@@ -334,9 +334,9 @@ class Command(BaseCommand):
             if "application_number" in record["metadata"]
             else ""
         )
-        # If there is no application number, it means it's not approved by fda
-        # Skip it
-        if application_num == "":
+        # If there is no application number, it means it's not approved by fda;
+        # And also filter out any application that is not NDA
+        if application_num == "" or record["metadata"]["application_number"][0][:3] != "NDA":
             return
 
         fda_link = f"https://www.accessdata.fda.gov/scripts/cder/daf/index.cfm?event=overview.process&varApplNo={application_num}"
