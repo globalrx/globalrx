@@ -224,10 +224,6 @@ Resources:
           Value: !Sub "http://${ElasticIPAddress}:9200"
         - Name: ELASTICSEARCH_USER
           Value: elastic
-        - Name: ELASTIC_CLOUD_ID
-          Value: AppName:longRaNd0MStringofChars
-        - Name: ELASTIC_CLOUD_PASSWORD
-          Value: RandomGenPWD
         - Name: ELASTIC_PASSWORD
           Value: !Ref elasticPword
         - Name: ES_AUTO_SYNC
