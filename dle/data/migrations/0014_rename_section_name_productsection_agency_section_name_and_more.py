@@ -56,11 +56,5 @@ class Migration(migrations.Migration):
         # Copy to the new column
         migrations.RunPython(code=copy_field, reverse_code=migrations.RunPython.noop),
         # Now repopulate the existing section_name column
-        migrations.RunPython(code=update_section_names, reverse_code=migrations.RunPython.noop),
-        # And make it non-nullable
-        migrations.AlterField(
-            model_name='productsection',
-            name='agency_section_name',
-            field=models.CharField(db_index=True, max_length=255),
-        ),
+        migrations.RunPython(code=update_section_names, reverse_code=migrations.RunPython.noop)
     ]
