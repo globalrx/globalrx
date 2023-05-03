@@ -217,7 +217,7 @@ Resources:
         - Name: DJANGO_SUPERUSER_EMAIL
           Value: aeg224@g.harvard.edu
         - Name: DJANGO_SUPERUSER_PASSWORD
-          Value: Wtb8qbY0kH54bF
+          Value: !Ref awsSecretKey
         - Name: DJANGO_SUPERUSER_USERNAME
           Value: admin
         - Name: ELASTICSEARCH_URL
