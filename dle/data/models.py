@@ -117,11 +117,11 @@ class ProductSection(SearchDocumentMixin, models.Model):
     # raw text before we standardize by agency; optional, as we didn't store it for original scrapes
     original_section_name_text = models.CharField(max_length=255, null=True, blank=True)
 
-    # standardized section name, by agency
-    section_name = models.CharField(max_length=255, db_index=True)
+    # standardized by agency / country
+    agency_section_name = models.CharField(max_length=255, db_index=True)
 
     # mapped metacategory for comparison across agengies
-    section_metacategory = models.CharField(max_length=255, db_index=True)
+    section_name = models.CharField(max_length=255, db_index=True)
 
     section_text = models.TextField()
 
@@ -167,7 +167,6 @@ class ProductSection(SearchDocumentMixin, models.Model):
             ).marketer,
             "drug_label_link": DrugLabel.objects.get(id=self.label_product.drug_label.id).link,
             "section_name": self.section_name,
-            "section_metacategory": self.section_metacategory,
             "section_text": self.section_text,
             "id": str(self.id),
             "text_embedding": []
