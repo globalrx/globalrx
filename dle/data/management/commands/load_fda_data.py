@@ -15,7 +15,6 @@ from django.db.utils import IntegrityError, OperationalError
 import requests
 from bs4 import BeautifulSoup
 
-# from data.constants import FDA_SECTION_NAME_MAP
 from data.models import DrugLabel, LabelProduct, ParsingError, ProductSection
 from data.util import check_recently_updated, strfdelta  # PDFParseException, convert_date_string
 from users.models import MyLabel

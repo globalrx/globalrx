@@ -12,10 +12,6 @@ from elasticsearch_django.models import (
 )
 
 
-# Create your models here. Then run:
-# `python manage.py makemigrations`
-# `python manage.py migrate`
-
 SOURCES = [
     ("FDA", "USA - Federal Drug Administration"),
     ("EMA", "EU - European Medicines Agency"),
@@ -33,24 +29,30 @@ class DrugLabel(models.Model):
     - `LabelProduct`s then have multiple `ProductSection`s
     """
 
+    # Store when the object was created and updated, so we can skip labels that were recently scraped
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # The label's source agency (e.g. FDA, EMA, etc.)
     source = models.CharField(max_length=8, choices=SOURCES, db_index=True)
+    # The label's product name (e.g. "Tylenol")
     product_name = models.CharField(max_length=255, db_index=True)
+    # The label's generic name (e.g. "acetaminophen")
     generic_name = models.CharField(max_length=2048, db_index=True)
+    # The label's version date (e.g. "2020-01-01"); labels may have multiple versions
     version_date = models.DateField(db_index=True)
+    # The label's product number. This is specific to the source, and the format varies by source agency.
     source_product_number = models.CharField(max_length=255, db_index=True)
-    "source-specific product-id"
     raw_text = models.TextField()
+    # The label's marketer (e.g. "Johnson & Johnson"). Marketer is like the manufacturer, but technically the manufacturer can be different.
     marketer = models.CharField(max_length=255, db_index=True)
-    "marketer is 'like' the manufacturer, but technically the manufacturer can be different"
+    # An external link to the source agency's website, typically to the PDF of the label but in some cases,
+    # like OpenFDA, it may be to a higher-level overview of the label rather than the PDF itself.
     link = models.URLField()
-    "link is url to the external data source website"
 
     class Meta:
         constraints = [
-            # add a unique constraint to prevent duplicate entries
+            # add a unique constraint across this composite key to prevent duplicate entries
             models.UniqueConstraint(
                 fields=["source", "source_product_number", "version_date"],
                 name="unique_dl",
@@ -76,7 +78,6 @@ class DrugLabel(models.Model):
             "source_product_number": self.source_product_number,
             "marketer": self.marketer,
             "link": self.link,
-            # "raw_text": self.raw_text,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
             "id": self.id,
@@ -112,7 +113,16 @@ class ProductSection(SearchDocumentMixin, models.Model):
     """
 
     label_product = models.ForeignKey(LabelProduct, on_delete=models.CASCADE)
+
+    # raw text before we standardize by agency; optional, as we didn't store it for original scrapes
+    original_section_name_text = models.CharField(max_length=255, null=True, blank=True)
+
+    # standardized by agency / country
+    agency_section_name = models.CharField(max_length=255, db_index=True)
+
+    # mapped metacategory for comparison across agengies
     section_name = models.CharField(max_length=255, db_index=True)
+
     section_text = models.TextField()
 
     # https://fueled.com/the-cache/posts/backend/django/setup-full-text-search-index-in-django/
@@ -159,7 +169,6 @@ class ProductSection(SearchDocumentMixin, models.Model):
             "section_name": self.section_name,
             "section_text": self.section_text,
             "id": str(self.id),
-            # "text_embedding": np.empty() if not self.bert_vector else np.array(json.loads(self.bert_vector)),
             "text_embedding": []
             if not self.bert_vector
             else [float(w) for w in json.loads(self.bert_vector)],
@@ -200,8 +209,10 @@ class ParsingError(models.Model):
     Class to track known DrugLabel parsing errors for further improvements
     """
 
+    # Store when the error was created and when it was last parsed
     created_at = models.DateTimeField(auto_now_add=True)
     last_parsed = models.DateTimeField(auto_now=True)
+
     url = models.URLField(max_length=400, blank=False)
     source_product_number = models.CharField(max_length=100, blank=True)
     error_type = models.CharField(

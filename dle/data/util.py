@@ -8,7 +8,24 @@ import dateparser
 import numpy as np
 from dateparser.search import search_dates
 
+from data.constants import INVERTED_SECTION_MAP, METACATEGORIES_MAP
 from data.models import DrugLabel
+
+
+def map_header_to_metacategory(country: str, header: str) -> str:
+    for metacategory, lists in METACATEGORIES_MAP.items():
+        if header in lists[country]:
+            return metacategory
+    return ""
+
+
+def map_header_to_inverted_meta(agency: str, header: str) -> str:
+    if header.strip() == "":
+        return ""
+    if agency in INVERTED_SECTION_MAP:
+        if header in INVERTED_SECTION_MAP[agency]:
+            return INVERTED_SECTION_MAP[agency][header]
+    return ""
 
 
 def highlight_query_string(text: str, qstring: str) -> str:
@@ -200,9 +217,3 @@ def strfdelta(tdelta, fmt="{D:02}d {H:02}h {M:02}m {S:02}s", inputtype="timedelt
 
 class PDFParseException(Exception):
     """Exception raised for errors parsing PDFs."""
-
-
-# TODO move all vectorization functions here
-# TODO create a script that can be called outside of Docker to vectorize Django data
-# It should be able to vectorize all data in the database, or a subset of it
-# It should be able to connect to Django to update the database with the new vectors
