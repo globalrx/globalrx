@@ -266,11 +266,11 @@ Resources:
         - ContainerPort: 8000
           HostPort: 8000
           Protocol: tcp
-      Cpu: "4096"
+      Cpu: "2048"
       ExecutionRoleArn:
         Ref: DjangoTaskExecutionRole
       Family: dle-django
-      Memory: "8192"
+      Memory: "4096"
       NetworkMode: awsvpc
       RequiresCompatibilities:
       - FARGATE
