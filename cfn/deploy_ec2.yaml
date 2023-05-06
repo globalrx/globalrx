@@ -1,3 +1,6 @@
+# This script deploys the EC2 instance for the SearchRx application
+
+
 Parameters:
   InstanceTypeParameter:
     Type: String
