@@ -7,7 +7,6 @@ var globalSearchTerm = '';
 var queryType = 'match'; // knn, simpleQueryString, match
 var searchkit_ready = false;
 
-var foundDrugLabels = [];
 const sk = new Searchkit({
     connection: {
         host: SEARCHKIT_SERVICE, // Set by the Django template in which this file is embedded
@@ -265,12 +264,6 @@ search.addWidgets([
                 } else {
                     singleItemUrl = `../data/single_label_view/${hit.drug_label_id}, ${globalSearchTerm}`;
                 }
-
-                if (foundDrugLabels.includes(hit.drug_label_id)) {
-                return html``;
-                } 
-
-                foundDrugLabels.push(hit.drug_label_id);                
 
                 return html `
                       <input type="checkbox" name="compare" value="${hit.drug_label_id}" />
