@@ -11,6 +11,7 @@ from django.conf import settings
 from django.core.management.base import BaseCommand
 
 import requests
+from tqdm import tqdm
 
 from data.models import DrugLabel
 
@@ -69,47 +70,74 @@ class Command(BaseCommand):
             all_records_to_delete.extend(records_to_delete)
             all_ndas.extend(ndas)
 
-            # logger.info(f"Total records in JSON: {len(raw_json_result)}")
-
-            # logger.info(f"NDA count: {len(ndas)}")
-            # records_keep = DrugLabel.objects.filter(source_product_number__in=ndas)
-            # logger.info(f"NDA matches: {records_keep.count()}")
-
-            # logger.info(f"Records to delete: {len(records_to_delete)}")
-            # Delete the records
-            # Still testing ...
-            # self.delete_data(records_to_delete)
-            # logger.info(f"Finished deleting {json_file}")
         logger.info(f"Total records in JSONs: {total_records}")
-        logger.info(f"Total FDA DLs in Django: {DrugLabel.objects.all().count()}")
-        logger.info(f"NDA count: {len(all_ndas)}")
+        logger.info(f"Total FDA DLs in Django: {DrugLabel.objects.filter(source='FDA').count()}")
+        logger.info(f"JSON records with multiple NDCs: {self.multiple_ndcs}")
+        logger.info(f"NDA in JSON count: {len(all_ndas)}")
         logger.info(
             f"NDA matches in Django: {DrugLabel.objects.filter(source_product_number__in=all_ndas).count()}"
         )
-        logger.info(f"Non-NDA count: {len(all_records_to_delete)}")
+        logger.info(f"Non-NDA in JSON count: {len(all_records_to_delete)}")
         logger.info(
             f"Non-NDA matches in Django, to delete: {DrugLabel.objects.filter(source_product_number__in=all_records_to_delete).count()}"
         )
-        logger.info(f"Records with multiple NDCs: {self.multiple_ndcs}")
+
+        # Try this, might error on RAM if QuerySet is too large
+        # Also getting: django.db.utils.OperationalError: sending query and params failed: number of parameters must be between 0 and 65535
+        # List of ndc ids is too long
+
+        # delete_results = DrugLabel.objects.filter(source_product_number__in=all_records_to_delete).delete()
+        # logger.info(f"Delete results: {delete_results}")
+
+        # progressbar = tqdm(total=to_del.count())
+        # for dl in to_del.iterator(chunk_size=1000):
+        #     dl.delete()
+        #     progressbar.update(1)
+
+        # Slow but works
+        to_del = DrugLabel.objects.filter(source="FDA").filter(
+            source_product_number__in=all_records_to_delete
+        )
+        progressbar = tqdm(total=to_del.count())
+        logger.info(f"Deleting {to_del.count()} records ...")
+        while (
+            DrugLabel.objects.filter(source="FDA")
+            .filter(source_product_number__in=all_records_to_delete)
+            .count()
+        ):
+            ids = (
+                DrugLabel.objects.filter(source="FDA")
+                .filter(source_product_number__in=all_records_to_delete)
+                .values_list("pk", flat=True)[0:1000]
+            )
+            DrugLabel.objects.filter(pk__in=ids).delete()
+            progressbar.update(1000)
+
+        logger.info(f"Completed deleting {to_del.count()}")
 
     def filter_data(self, raw_json_result):
         # create a list of records to delete
         # only records that start with NDA should be kept
+        # also filter and only include DLs with "is_original_packager" and "human_prescription_drug"
         # return two lists, the NDAs and not NDAs
         product_ndcs_to_delete = []
         product_ndcs_to_keep = []
         for record in raw_json_result:
             try:
+                if len(record["openfda"]["product_ndc"]) > 1:
+                    # logger.info(f"Multiple NDCs")
+                    self.multiple_ndcs += 1
                 application_num_list = record["openfda"]["application_number"]
                 if len(application_num_list) > 1:
                     logger.info(f"More than one application number: {application_num_list}")
                     raise TypeError
                 application_num = application_num_list[0]
-                if len(record["openfda"]["product_ndc"]) > 1:
-                    # logger.info(f"Multiple NDCs")
-                    self.multiple_ndcs += 1
                 ndc = record["openfda"]["product_ndc"][0]
                 if not application_num.startswith("NDA"):
+                    product_ndcs_to_delete.append(ndc)
+                elif "is_original_packager" not in record["openfda"].keys():
+                    product_ndcs_to_delete.append(ndc)
+                elif not self.check_type(record) == "human_prescription_drug":
                     product_ndcs_to_delete.append(ndc)
                 else:
                     product_ndcs_to_keep.append(ndc)
@@ -121,12 +149,18 @@ class Command(BaseCommand):
                 pass
         return product_ndcs_to_delete, product_ndcs_to_keep
 
-    def delete_data(self, product_ndcs_to_delete):
-        # delete the records
-        logger.info(f"Test - {len(product_ndcs_to_delete)} DLs to try to delete")
-        records = DrugLabel.objects.filter(source_product_number__in=product_ndcs_to_delete)
-        logger.info(f"Test - {records.count()} DLs matched")
-        # records.delete()
+    def check_type(self, res):
+        # Taken from load_fda_data
+        if "product_type" not in res["openfda"].keys():
+            return "uncategorized_drug"
+        pt = res["openfda"]["product_type"]
+        if type(pt) == float:
+            return "uncategorized_drug"
+        if type(pt) == list:
+            assert len(pt) == 1
+            return pt[0].lower().replace(" ", "_")
+        else:
+            logger.info(f"Problem determining type: {pt}")
 
     def download_json(self, urls):
         # Taken from load_fda_data
