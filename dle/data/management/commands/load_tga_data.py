@@ -137,11 +137,9 @@ class Command(BaseCommand):
         logger.info(f"import_type: {import_type}")
 
         if import_type == "test":
-            # top level pages for 0, 5, Y labels
+            # top level page for 0 labels
             urls = [
-                "https://www.ebs.tga.gov.au/ebs/picmi/picmirepository.nsf/PICMI?OpenForm&t=PI&k=0&r=/",
-                "https://www.ebs.tga.gov.au/ebs/picmi/picmirepository.nsf/PICMI?OpenForm&t=PI&k=5&r=/",
-                "https://www.ebs.tga.gov.au/ebs/picmi/picmirepository.nsf/PICMI?OpenForm&t=PI&k=Y&r=/",
+                "https://www.ebs.tga.gov.au/ebs/picmi/picmirepository.nsf/PICMI?OpenForm&t=PI&k=0&r=/"
             ]
         else:
             # Get full list of addresses to query

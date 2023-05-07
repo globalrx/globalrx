@@ -291,6 +291,9 @@ class Command(BaseCommand):
 
                 time.sleep(0.5)
                 drug_label_parsed += 1
+                # For test, if it succesfully parses 3 labels, then break
+                if import_type == "test" and drug_label_parsed == 3:
+                    break
             # Click the next button
             next_button = self.driver.find_element(by=By.ID, value="results_next")
             if next_button is not None and drug_label_parsed < num_total_results:
