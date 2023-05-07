@@ -177,10 +177,6 @@ class Command(BaseCommand):
                 logger.error(self.style.ERROR(repr(e)))
                 logger.error("Failed to get HC result. Retrying")
 
-        if import_type == "test":
-            # Test with the first 25 results
-            num_total_results = 25
-
         drug_label_parsed = 0
         # Iterate all the drugs in the table
         while drug_label_parsed < num_total_results:
