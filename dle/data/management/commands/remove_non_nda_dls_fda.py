@@ -47,6 +47,11 @@ class Command(BaseCommand):
 
         # Iterate the json files in the directory one by one
         # Build a list of records to delete
+        total_records = 0
+        all_records_to_delete = []
+        all_ndas = []
+        self.multiple_ndcs = 0
+
         for file in os.listdir(file_dir):
             json_file = file_dir / file
             raw_json_result = None
@@ -56,35 +61,72 @@ class Command(BaseCommand):
             raw_json_result = raw_json_result["results"]
             logger.info(f"Finished loading {json_file}")
 
+            total_records += len(raw_json_result)
+
             # Filter out non-NDA labels
             logger.info("Filtering non-NDA labels")
-            records_to_delete = self.filter_data(raw_json_result)
-            logger.info(f"Records to delete: {len(records_to_delete)}")
-            logger.info("Sample --------")
-            logger.info(records_to_delete[0:100])
+            records_to_delete, ndas = self.filter_data(raw_json_result)
+            all_records_to_delete.extend(records_to_delete)
+            all_ndas.extend(ndas)
+
+            # logger.info(f"Total records in JSON: {len(raw_json_result)}")
+
+            # logger.info(f"NDA count: {len(ndas)}")
+            # records_keep = DrugLabel.objects.filter(source_product_number__in=ndas)
+            # logger.info(f"NDA matches: {records_keep.count()}")
+
+            # logger.info(f"Records to delete: {len(records_to_delete)}")
             # Delete the records
-            break
+            # Still testing ...
             # self.delete_data(records_to_delete)
             # logger.info(f"Finished deleting {json_file}")
+        logger.info(f"Total records in JSONs: {total_records}")
+        logger.info(f"Total FDA DLs in Django: {DrugLabel.objects.all().count()}")
+        logger.info(f"NDA count: {len(all_ndas)}")
+        logger.info(
+            f"NDA matches in Django: {DrugLabel.objects.filter(source_product_number__in=all_ndas).count()}"
+        )
+        logger.info(f"Non-NDA count: {len(all_records_to_delete)}")
+        logger.info(
+            f"Non-NDA matches in Django, to delete: {DrugLabel.objects.filter(source_product_number__in=all_records_to_delete).count()}"
+        )
+        logger.info(f"Records with multiple NDCs: {self.multiple_ndcs}")
 
     def filter_data(self, raw_json_result):
         # create a list of records to delete
         # only records that start with NDA should be kept
-        app_nums_to_delete = []
+        # return two lists, the NDAs and not NDAs
+        product_ndcs_to_delete = []
+        product_ndcs_to_keep = []
         for record in raw_json_result:
             try:
-                application_num = record["openfda"]["application_number"]
+                application_num_list = record["openfda"]["application_number"]
+                if len(application_num_list) > 1:
+                    logger.info(f"More than one application number: {application_num_list}")
+                    raise TypeError
+                application_num = application_num_list[0]
+                if len(record["openfda"]["product_ndc"]) > 1:
+                    # logger.info(f"Multiple NDCs")
+                    self.multiple_ndcs += 1
+                ndc = record["openfda"]["product_ndc"][0]
                 if not application_num.startswith("NDA"):
-                    app_nums_to_delete.append(application_num)
+                    product_ndcs_to_delete.append(ndc)
+                else:
+                    product_ndcs_to_keep.append(ndc)
             except KeyError:
-                logger.info(f"KeyError - no application_number: {record['openfda']}")
-        return app_nums_to_delete
+                # logger.info(f"KeyError - no application_number: {record['openfda']}")
+                pass
+            except TypeError:
+                # logger.info(f"TypeError - multiple application_numbers: {record['openfda']}")
+                pass
+        return product_ndcs_to_delete, product_ndcs_to_keep
 
-    def delete_data(self, records):
+    def delete_data(self, product_ndcs_to_delete):
         # delete the records
-        for record in records:
-            application_num = record["metadata"]["application_number"]
-            DrugLabel.objects.filter(source_product_number=application_num).delete()
+        logger.info(f"Test - {len(product_ndcs_to_delete)} DLs to try to delete")
+        records = DrugLabel.objects.filter(source_product_number__in=product_ndcs_to_delete)
+        logger.info(f"Test - {records.count()} DLs matched")
+        # records.delete()
 
     def download_json(self, urls):
         # Taken from load_fda_data
