@@ -201,10 +201,6 @@ class Command(BaseCommand):
                 logger.error(self.style.ERROR(repr(e)))
                 logger.error("Failed to get HC result. Retrying")
 
-        if import_type == "test":
-            # Test with the first 25 results
-            num_total_results = 25
-
         drug_label_parsed = 0
         # Iterate all the drugs in the table
         while drug_label_parsed < num_total_results:
@@ -312,17 +308,22 @@ class Command(BaseCommand):
                         logger.warning(
                             f"Failed to create ParsingError {parsing_error} - likely already exists"
                         )
-
                 time.sleep(0.5)
                 drug_label_parsed += 1
-            # Click the next button
-            next_button = self.driver.find_element(by=By.ID, value="results_next")
-            if next_button is not None and drug_label_parsed < num_total_results:
-                next_button.click()
-                # Wait for a bit, take awhile for it to load
-                time.sleep(10)
-            else:
+                # For test, if it succesfully parses 3 labels, then break
+                if import_type == "test" and drug_label_parsed == 3:
+                    break
+            if import_type == "test":
                 break
+            else:
+                # Click the next button
+                next_button = self.driver.find_element(by=By.ID, value="results_next")
+                if next_button is not None and drug_label_parsed < num_total_results:
+                    next_button.click()
+                    # Wait for a bit, take awhile for it to load
+                    time.sleep(10)
+                else:
+                    break
 
         for url in self.error_urls.keys():
             logger.warning(self.style.WARNING(f"error parsing url: {url}"))
