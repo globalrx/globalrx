@@ -275,8 +275,8 @@ jobs:
           aws ssm put-parameter --name "access_key" --type "String" --value ${{ secrets.AWS_ACCESS_KEY_ID }} --overwrite
           aws ssm put-parameter --name "secret_key" --type "String" --value ${{ secrets.AWS_ACCESS_KEY_ID }} --overwrite
 
-          aws ssm put-parameter --name "ecs_cluster_name" --type "String" --value "searchrx" --overwrite
-          aws ssm put-parameter --name "ecs_service_name" --type "String" --value "searchrxService" --overwrite
+          aws ssm put-parameter --name "ecs_cluster_name" --type "String" --value "searchrx-ecs-cluster" --overwrite
+          aws ssm put-parameter --name "ecs_service_name" --type "String" --value "searchrx-django-ecs-service" --overwrite
 
           aws ssm put-parameter --name "image_url" --type "String" --value ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/django:latest --overwrite
 

@@ -245,26 +245,7 @@ Resources:
           Value: elastic
         - Name: ELASTIC_PASSWORD
           Value: !Ref elasticPword
-#        - Name: ES_AUTO_SYNC
-#          Value: "False"
-#        - Name: ES_PORT
-#          Value: "9200"
-#        - Name: INIT_SUPERUSER
-#          Value: "False"
-#        - Name: LOAD
-#          Value: "False"
-#        - Name: MIGRATE
-#          Value: "False"
-#        - Name: POSTGRES_DB
-#          Value: postgres
-#        - Name: POSTGRES_HOST
-#          Value: postgres
-#        - Name: POSTGRES_PASSWORD
-#          Value: !Ref rdsPword 
-#        - Name: POSTGRES_PORT
-#          Value: "5432"
-#        - Name: POSTGRES_USER
-#          Value: postgres
+
         - Name: SECRET_KEY
           Value: !Ref secretPword
         - Name: STACK_VERSION
