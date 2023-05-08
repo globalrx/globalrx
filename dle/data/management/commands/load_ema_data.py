@@ -116,15 +116,15 @@ class Command(BaseCommand):
             ]
         elif import_type == "my_label":
             my_label_id = options["my_label_id"]
+            if my_label_id is None:
+                raise Exception("--my_label_id has to be set if --type is my_label")
             ml = MyLabel.objects.filter(pk=my_label_id).get()
-
             ema_file = ml.file.path
             dl = ml.drug_label
-
             lp = LabelProduct(drug_label=dl)
             lp.save()
 
-            dl.raw_text = self.process_ema_file(ema_file, lp)
+            dl.raw_text = self.process_ema_file(ema_file, lp, my_label_id=my_label_id)
             dl.save()
 
             # TODO would be nice to know if the file was successfully parsed
@@ -334,7 +334,7 @@ class Command(BaseCommand):
         logger.info(f"saved {pdf_url} file to {filename}")
 
         ema_file = settings.MEDIA_ROOT / filename
-        raw_text = self.process_ema_file(ema_file, lp, pdf_url)
+        raw_text = self.process_ema_file(ema_file, lp, pdf_url=pdf_url)
         # delete the file when done
         default_storage.delete(filename)
 
@@ -392,19 +392,18 @@ class Command(BaseCommand):
         else:
             return self.centers[ix]
 
-    def process_ema_file(self, ema_file, lp, pdf_url=""):
+    def process_ema_file(self, ema_file, lp, pdf_url="", my_label_id=None):
         text = []
 
         try:
             text = read_pdf(ema_file)
             info = {}
-            product_code = lp.drug_label.source_product_number
-            row = self.df[self.df["Product number"] == product_code]
-            info["metadata"] = row.iloc[0].apply(str).to_dict()
-
+            if my_label_id is None:
+                product_code = lp.drug_label.source_product_number
+                row = self.df[self.df["Product number"] == product_code]
+                info["metadata"] = row.iloc[0].apply(str).to_dict()
             label_text = {}  # next level = product page w/ metadata
             headers, sections = get_pdf_sections(text, pattern=r"^[0-9]+\.[0-9]*\s+.*[A-Z].*")
-
             for h, s in zip(headers, sections):
                 header = self.get_fixed_header(h)
                 if (header is not None) and (len(s) > 0):
@@ -413,7 +412,6 @@ class Command(BaseCommand):
                         label_text[header] = [s]
                     else:
                         label_text[header].append(s)
-
             for index, key in enumerate(label_text):
                 text_block = ""
                 # label_text[key] is an array of text. Convert it to a block of text
@@ -421,9 +419,9 @@ class Command(BaseCommand):
                     text_block += s
                 ps = ProductSection(label_product=lp, section_name=key, section_text=text_block)
                 ps.save()
-
-            info["Label Text"] = label_text
-            self.records[row["Product number"].iloc[0]] = info
+            if my_label_id is None:
+                info["Label Text"] = label_text
+                self.records[row["Product number"].iloc[0]] = info
         except Exception as e:
             logger.error(self.style.ERROR(repr(e)))
             logger.error(self.style.ERROR(f"Failed to process {ema_file}, url = {pdf_url}"))

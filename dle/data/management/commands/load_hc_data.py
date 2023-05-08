@@ -24,6 +24,7 @@ from selenium.webdriver.firefox.options import Options
 
 from data.models import DrugLabel, LabelProduct, ParsingError, ProductSection
 from data.util import PDFParseException, check_recently_updated, strfdelta
+from users.models import MyLabel
 
 from .pdf_parsing_helper import filter_headers, get_pdf_sections, read_pdf
 
@@ -60,6 +61,7 @@ OTHER_FORMATTED_SECTIONS = [
 # add `--type full` to import the full dataset
 # add `--verbosity 2` for info output
 # add `--verbosity 3` for debug output
+# support for my_labels with: --type my_label --my_label_id ml.id
 class Command(BaseCommand):
     help = "Loads data from HC"
     records = {}
@@ -78,8 +80,14 @@ class Command(BaseCommand):
         parser.add_argument(
             "--type",
             type=str,
-            help="'full', 'test'",
+            help="'full', 'test', or 'my_label'",
             default="test",
+        )
+        parser.add_argument(
+            "--my_label_id",
+            type=int,
+            help="set my_label_id for --type my_label",
+            default=None,
         )
         parser.add_argument(
             "--skip_more_recent_than_n_hours",
@@ -100,8 +108,8 @@ class Command(BaseCommand):
         )
         self.skip_errors = options["skip_known_errors"]
         import_type = options["type"]
-        if import_type not in ["full", "test"]:
-            raise CommandError("'type' parameter must be 'full' or 'test'")
+        if import_type not in ["full", "test", "my_label"]:
+            raise CommandError("'type' parameter must be 'full', 'test', or 'my_label'")
 
         # basic logging config is in settings.py
         # verbosity is 1 by default, gives critical, error and warning output
@@ -116,6 +124,22 @@ class Command(BaseCommand):
 
         logger.info(self.style.SUCCESS("start process"))
         logger.info(f"import_type: {import_type}")
+
+        if import_type == "my_label":
+            my_label_id = options["my_label_id"]
+            if my_label_id is None:
+                raise Exception("--my_label_id has to be set if --type is my_label")
+            ml = MyLabel.objects.filter(pk=my_label_id).get()
+            hc_file = ml.file.path
+            dl = ml.drug_label
+            lp = LabelProduct(drug_label=dl)
+            lp.save()
+            dl.raw_text = self.process_hc_pdf_file(hc_file=hc_file, lp=lp, my_label_id=my_label_id)
+            dl.save()
+            ml.is_successfully_parsed = True
+            ml.save()
+            logger.info(self.style.SUCCESS("process complete"))
+            return
 
         # Before being able to access the drugs,
         #  we have to do a search with "approved" status and "human" class.
@@ -406,7 +430,7 @@ class Command(BaseCommand):
         )
         logger.info(f"saved {pdf_url} file to: {filename}")
         hc_file = settings.MEDIA_ROOT / filename
-        raw_text = self.process_hc_pdf_file(hc_file, source_product_number, lp, pdf_url)
+        raw_text = self.process_hc_pdf_file(hc_file, lp, source_product_number, pdf_url)
         # delete the file when done
         default_storage.delete(filename)
         return raw_text
@@ -484,7 +508,9 @@ class Command(BaseCommand):
                     label_text[header].append(s)
         return label_text
 
-    def process_hc_pdf_file(self, hc_file, source_product_number, lp, pdf_url=""):
+    def process_hc_pdf_file(
+        self, hc_file, lp, source_product_number="", pdf_url="", my_label_id=None
+    ):
         raw_text = []
         label_text = {}  # next level = product page w/ metadata
 
@@ -492,7 +518,8 @@ class Command(BaseCommand):
             raw_text = read_pdf(hc_file, no_margins=False, no_annex=False)
 
             info = {}
-            product_code = source_product_number
+            if my_label_id is None:
+                product_code = source_product_number
 
             headers, sections = [], []
             # Match headers that start with section numbers (e,g, 4.1)
@@ -519,8 +546,9 @@ class Command(BaseCommand):
                 ps = ProductSection(label_product=lp, section_name=key, section_text=text_block)
                 ps.save()
 
-            info["Label Text"] = label_text
-            self.records[product_code] = info
+            if my_label_id is None:
+                info["Label Text"] = label_text
+                self.records[product_code] = info
             logger.info(f"{hc_file} parsed Successfully")
         except PDFParseException as e:
             logger.error(self.style.ERROR(repr(e)))
