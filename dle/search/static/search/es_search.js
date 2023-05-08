@@ -7,7 +7,6 @@ var globalSearchTerm = '';
 var queryType = 'match'; // knn, simpleQueryString, match
 var searchkit_ready = false;
 
-var foundDrugLabels = [];
 const sk = new Searchkit({
     connection: {
         host: SEARCHKIT_SERVICE, // Set by the Django template in which this file is embedded
@@ -34,7 +33,8 @@ const sk = new Searchkit({
             "section_text",
             "drug_label_generic_name",
             "drug_label_source",
-            "drug_label_marketer"
+            "drug_label_marketer",
+            "drug_label_source_product_number",
         ],
         result_attributes: [
             "id", // Django Section ID - string not int e.g. "980870". In most cases same as Elasticsearch _id
@@ -46,7 +46,7 @@ const sk = new Searchkit({
             "drug_label_source", // e.g. EMA
             "drug_label_link", // https://www.ema.europa.eu/documents/product-information/duoplavin-epar-product-information_en.pdf
             "drug_label_version_date", // 2023-03-31
-            "drug_label_product_number", // Does not currently exist in Elasticsearch
+            "drug_label_source_product_number", // e.g. EMEA/H/C/004117
             "drug_label_id", // Django DL ID e.g. 48464
             "drug_label_marketer"
         ],
@@ -266,12 +266,6 @@ search.addWidgets([
                     singleItemUrl = `../data/single_label_view/${hit.drug_label_id}, ${globalSearchTerm}`;
                 }
 
-                if (foundDrugLabels.includes(hit.drug_label_id)) {
-                return html``;
-                } 
-
-                foundDrugLabels.push(hit.drug_label_id);                
-
                 return html `
                       <input type="checkbox" name="compare" value="${hit.drug_label_id}" />
                       <a href="${singleItemUrl}"style='font-weight:bold'>${components.Highlight({ attribute: 'drug_label_product_name', hit })}</a> <br />
@@ -280,7 +274,7 @@ search.addWidgets([
                       Source: ${hit.drug_label_source}<br />
                       Version Date: ${hit.drug_label_version_date}<br />
                       Marketer: ${components.Highlight({ attribute: 'drug_label_marketer', hit })}<br />
-                      <!-- DOESN'T EXIST IN ES YET Product Number: ${hit.drug_label_product_number}<br /> -->
+                      Agency Product Number: ${hit.drug_label_source_product_number}<br />
                       Source Link: <a href="${hit.drug_label_link}">${hit.drug_label_link}</a><br />
                       <p>${components.Snippet({ attribute: 'section_text', hit })}</p>
                       `;
