@@ -4,8 +4,8 @@ on:
   push:
     branches: 
       - infra_workflow_update
-    paths:
-      - cfn/*
+  #  paths:
+  #   - cfn/*
   workflow_dispatch:
 jobs:
   build:
