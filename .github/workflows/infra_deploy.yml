@@ -299,11 +299,11 @@ jobs:
 
       - name: Deploy ECS 
         uses: aws-actions/aws-cloudformation-github-deploy@v1
-        if: env.ECS_DEPLOYED == false
         with:
           name: ecs-deploy
           capabilities: CAPABILITY_NAMED_IAM
           template: cfn/deploy_ecs.yaml
+          no-fail-on-empty-changeset: "1"
         continue-on-error: true
 
 
