@@ -3,9 +3,9 @@ name: infra deploy
 on:
   push:
     branches: 
-      - main
+      - infra_workflow_update
     paths:
-      - infra_workflow_update/*
+      - cfn/*
   workflow_dispatch:
 jobs:
   build:
