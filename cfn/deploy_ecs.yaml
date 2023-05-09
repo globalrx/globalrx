@@ -203,7 +203,7 @@ Resources:
         - Name: AWS_SECRET_ACCESS_KEY
           Value: !Ref awsSecretKey
         - Name: ALLOWED_HOSTS
-          Value: '*'
+          Value: 'searchrx.org'
         - Name: APPLICATION_IP
           Value: !Ref ElasticIPAddress
         - Name: CLUSTER_NAME

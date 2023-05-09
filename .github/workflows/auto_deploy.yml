@@ -1,5 +1,8 @@
 name: ecs auto deploy
 
+# Automated deployment pipeline 
+# Assumes ECS Cluster is Running and ECR Repo is created via the infra_deploy.yaml pipeline
+
 on:
   push:
     branches: 
