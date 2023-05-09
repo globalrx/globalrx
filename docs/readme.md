@@ -228,7 +228,12 @@ Working with the ECS task (replace with correct vars). Run this from the Elastic
     - Place E2E tests (Playwright) in `dle/tests/e2e`
     - Create new directories if adding integration or load tests
     - Test files should be prefaced with `test_` and end with `.py`. Typically use one file per Django app.
-    
+
+### Alternative Setup : localdeploy.sh
+
+- To launch the application locally, the localdeploy.sh script has been created. It assumes docker is installed and that the database has been loaded. To launch it locally from the first time, either deploy the fixture or set uncomment the line in localdeploy.sh that contains LOAD=True. Note: If LOAD is set to true, it will take several hours to scrape the data and populate the database locally.
+
+
 ## Deployment
 
 ### AWS Architecture
