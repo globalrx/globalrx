@@ -5,7 +5,7 @@ on:
     branches: 
       - main
     paths:
-      - cfn/**
+      - infra_workflow_update/*
   workflow_dispatch:
 jobs:
   build:
@@ -34,7 +34,7 @@ jobs:
           AWS_DEFAULT_REGION: 'us-east-1'
         continue-on-error: true
 
-      - name: get s3 name
+      - name: Check if s3 stack has been deployed
         run: |
               aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-s3
               if [[ "$?" == 0 ]]
@@ -57,9 +57,10 @@ jobs:
           name: deploy-s3
           template: cfn/deploy_s3.yaml  
         continue-on-error: true
+        
 
 
-      - name: Push cfn to S3
+      - name: Backup scripts by pushing to S3
         run: |
           BUCKET_NAME=`aws ssm get-parameters --names cfn_bucket --region us-east-1 | jq -r '.Parameters[0].Value'`
           aws s3 sync cfn s3://$BUCKET_NAME
@@ -69,7 +70,7 @@ jobs:
           AWS_DEFAULT_REGION: 'us-east-1'
         continue-on-error: true
 
-      - name: get VPC ID
+      - name: Check if VPC has been deployed
         run: |
               aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-vpc
               if [[ "$?" == 0 ]]
@@ -96,9 +97,9 @@ jobs:
         continue-on-error: true
 
 
-      - name: get RDS Endpoint
+      - name: Check if RDS was created
         run: |
-              aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-rds
+              aws cloudformation --region us-east-1 describe-stacks --stack-name devdb
               if [[ "$?" == 0 ]]
               then
                 echo "RDS_CREATED=true" >> "$GITHUB_ENV"
@@ -128,13 +129,13 @@ jobs:
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         if: env.RDS_CREATED == false
         with:
-          name: deploy-rds
+          name: devdb
           capabilities: CAPABILITY_NAMED_IAM
           template: cfn/deploy_rds.yaml
 
 
 
-      - name: get ECR Repo Name
+      - name: Check if ECR has been deployed
         run: |
               aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-ecr
               if [[ "$?" == 0 ]]
@@ -153,11 +154,11 @@ jobs:
 
       - name: Deploy ECR 
         uses: aws-actions/aws-cloudformation-github-deploy@v1
-        if: env.REPO_NAME == false
         with:
           name: deploy-ecr
           capabilities: CAPABILITY_NAMED_IAM
           template: cfn/deploy_ecr.yaml
+          no-fail-on-empty-changeset: "1"
         continue-on-error: true
 
 
@@ -173,9 +174,9 @@ jobs:
         continue-on-error: true
 
 
-      - name: get EC2 IP Repo Name
+      - name: Check if EC2 has been deployed
         run: |
-              aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-ec2
+              aws cloudformation --region us-east-1 describe-stacks --stack-name ec2Dev
               if [[ "$?" == 0 ]]
               then
                 echo "EC2_IP=true" >> "$GITHUB_ENV"
@@ -193,7 +194,7 @@ jobs:
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         if: env.EC2_IP == false
         with:
-          name: deploy-ec2
+          name: ec2Dev
           capabilities: CAPABILITY_NAMED_IAM
           template: cfn/deploy_ec2.yaml
         continue-on-error: true
@@ -225,9 +226,9 @@ jobs:
 
 
 
-      - name: get LB Name
+      - name: Check if LB has been deployed
         run: |
-              aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-lb
+              aws cloudformation --region us-east-1 describe-stacks --stack-name lb
               if [[ "$?" == 0 ]]
               then
                 echo "LB_DEPLOYED=true" >> "$GITHUB_ENV"
@@ -246,21 +247,21 @@ jobs:
         uses: aws-actions/aws-cloudformation-github-deploy@v1
         if: env.LB_DEPLOYED == false
         with:
-          name: deploy-lb
+          name: lb
           capabilities: CAPABILITY_NAMED_IAM
           template: cfn/deploy_lb.yaml
         continue-on-error: true
 
 
 
-      - name: get Task Name
+      - name: Check if ECS has been deployed
         run: |
-              aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-ecs
+              aws cloudformation --region us-east-1 describe-stacks --stack-name ecs-deploy
               if [[ "$?" == 0 ]]
               then
-                echo "TASK_NAME=true" >> "$GITHUB_ENV"
+                echo "ECS_DEPLOYED=true" >> "$GITHUB_ENV"
               else
-                echo "TASK_NAME=false" >> "$GITHUB_ENV"
+                echo "ECS_DEPLOYED=false" >> "$GITHUB_ENV"
               fi
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -270,7 +271,7 @@ jobs:
 
 
       - name: Set ECS Params
-        if: env.TASK_NAME == false
+        if: env.ECS_DEPLOYED == false
         run: |
           aws ssm put-parameter --name "access_key" --type "String" --value ${{ secrets.AWS_ACCESS_KEY_ID }} --overwrite
           aws ssm put-parameter --name "secret_key" --type "String" --value ${{ secrets.AWS_ACCESS_KEY_ID }} --overwrite
@@ -298,9 +299,9 @@ jobs:
 
       - name: Deploy ECS 
         uses: aws-actions/aws-cloudformation-github-deploy@v1
-        if: env.TASK_NAME == false
+        if: env.ECS_DEPLOYED == false
         with:
-          name: deploy-ecs
+          name: ecs-deploy
           capabilities: CAPABILITY_NAMED_IAM
           template: cfn/deploy_ecs.yaml
         continue-on-error: true
