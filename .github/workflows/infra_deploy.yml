@@ -4,13 +4,14 @@ on:
   push:
     branches: 
       - infra_workflow_update
-  #  paths:
-  #   - cfn/*
+    paths:
+     - cfn/*
   workflow_dispatch:
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
+
 
       - name: pull repo
         uses: actions/checkout@v3
@@ -49,21 +50,15 @@ jobs:
           AWS_DEFAULT_REGION: 'us-east-1'
         continue-on-error: true
 
-
-      - name: create s3
-        if: env.BUCKET_CREATED == false
-        uses: aws-actions/aws-cloudformation-github-deploy@v1
-        with:
-          name: deploy-s3
-          template: cfn/deploy_s3.yaml  
-        continue-on-error: true
-        
-
-
-      - name: Backup scripts by pushing to S3
+      - name: Check if LB has been deployed
         run: |
-          BUCKET_NAME=`aws ssm get-parameters --names cfn_bucket --region us-east-1 | jq -r '.Parameters[0].Value'`
-          aws s3 sync cfn s3://$BUCKET_NAME
+              aws cloudformation --region us-east-1 describe-stacks --stack-name lb
+              if [[ "$?" == 0 ]]
+              then
+                echo "LB_DEPLOYED=true" >> "$GITHUB_ENV"
+              else
+                echo "LB_DEPLOYED=false" >> "$GITHUB_ENV"
+              fi
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -85,56 +80,6 @@ jobs:
           AWS_DEFAULT_REGION: 'us-east-1'
         continue-on-error: true
 
-
-      - name: Deploy VPC CFN
-        uses: aws-actions/aws-cloudformation-github-deploy@v1
-        if: env.VPC_CREATED == false
-        with:
-          name: deploy-vpc
-          capabilities: CAPABILITY_NAMED_IAM
-          template: cfn/deploy_vpc.yaml
-
-        continue-on-error: true
-
-
-      - name: Check if RDS was created
-        run: |
-              aws cloudformation --region us-east-1 describe-stacks --stack-name devdb
-              if [[ "$?" == 0 ]]
-              then
-                echo "RDS_CREATED=true" >> "$GITHUB_ENV"
-              else
-                echo "RDS_CREATED=false" >> "$GITHUB_ENV"
-              fi
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: 'us-east-1'
-        continue-on-error: true
-
-
-      - name: Set RDS PW
-        if: env.RDS_CREATED == false
-        run: |
-          RDS_PW=`date +%s | sha256sum | base64 | head -c 32 ; echo`
-          aws ssm put-parameter --name "rds_pword" --type "String" --value $RDS_PW --overwrite
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: 'us-east-1'
-        continue-on-error: true
-
-
-      - name: Deploy RDS CFN
-        uses: aws-actions/aws-cloudformation-github-deploy@v1
-        if: env.RDS_CREATED == false
-        with:
-          name: devdb
-          capabilities: CAPABILITY_NAMED_IAM
-          template: cfn/deploy_rds.yaml
-
-
-
       - name: Check if ECR has been deployed
         run: |
               aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-ecr
@@ -149,30 +94,6 @@ jobs:
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: 'us-east-1'
         continue-on-error: true
-
-
-
-      - name: Deploy ECR 
-        uses: aws-actions/aws-cloudformation-github-deploy@v1
-        with:
-          name: deploy-ecr
-          capabilities: CAPABILITY_NAMED_IAM
-          template: cfn/deploy_ecr.yaml
-          no-fail-on-empty-changeset: "1"
-        continue-on-error: true
-
-
-      - name: Set REPO_NAME Parameter
-        run: |
-          REPO_NAME=`aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-ecr --query "Stacks[0].Outputs[0].OutputValue" --output text`
-          aws ssm put-parameter --name "repo_name" --type "String" --value $REPO_NAME --overwrite
-          echo "REPO_NAME=$REPO_NAME" >> "$GITHUB_ENV"
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_DEFAULT_REGION: 'us-east-1'
-        continue-on-error: true
-
 
       - name: Check if EC2 has been deployed
         run: |
@@ -189,73 +110,20 @@ jobs:
           AWS_DEFAULT_REGION: 'us-east-1'
         continue-on-error: true
 
-
-      - name: Deploy EC2 
-        uses: aws-actions/aws-cloudformation-github-deploy@v1
-        if: env.EC2_IP == false
-        with:
-          name: ec2Dev
-          capabilities: CAPABILITY_NAMED_IAM
-          template: cfn/deploy_ec2.yaml
-        continue-on-error: true
-
-
-
-      - name: Login to Amazon ECR  # adapted from https://towardsaws.com/build-push-docker-image-to-aws-ecr-using-github-actions-8396888a8f9e
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
-
-
-        if: env.REPO_NAME == false
-
-
-      - name: Run Prod Setup Script   
-        if: env.REPO_NAME == false
+      - name: Check if RDS has been deployed
         run: |
-          cd dle
-          chmod 755 aws_setup.sh
-          ./aws_setup.sh
-
-      - name: Push Django to ECR  # adapted from https://towardsaws.com/build-push-docker-image-to-aws-ecr-using-github-actions-8396888a8f9e
-        if: env.REPO_NAME == false
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: django
-          IMAGE_TAG: latest
-        run: |
-          cd dle
-          docker build -t  ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/django:latest .
-          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/django:latest
-
-
-
-      - name: Check if LB has been deployed
-        run: |
-              aws cloudformation --region us-east-1 describe-stacks --stack-name lb
+              aws cloudformation --region us-east-1 describe-stacks --stack-name devdb
               if [[ "$?" == 0 ]]
               then
-                echo "LB_DEPLOYED=true" >> "$GITHUB_ENV"
+                echo "RDS_CREATED=true" >> "$GITHUB_ENV"
               else
-                echo "LB_DEPLOYED=false" >> "$GITHUB_ENV"
+                echo "RDS_CREATED=false" >> "$GITHUB_ENV"
               fi
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: 'us-east-1'
         continue-on-error: true
-
-
-
-      - name: Deploy Load Balancer 
-        uses: aws-actions/aws-cloudformation-github-deploy@v1
-        if: env.LB_DEPLOYED == false
-        with:
-          name: lb
-          capabilities: CAPABILITY_NAMED_IAM
-          template: cfn/deploy_lb.yaml
-        continue-on-error: true
-
-
 
       - name: Check if ECS has been deployed
         run: |
@@ -272,6 +140,21 @@ jobs:
           AWS_DEFAULT_REGION: 'us-east-1'
         continue-on-error: true
 
+
+
+
+
+
+      - name: Set RDS PW
+        if: env.RDS_CREATED == false
+        run: |
+          RDS_PW=`date +%s | sha256sum | base64 | head -c 32 ; echo`
+          aws ssm put-parameter --name "rds_pword" --type "String" --value $RDS_PW --overwrite
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: 'us-east-1'
+        continue-on-error: true
 
       - name: Set ECS Params
         if: env.ECS_DEPLOYED == false
@@ -291,12 +174,112 @@ jobs:
           aws ssm put-parameter --name "kibana_pw" --type "String" --value $KIBANA_PW --overwrite
           aws ssm put-parameter --name "secret_pw" --type "String" --value $SECRET_PW --overwrite
           aws ssm put-parameter --name "elastic_pw" --type "String" --value $ELASTIC_PW --overwrite
-
-
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           AWS_DEFAULT_REGION: 'us-east-1'
+        continue-on-error: true
+
+
+
+
+
+
+      - name: Deploy s3 CFN
+        if: env.BUCKET_CREATED == false
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: deploy-s3
+          no-fail-on-empty-changeset: "1"
+          template: cfn/deploy_s3.yaml  
+        continue-on-error: true
+
+
+      - name: Backup scripts by pushing to S3
+        run: |
+          BUCKET_NAME=`aws ssm get-parameters --names cfn_bucket --region us-east-1 | jq -r '.Parameters[0].Value'`
+          aws s3 sync cfn s3://$BUCKET_NAME
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: 'us-east-1'
+        continue-on-error: true
+
+
+      - name: Deploy VPC CFN
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        if: env.VPC_CREATED == false
+        with:
+          name: deploy-vpc
+          no-fail-on-empty-changeset: "1"
+          capabilities: CAPABILITY_NAMED_IAM
+          template: cfn/deploy_vpc.yaml
+        continue-on-error: true
+
+
+      - name: Deploy RDS CFN
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        if: env.RDS_CREATED == false
+        with:
+          name: devdb
+          no-fail-on-empty-changeset: "1"
+          capabilities: CAPABILITY_NAMED_IAM
+          template: cfn/deploy_rds.yaml
+
+
+      - name: Deploy ECR CFN
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: deploy-ecr
+          capabilities: CAPABILITY_NAMED_IAM
+          template: cfn/deploy_ecr.yaml
+          no-fail-on-empty-changeset: "1"
+        continue-on-error: true
+
+
+      - name: Deploy EC2 
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: ec2Dev
+          capabilities: CAPABILITY_NAMED_IAM
+          template: cfn/deploy_ec2.yaml
+          no-fail-on-empty-changeset: "1"
+        continue-on-error: true
+
+
+      - name: Login to Amazon ECR  # adapted from https://towardsaws.com/build-push-docker-image-to-aws-ecr-using-github-actions-8396888a8f9e
+        id: login-ecr
+        if: env.REPO_NAME == false
+        uses: aws-actions/amazon-ecr-login@v1
+
+
+      - name: Run Prod Setup Script   
+        if: env.REPO_NAME == false
+        run: |
+          cd dle
+          chmod 755 aws_setup.sh
+          ./aws_setup.sh
+
+
+      - name: Push Django to ECR  # adapted from https://towardsaws.com/build-push-docker-image-to-aws-ecr-using-github-actions-8396888a8f9e
+        if: env.REPO_NAME == false
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: django
+          IMAGE_TAG: latest
+        run: |
+          cd dle
+          docker build -t  ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/django:latest .
+          docker push ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com/django:latest
+
+
+      - name: Deploy Load Balancer 
+        uses: aws-actions/aws-cloudformation-github-deploy@v1
+        with:
+          name: lb
+          capabilities: CAPABILITY_NAMED_IAM
+          template: cfn/deploy_lb.yaml
+          no-fail-on-empty-changeset: "1"
         continue-on-error: true
 
 
