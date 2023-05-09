@@ -35,7 +35,7 @@ jobs:
           AWS_DEFAULT_REGION: 'us-east-1'
         continue-on-error: true
 
-      - name: get s3 name
+      - name: Check if S3 was created
         run: |
               aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-s3
               if [[ "$?" == 0 ]]
@@ -70,7 +70,7 @@ jobs:
           AWS_DEFAULT_REGION: 'us-east-1'
         continue-on-error: true
 
-      - name: get VPC ID
+      - name: Check if VPC was created
         run: |
               aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-vpc
               if [[ "$?" == 0 ]]
@@ -97,7 +97,7 @@ jobs:
         continue-on-error: true
 
 
-      - name: get RDS Endpoint
+      - name: Check if RDS was created
         run: |
               aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-rds
               if [[ "$?" == 0 ]]
@@ -135,7 +135,7 @@ jobs:
 
 
 
-      - name: get ECR Repo Name
+      - name: Check if ECR is deployed
         run: |
               aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-ecr
               if [[ "$?" == 0 ]]
@@ -174,7 +174,7 @@ jobs:
         continue-on-error: true
 
 
-      - name: get EC2 IP Repo Name
+      - name: Check if ec2 is deployed
         run: |
               aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-ec2
               if [[ "$?" == 0 ]]
@@ -226,7 +226,7 @@ jobs:
 
 
 
-      - name: get LB Name
+      - name: Check if LB is deployed
         run: |
               aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-lb
               if [[ "$?" == 0 ]]
@@ -254,14 +254,14 @@ jobs:
 
 
 
-      - name: get Task Name
+      - name: Check if ECS is deployed
         run: |
               aws cloudformation --region us-east-1 describe-stacks --stack-name deploy-ecs
               if [[ "$?" == 0 ]]
               then
-                echo "TASK_NAME=true" >> "$GITHUB_ENV"
+                echo "ECS_DEPLOYED=true" >> "$GITHUB_ENV"
               else
-                echo "TASK_NAME=false" >> "$GITHUB_ENV"
+                echo "ECS_DEPLOYED=false" >> "$GITHUB_ENV"
               fi
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -271,7 +271,7 @@ jobs:
 
 
       - name: Set ECS Params
-        if: env.TASK_NAME == false
+        if: env.ECS_DEPLOYED == false
         run: |
           aws ssm put-parameter --name "access_key" --type "String" --value ${{ secrets.AWS_ACCESS_KEY_ID }} --overwrite
           aws ssm put-parameter --name "secret_key" --type "String" --value ${{ secrets.AWS_ACCESS_KEY_ID }} --overwrite
@@ -299,7 +299,7 @@ jobs:
 
       - name: Deploy ECS 
         uses: aws-actions/aws-cloudformation-github-deploy@v1
-        if: env.TASK_NAME == false
+        if: env.ECS_DEPLOYED == false
         with:
           name: deploy-ecs
           capabilities: CAPABILITY_NAMED_IAM
