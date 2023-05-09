@@ -7,16 +7,17 @@
 <link href="{% static 'compare/styles.css' %}" rel="stylesheet">
 {% endblock %}
 
+/* compare two or more-three reault */
 {% block content %}
     <div class="container-fluid">
-        <div class="row">
-            <h6> Comparing versions dated 
+        <div class="column">
+            <h4> Comparing versions dated 
                 <b> {{dl1.version_date }}</b> and 
                 <b>{{dl2.version_date }}</b>:
-            </h6>
+            </h4>
         </div>
         <br>
-        <div class="row">
+        <div class="column">
             <table id="headerTable">
             <tr>
                 <td class="section-td">
@@ -29,6 +30,8 @@
                         <dt>Source: {{ dl1.source }}</dt>
                     </dl>
                 </td>
+            <tr>
+            <tr>
                 <td class="section-td">
                     <dl>
                         <dt>Product Name: <a href="{% url 'data:single_label_view' drug_label_id=dl2.id %}">{{ dl2.product_name|title }}</a></dt>
@@ -40,16 +43,29 @@
                     </dl>
                 </td>
             </tr>
+                {% if dl3 %}
+            <tr>
+                <td class="section-td"> 
+                    <dl>
+                        <dt>Product Name: <a href="{% url 'data:single_label_view' drug_label_id=dl3.id %}">{{ dl3.product_name|title }}</a></dt>
+                        <dt>Generic Name: {{ dl3.generic_name|title }}</dt>
+                        <dt>Version Date: {{ dl3.version_date }}</dt>
+                        <dt>Product Number: {{ dl3.source_product_number }}</dt>
+                        <dt>Marketer: {{ dl3.marketer|title }}</dt>
+                        <dt>Source: {{ dl3.source }}</dt>
+                    </dl>
+                </td>
+            </tr>
+                {% endif %}
             </table>
         </div>
         <hr>
-        <div class="row" id="sectionFilterContainer"> 
+        <div class="column" id="sectionFilterContainer"> 
             <div class="col-lg">
                 <label for="section-filter">Select Section: </label>
                 <select name="section-filter" id="sectionFilter" onchange="showSection()">
                     <option value="all">All Sections </option>
-                    <option value="diff-sections">Sections with Different Text</option>
-                    <option value="matching-sections">Sections with Matching Text</option>
+                    <option value="common-sections">All Common Sections </option>
                     {% for sec_name in section_names %}
                     <option value="{{sec_name|cut:' '}}">{{ sec_name|title }}</option>
                     {% endfor %}
@@ -61,39 +77,48 @@
         </div>
         {% if sections %}
             {% for section in sections %}
-            <div class="row sec-content {{section.textMatches}}" id="{{section.section_name|cut:' '}}" style="display:block">
-                <button type="button" class="collapsible">
-                    <i class="fa fa-plus-square-o" style="display:block"> <strong>{{ section.section_name|title }}</strong></i>
-                    <i class="fa fa-minus-square-o" style="display:none"> <strong>{{ section.section_name|title }}</strong></i>
-                </button>
-                <table class="section-table" style="display:none" style="line-height:100%">
-                    <tr>
-                        <td class="td-{{section.textMatches}} section-td" style="line-height:50%">
-                            <p>
-                            {% for tuple in section.section_text1 %}
-                                {% if tuple.0 == 0 %}
-                                    {{ tuple.1|safe }}
-                                {% elif tuple.0 == -1 %}
-                                    <span class="diff-text-highlight">{{ tuple.1 }}</span>
-                                {% endif %}
-                            {% endfor %}
-                            </p>
-                        </td>
-                        <td class="td-{{section.textMatches}} section-td" style="line-height:50%">
-                            <p>
-                            {% for tuple in section.section_text2 %}
-                                {% if tuple.0 == 0 %}
-                                    {{ tuple.1|safe }}
-                                {% elif tuple.0 == 1 %}
-                                    <span class="diff-text-highlight">{{ tuple.1 }}</span>
-                                {% endif %}
-                            {% endfor %}
-
-                            </p>
-                        </td>
-                    </tr>
-                </table>
-            </div>
+                <div class="row sec-content {{section.isCommon}}" id="{{section.section_name|cut:' '}}" style="display:block">
+                    <button type="button" class="collapsible">
+                        <i class="fa fa-plus-square-o" style="display:block"> <strong>{{ section.section_name|title }}</strong></i>
+                        <i class="fa fa-minus-square-o" style="display:none"> <strong>{{ section.section_name|title }}</strong></i>
+                    </button>
+                    <table class="section-table" style="display:none">
+                        {% if section.section_text3 %}
+                        <tr>
+                            <td class="section-td">
+                              <p>{{dl1.product_name|title}}</p>
+                              <p>{{ section.section_text1|safe }}</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="section-td">
+                              <p>{{dl2.product_name|title}}</p>
+                              <p>{{ section.section_text2|safe }}</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="section-td">
+                                <p>{{dl3.product_name|title}}</p>
+                                <p>{{ section.section_text3|safe }}</p>
+                            </td>
+                        </tr>
+                          {% else %}
+                        <tr>
+                            <td class="section-td" style="height:50%;">
+                              <p>{{dl1.product_name|title}}</p>
+                              <p>{{ section.section_text1|safe }}</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="section-td" style="height:50%">
+                              <p>{{dl2.product_name|title}}</p>
+                              <p>{{ section.section_text2|safe }}</p>
+                            </td>
+                        </tr>
+                          {% endif %}
+                        </tr>
+                    </table>
+                </div>
             {% endfor %}
         {% else %}
             <p>No section texts are found.</p>
@@ -115,9 +140,10 @@
          */
         for (i = 0; i < coll.length; i++) {
             coll[i].addEventListener("click", function() {
-                const content = this.nextElementSibling;
-                const plus_icon = this.getElementsByTagName('i')[0];
-                const minus_icon = this.getElementsByTagName('i')[1];
+                // this.classList.toggle("active");
+                var content = this.nextElementSibling;
+                var plus_icon = this.getElementsByTagName('i')[0];
+                var minus_icon = this.getElementsByTagName('i')[1];
                 if (content.style.display === "block") {
                     content.style.display = "none";
                     this.classList.remove("active");
@@ -138,6 +164,7 @@
          */
         function showSection() {
             const selected_sec = document.getElementById("sectionFilter").value;
+            console.log("selected option is: " + selected_sec)
             if (selected_sec == 'all') {
                 const sec_divs = document.getElementsByClassName('sec-content');
 
@@ -150,7 +177,7 @@
                 }
 
                 document.getElementById("expandSections").innerHTML="Expand All Sections";
-            } else if (selected_sec == 'matching-sections') { 
+            } else if (selected_sec == 'common-sections') { 
                 const sec_divs = document.getElementsByClassName('sec-content');
 
                 for (const div of sec_divs) {
@@ -160,24 +187,7 @@
                     const btn = div.getElementsByTagName('button')[0];
                     btn.classList.remove('active');
                 }
-                const common_sec = document.getElementsByClassName('matching-section');
-
-                for (const div of common_sec) {
-                    div.style.display = 'block';
-                }
-
-                document.getElementById("expandSections").innerHTML="Expand All Sections";
-            } else if (selected_sec == 'diff-sections') { 
-                const sec_divs = document.getElementsByClassName('sec-content');
-
-                for (const div of sec_divs) {
-                    div.style.display = 'none';
-                    const tbl = div.getElementsByTagName('table')[0];
-                    tbl.style.display = "none";
-                    const btn = div.getElementsByTagName('button')[0];
-                    btn.classList.remove('active');
-                }
-                const common_sec = document.getElementsByClassName('diff-section');
+                const common_sec = document.getElementsByClassName('common-section');
 
                 for (const div of common_sec) {
                     div.style.display = 'block';
@@ -229,7 +239,6 @@
                     btn.getElementsByTagName('i')[1].style.display = "none";
                 }
             }
-            console.log(btn.innerHTML);
         }
     </script>
 {% endblock footer_scripts %}
