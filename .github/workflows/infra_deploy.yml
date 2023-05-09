@@ -206,15 +206,18 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v1
 
 
+        if: env.REPO_NAME == false
 
 
       - name: Run Prod Setup Script   
+        if: env.REPO_NAME == false
         run: |
           cd dle
           chmod 755 aws_setup.sh
           ./aws_setup.sh
 
       - name: Push Django to ECR  # adapted from https://towardsaws.com/build-push-docker-image-to-aws-ecr-using-github-actions-8396888a8f9e
+        if: env.REPO_NAME == false
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_REPOSITORY: django
