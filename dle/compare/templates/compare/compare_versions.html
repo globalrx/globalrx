@@ -68,7 +68,7 @@
                 </button>
                 <table class="section-table" style="display:none" style="line-height:100%">
                     <tr>
-                        <td class="td-{{section.textMatches}} section-td" style="line-height:50%">
+                        <td class="td-{{section.textMatches}} section-td">
                             <p>
                             {% for tuple in section.section_text1 %}
                                 {% if tuple.0 == 0 %}
@@ -79,7 +79,7 @@
                             {% endfor %}
                             </p>
                         </td>
-                        <td class="td-{{section.textMatches}} section-td" style="line-height:50%">
+                        <td class="td-{{section.textMatches}} section-td">
                             <p>
                             {% for tuple in section.section_text2 %}
                                 {% if tuple.0 == 0 %}
