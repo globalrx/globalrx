@@ -6,7 +6,7 @@ Parameters:
     Description: CPU used for task
   MemoryParameter:
     Type: String
-    Default: "4096"
+    Default: "8192"
     Description: RAM used for task
 
   AllowedHostsParameter:
@@ -232,7 +232,7 @@ Resources:
         - Name: DATABASE_URL
           Value: !Sub "postgres://postgres:${rdsPword}@${DBEndpointParameter}:5432/postgres" 
         - Name: DEBUG
-          Value: "True"
+          Value: "False"
         - Name: DJANGO_SUPERUSER_EMAIL
           Value: !Ref EmailParameter
         - Name: DJANGO_SUPERUSER_PASSWORD
