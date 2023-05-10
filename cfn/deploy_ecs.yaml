@@ -232,7 +232,7 @@ Resources:
         - Name: DATABASE_URL
           Value: !Sub "postgres://postgres:${rdsPword}@${DBEndpointParameter}:5432/postgres" 
         - Name: DEBUG
-          Value: "False"
+          Value: "True"
         - Name: DJANGO_SUPERUSER_EMAIL
           Value: !Ref EmailParameter
         - Name: DJANGO_SUPERUSER_PASSWORD
