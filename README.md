@@ -10,6 +10,7 @@ SearchRx currently includes labels from the following sources:
 - [EMA - EU](https://www.ema.europa.eu/en/medicines)
 - [TGA - Australia](https://www.ebs.tga.gov.au/)
 - [HC  - Canada](https://health-products.canada.ca/dpd-bdpp/search)
+
 These labels are parsed and stored in a Postgres database using Django models, then indexed into Elasticsearch for faster and more accurate search leveraging semantic and vector search capabilities.
 
 ### Features
